@@ -1,6 +1,6 @@
 <?php
 
-	include_once( "C:/Users/marke/My Programs/PHP/lib/class_debug.php" );
+	include_once( "../class_debug.php" );
 ################################################################################
 #BEGIN DOC
 #
@@ -64,8 +64,8 @@
 #
 #	Mark Manning			Simulacron I			Thu 10/29/2020 21:26:47.99 
 #	---------------------------------------------------------------------------
-#	These functions are under the GNU copyleft (or maybe the MIT copyleft)
-#	laws. You can find the documents for them online.
+#	These functions are under the MIT License laws. You can find the
+#	documents for them online.
 #
 #	Mark Manning			Simulacron I			Mon 11/02/2020 12:55:46.41 
 #	---------------------------------------------------------------------------

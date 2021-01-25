@@ -1,17 +1,37 @@
 <?php
 
-	include_once( "C:/Users/marke/My Programs/PHP/lib/class_debug.php" );
+	include_once( "../class_debug.php" );
 ################################################################################
-#	class_db.  Rewrite of the database class
+#BEGIN DOC
 #
-#	Creator:	Mark Manning
-#	Copyright:	Copyrighted (c) 1992-NOW()
-#	Rights:		All rights reserved.
-#	Grant:		It is hereby granted that anyone can use this class to
-#				handle their database needs whether it is personal, private,
-#				commercial, or any other reason.  No return is expected
-#				except that this copyright notice must be maintained.
-#	Donations:	Donations are welcome.  Paypal => sim_sales@sim1.us
+#-Calling Sequence:
+#
+#	class_db();
+#
+#-Description:
+#
+#	Rewrite of the database class
+#
+#-Inputs:
+#
+#	None.
+#
+#-Outputs:
+#
+#	None.
+#
+#-Revisions:
+#
+#	Name					Company					Date
+#	---------------------------------------------------------------------------
+#	Mark Manning			Simulacron I			1992-NOW
+#		Original Program.
+#
+#	Mark Manning			Simulacron I			Sun 01/24/2021 23:26:33.79 
+#	---------------------------------------------------------------------------
+#	This code is now under the MIT License.
+#
+#END DOC
 ################################################################################
 class class_db
 {

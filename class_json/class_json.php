@@ -1,6 +1,6 @@
 <?php
 
-	include_once( "C:/Users/marke/My Programs/PHP/lib/class_debug.php" );
+	include_once( "../class_debug.php" );
 ################################################################################
 #BEGIN DOC
 #
@@ -28,6 +28,9 @@
 #	Mark Manning			Simulacron I			Mon 05/27/2019 19:03:25.71 
 #		Original Program.
 #
+#	Mark Manning			Simulacron I			Sun 01/24/2021 23:30:46.28 
+#	---------------------------------------------------------------------------
+#	This code is now under the MIT License.
 #
 #END DOC
 ################################################################################

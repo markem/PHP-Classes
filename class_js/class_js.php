@@ -1,6 +1,6 @@
 <?php
 
-	include_once( "C:/Users/marke/My Programs/PHP/lib/class_debug.php" );
+	include_once( "../class_debug.php" );
 ################################################################################
 #BEGIN DOC
 #
@@ -47,17 +47,11 @@
 #		Copyright (C) 2001.  Mark Manning
 #
 #		This program is free software: you can redistribute it
-#		and/or modify it under the terms of the GNU General Public
-#		License (Version 3, 29 June 2007) as published by the Free
-#		Software Foundation.
+#		and/or modify it under the terms of the MIT License.
 #
 #		This program is distributed in the hope that it will be useful,
 #		but WITHOUT ANY WARRANTY; without even the implied warranty of
-#		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#		GNU General Public License for more details.
-#
-#		You should have received a copy of the GNU General Public License
-#		along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 #	Mark Manning			Simulacron I			Sat 04/18/2015 18:45:32.85 
 #	---------------------------------------------------------------------------

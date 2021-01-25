@@ -1,6 +1,6 @@
 <?php
 
-	include_once( "C:/Users/marke/My Programs/PHP/lib/class_debug.php" );
+	include_once( "../class_debug.php" );
 ################################################################################
 #BEGIN DOC
 #
@@ -47,9 +47,8 @@
 #		Copyright (C) 2001.  Mark Manning
 #
 #		This program is free software: you can redistribute it
-#		and/or modify it under the terms of the GNU General Public
-#		License (Version 3, 29 June 2007) as published by the Free
-#		Software Foundation.
+#		and/or modify it under the terms of the MIT 
+#		License as published by the Free Software Foundation.
 #
 #		This program is distributed in the hope that it will be useful,
 #		but WITHOUT ANY WARRANTY; without even the implied warranty of

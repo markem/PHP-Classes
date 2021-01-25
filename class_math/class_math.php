@@ -1,8 +1,37 @@
 <?php
 
-	include_once( "C:/Users/marke/My Programs/PHP/lib/class_debug.php" );
+	include_once( "../class_debug.php" );
 ################################################################################
-#	class class_math(). A math class.
+#BEGIN DOC
+#
+#-Calling Sequence:
+#
+#	class_math();
+#
+#-Description:
+#
+#	A class to handle math functions.
+#
+#-Inputs:
+#
+#	None.
+#
+#-Outputs:
+#
+#	None.
+#
+#-Revisions:
+#
+#	Name					Company					Date
+#	---------------------------------------------------------------------------
+#	Mark Manning			Simulacron I			Sun 01/24/2021 23:31:26.13 
+#		Original Program.
+#
+#	Mark Manning			Simulacron I			Sun 01/24/2021 23:31:44.65 
+#	---------------------------------------------------------------------------
+#	This code is under the MIT License.
+#
+#END DOC
 ################################################################################
 class class_math
 {
