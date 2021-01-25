@@ -28,17 +28,17 @@
 #		Original Program.
 #
 #	Mark Manning			Simulacron I			Sat 11/21/2009 14:51:42.95 
-#		These classes are now under the GNU Greater License.  Any and all works
+#		These classes are now under the MIT License.  Any and all works
 #		whether derivatives or extensios should be sent back to markem@sim1.us as
-#		per the GNU Greater License.  In this way, anything that makes these
+#		per the MIT License.  In this way, anything that makes these
 #		routines better can be incorporated into them for the greater
 #		good of mankind.  All additions and who made them should be noted here
 #		in this file OR in a separate file to be called the HISTORY.DAT file
 #		since, at some point in the future, this list will get to be too big
-#		to store within the class itself.  See the GNU license file for details
-#		on the GNU license.  If you do not agree with the license - then do NOT
+#		to store within the class itself.  See the MIT license file for details
+#		on the MIT license.  If you do not agree with the license - then do NOT
 #		use these routines in any way, shape, or form.  Failure to do so or using
-#		these routines in whole or in part - constitutes a violation of the GNU
+#		these routines in whole or in part - constitutes a violation of the MIT
 #		licensing terms and can and will result in prosecution under the law.
 #
 #	Legal Statement follows:
@@ -53,10 +53,10 @@
 #		This program is distributed in the hope that it will be useful,
 #		but WITHOUT ANY WARRANTY; without even the implied warranty of
 #		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#		GNU General Public License for more details.
+#		MIT License for more details.
 #
-#		You should have received a copy of the GNU General Public License
-#		along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#		You should have received a copy of the MIT License
+#		along with this program.
 #
 #END DOC
 ################################################################################
