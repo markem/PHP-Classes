@@ -42,10 +42,23 @@ class class_db
 #	Put your encrypted passwords here. Using my encrypt & decrypt found in this
 #	file.
 #
-	private $host = "3x4834734941414141414141414338764a5430374d796367764c67454149776a436e676b414141413d";
-	private $uid = "3x4834734941414141414141414379764b7a793842414676353942594541414141";
-	private $pwd = "3x483473494141414141414141432f503239416c4a4c62493030444d45414a424e3833594b41414141";
-	private $db = "3x4834734941414141414141414330765042514236386d5a594167414141413d3d";
+	private $host = <Put your ENCRYPTED password here>;
+	private $uid = <Put your ENCRYPTED UID here>;
+#
+#	Example of an encrypted password:
+#
+#		"3x4834734941414141414141414379764b7a793842414676353942594541414141";
+#
+	private $pwd = <Put your ENCRYPTED PWD here>;
+	private $db = <Put your ENCRYPTED DB here>;
+#
+#	Usually the DB is something like mysql, sqllite, etc....
+#
+#	The above values are used here like this. Look up the MYSQLI command
+#	on the PHP website.
+#
+#	$this->mysqli = new mysqli( $host, $uid, $pwd, $db );
+#
 
 
 ################################################################################
