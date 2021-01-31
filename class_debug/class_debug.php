@@ -106,8 +106,6 @@ function init()
 #
 	$args = func_get_args();
 	$this->debug = $GLOBALS['classes']['debug'];
-	$this->debug->init( func_get_args() );
-
 	while( count($args) && is_array($args[0]) ){ $args = $args[0]; }
 
 	foreach( $args as $k=>$v ){
