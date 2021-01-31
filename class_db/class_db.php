@@ -1,6 +1,15 @@
 <?php
 
-	include_once( "../class_debug.php" );
+	if( file_exists("../class_debug.php") ){
+		include_once( "../class_debug.php" );
+		}
+		else if( !isset($GLOBALS['classes']['debug']) ){
+			die( "Can not load CLASS_DEBUG" );
+			}
+		else {
+			die( "Can not load CLASS_DEBUG" );
+			}
+
 ################################################################################
 #BEGIN DOC
 #
@@ -77,7 +86,8 @@ class class_db
 function __construct()
 {
 	$args = func_get_args();
-	$this->debug = new class_debug( func_get_args() );
+	$this->debug = $GLOBALS['classes']['debug'];
+	$this->debug->init( func_get_args() );
 	$this->debug->in();
 
 	$host = $uid = $pwd = $db = null;

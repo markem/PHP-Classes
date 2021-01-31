@@ -1,4 +1,15 @@
 <?php
+
+	if( file_exists("../class_debug.php") ){
+		include_once( "../class_debug.php" );
+		}
+		else if( !isset($GLOBALS['classes']['debug']) ){
+			die( "Can not load CLASS_DEBUG" );
+			}
+		else {
+			die( "Can not load CLASS_DEBUG" );
+			}
+
 ################################################################################
 #BEGIN DOC
 #
@@ -37,6 +48,9 @@ class MicroDateTime extends DateTime
 
 public function __construct($time = 'now')
 {
+	$this->debug = $GLOBALS['classes']['debug'];
+	$this->debug->init( func_get_args() );
+
 	if ($time == 'now')
 		$time = microtime(true);
 #
