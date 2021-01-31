@@ -1,12 +1,5 @@
 <?php
 
-	if( file_exists("../class_debug.php") ){
-		include_once( "../class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
