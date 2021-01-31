@@ -4,7 +4,7 @@
 		include_once( "../class_debug.php" );
 		}
 		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( "Can not load CLASS_DEBUG" );
+			die( __FILE__ . ": Can not load CLASS_DEBUG" );
 			}
 
 ################################################################################
