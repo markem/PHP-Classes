@@ -1,7 +1,15 @@
 <?php
 
-	if( file_exists("../class_debug.php") ){
-		include_once( "../class_debug.php" );
+#
+#	$lib is where my libraries are located. Change this to whereever
+#	you are keeping them.
+#
+	$lib = getenv( "my_libs" );
+	$lib = str_replace( "\\", "/", $lib );
+	if( !file_exists($lib) ){ $lib = ".."; }
+
+	if( file_exists("$lib/class_debug.php") ){
+		include_once( "$lib/class_debug.php" );
 		}
 		else if( !isset($GLOBALS['classes']['debug']) ){
 			die( __FILE__ . ": Can not load CLASS_DEBUG" );

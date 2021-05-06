@@ -1,7 +1,15 @@
 <?php
 
-	if( file_exists("../class_debug.php") ){
-		include_once( "../class_debug.php" );
+#
+#	$lib is where my libraries are located. Change this to whereever
+#	you are keeping them.
+#
+	$lib = getenv( "my_libs" );
+	$lib = str_replace( "\\", "/", $lib );
+	if( !file_exists($lib) ){ $lib = ".."; }
+
+	if( file_exists("$lib/class_debug.php") ){
+		include_once( "$lib/class_debug.php" );
 		}
 		else if( !isset($GLOBALS['classes']['debug']) ){
 			die( __FILE__ . ": Can not load CLASS_DEBUG" );
@@ -43,6 +51,7 @@ class class_files
 {
 	private $all_exts = null;
 	private $exts = null;
+	private $algos = null;
 
 	public $debug = null;
 
@@ -63,7 +72,7 @@ function init()
 	$this->debug->init( $args );
 	$this->debug->in();
 
-	$this->exts = [];		#	File Extension RegExps
+	$this->exts = array();		#	File Extension RegExps
 	$this->exts['png'] = "png|pngp";
 	$this->exts['bmp'] = "bmp";
 	$this->exts['gif'] = "gif";
@@ -75,6 +84,8 @@ function init()
 	foreach( $this->exts as $k=>$v ){
 		$this->all_exts .= "$v|";
 		}
+
+	$this->algos = hash_algos();
 
 	$this->all_exts = substr( $this->all_exts, 0, -1 );
 	$this->debug->out();
@@ -92,10 +103,12 @@ function get_files( $top_dir=null, $regexp=null, $opt=null )
 	if( is_null($regexp) ){ $regexp = "/.*/"; }
 	if( is_null($opt) ){ $opt = true; }
 
+	$this->debug->log( "Here : " . __LINE__ . "\n" );
 	$dirs[] = $top_dir;
 	$bad = array();
 	$files = array();
 	while( count($dirs) > 0 ){
+		$this->debug->log( "Here : " . __LINE__ . "\n" );
 		$dir = array_pop( $dirs );
 #
 #	See if we have permissions to read this.
@@ -106,6 +119,7 @@ function get_files( $top_dir=null, $regexp=null, $opt=null )
 		if( ($perms[1] === '-') || ($perms[2] === '-') ){ continue; }
 		if( ($perms[4] === '-') || ($perms[5] === '-') ){ continue; }
 		if( ($perms[7] === '-') || ($perms[8] === '-') ){ continue; }
+		$this->debug->log( "Here : " . __LINE__ . "\n" );
 
 		if( ($dh = @opendir($dir)) ){
 			if( !is_resource($dh) ){ continue; }
@@ -117,12 +131,14 @@ function get_files( $top_dir=null, $regexp=null, $opt=null )
 						else if( preg_match($regexp, $file) ){ $files[] = "$dir/$file"; }
 						else { $bad[] = "$dir/$file"; }
 					}
+					else { $this->debug->log( "Discarding '.' or '..'\n" ); }
 				}
 
 			closedir( $dh );
 			}
 		}
 
+	$this->debug->log( "Here : " . __LINE__ . "\n" );
 	foreach( $files as $k=>$v ){ $files[$k] = str_replace("//", "/", $v ); }
 	foreach( $files as $k=>$v ){
 		if( !preg_match("/mac/i", PHP_OS) && preg_match("/__macosx/i", $v) ){
@@ -137,6 +153,7 @@ function get_files( $top_dir=null, $regexp=null, $opt=null )
 
 	$bad = array_reverse( array_reverse($bad) );
 
+	$this->debug->log( "Here : " . __LINE__ . "\n" );
 	$this->debug->out();
 
 	return array( $files, $bad );
@@ -154,7 +171,7 @@ function get_dirs( $top_dir=null, $regexp=null, $opt=null )
 	if( is_null($regexp) ){ $regexp = "/.*/"; }
 	if( is_null($opt) ){ $opt = true; }
 
-	$files = [];
+	$files = array();
 	$dirs[] = $top_dir;
 	while( count($dirs) > 0 ){
 		$dir = array_pop( $dirs );
@@ -1489,7 +1506,7 @@ function remove_nonwords( $g=null )
 {
 	if( is_null($g) ){ $this->debug->log( "List is empty", true ); }
 
-	$a = [];
+	$a = array();
 	foreach( $g as $k=>$v ){
 		$base = trim( basename($v) );
 		$base = preg_replace( "/\W+/", "_", $base );
@@ -1552,7 +1569,7 @@ function fget_csv( $file=null, $sep=',' )
 
 	if( is_null($file) ){ $this->debug->log( "FILE is NULL", true ); }
 
-	$array = [];
+	$array = array();
 	if( ($fp = fopen( $file, "r" )) !== FALSE ){
 		while( ($data = fgetcsv($fp, 1024, $sep)) !== FALSE ){ $array[] = $data; }
 		}
@@ -1594,45 +1611,56 @@ function fput_csv( $file=null, $array=null, $sep=',' )
 #
 #				You only need the FIRST letter of the command.
 #
+#	Mark Manning			Simulacron I			Mon 03/01/2021 22:09:49.45 
+#	---------------------------------------------------------------------------
+#	Ok. The problem is that a path name becomes too long due to really freaky
+#	filenames. This is why I copied the files to the RAM Drive first.
 ################################################################################
-function get_cert( $file=null, $level=null )
+function get_cert( $file=null, $level=null, $ram=null )
 {
 	$this->debug->in();
 
 	if( is_null($file) || (strlen(trim($file)) < 1) ){
 		$this->debug->log( "FILE is NULL" );
+		$this->debug->log( "FILE = $file" );
 		return false;
 		}
 
-	if( is_null($level) || (strlen(trim($level)) < 1) ){ $level = "SHA512"; }
+	if( is_null($level) || (strlen(trim($level)) < 1) ){ $level = "sha512"; }
+	if( is_null($ram) ){ $path = "c:/temp"; }
+		else { $path = $ram; }
+
+	$name = uniqid( rand(), true );
+	$a = basename( $file );
+	$a = explode( ".", $a );
+	$ext = array_pop( $a );
+	$name = "$path/$name.$ext";
 
 	$this->debug->log( "FILE = $file" );
 	$this->debug->log( "LEVEL = $level" );
 
 	if( is_null($file) || !file_exists($file) ){
-		$this->debug->die( "FILE is NULL", true );
+		$this->debug->log( "FILE is NULL", true );
+		return false;
 		}
 
-	if( !preg_match("/(md2|md4|md5|sha1|sha256|sha384|sha512)/i", $level) &&
+	if( (array_search($level, $this->algos) === false) &&
 		!is_null($level) ){ $this->debug->die( "LEVEL is $level", true ); }
-		elseif( is_null($level) ){ $level = "SHA512"; }
+		elseif( is_null($level) ){ $level = "sha512"; }
 
-#echo "FILE #1 = $file\n";
-	$file = str_replace( "!", "\!", $file );
-	$file = str_replace( "(", "\(", $file );
-	$file = str_replace( ")", "\)", $file );
-#echo "FILE #2 = $file\n";
+	copy( $file, $name );
+	sleep( 3 );
 
-	$cmd = "certutil -hashfile \"$file\" $level";
-#echo "CMD = $cmd\n\n" . str_repeat( '-', 80 ) . "\n\n";
+	$info = null;
+	while( is_null($info = hash_file($level, $name))  ){
+		$this->debug->log( "INFO is NULL ($info)" );
+		sleep( 3 );
+		}
 
-	$fp = popen( $cmd, "r" );
-	if( !is_resource($fp) ){ $this->debug->die( "FP is NOT a resource", true ); }
+	sleep( 3 );
 
-	$ret = fgets( $fp );
-	$info = fgets( $fp );
-
-	pclose( $fp );
+	unlink( $name );
+	sleep( 3 );
 
 	$this->debug->out();
 	return trim( $info );

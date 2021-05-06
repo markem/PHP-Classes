@@ -5,7 +5,7 @@
 #
 #-Calling Sequence:
 #
-#	class_files();
+#	class_debug();
 #
 #-Description:
 #
@@ -156,7 +156,14 @@ function in()
 			}
 		}
 }
-function enter(){ $this->in( func_get_args() ); }
+################################################################################
+#   enter(). Another function to start up the debugger.
+################################################################################
+function enter()
+{
+    $args - func_get_args();
+    $this->in(  );
+}
 ################################################################################
 #	out(). Display the EXIT comment and store it to the file.
 #
@@ -192,7 +199,11 @@ function out()
 			}
 		}
 }
-function exit(){ $this->out( func_get_args() ); }
+function exit()
+{
+    $args = func_get_args();
+    $this->out( $args );
+}
 ################################################################################
 #	msg(). Message (msg) out debug statements.
 #
@@ -215,8 +226,13 @@ public function msg()
 				if( !isset($v['function']) || is_null($v['function']) ){ $v['function'] = "--NULL--"; }
 				if( !isset($v['line']) || is_null($v['line']) ){ $v['line'] = "--NULL--"; }
 
-				$this->log( "STACK	:	" . $v['file'] . " [" . $v['class'] . "] " .
-					$v['function'] . " # " . $v['line'] . "\n" );
+print_r( $v ); echo "\n";
+
+				$cmd = "STACK	:	" . $v['file'] . " [" . $v['class'] . "] " .
+					$v['function'] . " # " . $v['line'] . "\n";
+				echo "CMD = $cmd\n";
+
+				$this->log( $cmd );
 				}
 
 			$this->log( "\n\n" );
@@ -235,14 +251,14 @@ function dump(){ $this->log( func_get_args() ); }
 #	die(). Death subroutine.
 #	kill(). Alternate function name.
 ################################################################################
-private function die()
+public function die()
 {
 	$this->out( func_get_args() );
 
 	echo "\n\nProgram Terminated\n\n.";
 	exit;
 }
-function kill(){ $this->die( func_get_args() ); }
+public function kill(){ $this->die( func_get_args() ); }
 ################################################################################
 #	log(). Creates/Writes a log file
 #
