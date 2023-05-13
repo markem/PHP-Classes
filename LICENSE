@@ -1,6 +1,6 @@
-This is the BSD Three(3) Clause PLUS Patents License
-
-Copyright 1992-NOW by Mark Manning
+The BSD Three Clause Plus License
+by Mark Manning (markem@sim1.us)
+Copyright 1992-NOW
 
 Redistribution and use in source and binary forms, with
 or without modification, are permitted provided that the
@@ -44,13 +44,42 @@ combination to be necessarily infringed. The patent license
 shall not apply to any other combinations which include
 the Contribution.
 
+Any and all works whether derivatives or extensions or
+whatever should be sent back to markem@sim1.us.  In this
+way, anything that makes these routines better can be
+incorporated into them for the greater good of mankind.
+All additions and who made them should be noted here
+in this file OR in a separate file to be called the
+HISTORY.DAT file since, at some point in the future, this
+list will get to be too big to store within the class
+itself.  If there is a standard on such things - see the
+BSD license file for details.  If you do not agree with the
+license - then do NOT use these routines in any way, shape,
+or form.  Failure to do so or using these routines in whole
+or in part - constitutes a violation of the BSD licensing
+terms and can and will result in prosecution under the law.
+
+An example follows on what should be included in your
+manuals, and in your program, and shown while your program
+is being run.
+
+	Please note that _MY_ Legal notice for each class
+	is as follows:
+
+	<PUT CLASS NAME HERE>. A class to <What it does>.
+	Copyright (C) 1992-NOW.  By Mark Manning.
+	All rights reserved except for those given by the
+	BSD License.
+
+	Please place _YOUR_ legal notices _HERE_. Thank you.
+
 Except as expressly stated above, no rights or licenses
 from any copyright holder or contributor is granted under
 this license, whether expressly, by implication, estoppel
 or otherwise.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
-CONTRIBUTORS ‚ÄúAS IS‚Äù AND ANY EXPRESS OR IMPLIED WARRANTIES,
+CONTRIBUTORS ìAS ISî AND ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
 OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER
