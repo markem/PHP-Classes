@@ -41,6 +41,10 @@
 #	Mark Manning			Simulacron I			Fri 02/05/2021 14:21:56.65 
 #		Original Program.
 #
+#	Mark Manning			Simulacron I			Sat 05/13/2023 16:28:39.29 
+#	---------------------------------------------------------------------------
+#	This class is now under the NEW BSD 3 Clauses AND Patents found in this
+#	folder.
 #
 #END DOC
 ################################################################################
