@@ -1,5 +1,13 @@
 <?php
 #
+#	Standard error function
+#
+	set_error_handler(function($errno, $errstring, $errfile, $errline ){
+		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		});
+
+	date_default_timezone_set( "UTC" );
+#
 #	$lib is where my libraries are located.
 #	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
 #	because of my UNIX background. So I used the following to find them
@@ -15,8 +23,7 @@
 		include_once( "$lib/class_debug.php" );
 		}
 		else if( !isset($GLOBALS['classes']['debug']) ){
-			$this->debug->msg( __FILE__ . ": Can not load CLASS_DEBUG" );
-			return false;
+			die( __FILE__ . ": Can not load CLASS_DEBUG" );
 			}
 
 ################################################################################
@@ -51,62 +58,18 @@
 #		but instead always setting a DEBUG MESSAGE and returning FALSE. So I'm
 #		getting rid of all of the DIE() calls.
 #
-#	Name					Company					Date
+#	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
 #	---------------------------------------------------------------------------
-#	Mark Manning			Simulacron I			Sun 01/24/2021 23:31:44.65 
-#		These classes are now under the MIT License.  Any and all works
-#		whether derivatives or extensions should be sent back to markem@sim1.us.
-#		In this way, anything that makes these routines better
-#		can be incorporated into them for the greater good
-#		of mankind.  All additions and who made them should be
-#		noted here in this file OR in a separate file to be called
-#		the HISTORY.DAT file since, at some point in the future,
-#		this list will get to be too big to store within the class
-#		itself.  If there is a standard on such things - see the
-#		MIT license file for details.  If you do not agree with the
-#		license - then do NOT use these routines in any way, shape,
-#		or form.  Failure to do so or using these routines in whole
-#		or in part - constitutes a violation of the MIT licensing
-#		terms and can and will result in prosecution under the law.
-#
-#	_MY_ Legal Statement follows:
-#
-#		<NAME OF PRODUCT>. <A SHORT STATEMENT OF WHAT IT DOES>
-#		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
-#		except for those given by the MIT License.
-#
-#		Here is the standard MIT disclaimer which should be included
-#		in the program:
-#
-#--------------------------------------------------------------------------------
-#
-#	Copyright (c) <year> <copyright holders>
-#	
-#	Permission is hereby granted, free of charge, to any person obtaining a copy
-#	of this software and associated documentation files (the "Software"), to deal
-#	in the Software without restriction, including without limitation the rights
-#	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#	copies of the Software, and to permit persons to whom the Software is
-#	furnished to do so, subject to the following conditions:
-#	
-#	The above copyright notice and this permission notice shall be included in all
-#	copies or substantial portions of the Software.
-#	
-#	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-#	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-#	SOFTWARE.
+#		This is now under the BSD Three Clauses Plus Patents License.
+#		See the BSD-3-Patent.txt file.
 #
 #	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
 #	---------------------------------------------------------------------------
 #	Please note that _MY_ Legal notice _HERE_ is as follows:
 #
-#		CLASS_MATH.PHP. A class to handle working with math.
+#		CLASS_FILES.PHP. A class to handle working with files.
 #		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
-#		except for those given by the MIT License.
+#		except for those given by the BSD License.
 #
 #	Please place _YOUR_ legal notices _HERE_. Thank you.
 #
@@ -119,24 +82,30 @@ class class_files
 	private $algos = null;
 
 	public $debug = null;
-	public $temp_path = "c:/temp";
+	public $temp_path = null;
 
 ################################################################################
 #	__construct(). Constructor.
 ################################################################################
-function __construct(){ $this->init( func_get_args() ); }
+function __construct()
+{
+	$this->debug = $GLOBALS['classes']['debug'];
+	if( !isset($GLOBALS['class']['files']) ){
+		return $this->init( func_get_args() );
+		}
+		else { return $GLOBALS['class']['files']; }
+}
 ################################################################################
 #	init(). Used instead of __construct() so you can re-init() if necessary.
 ################################################################################
 function init()
 {
-#
-#	Arguments are looked at HERE. Don't put them in!
-#
-	$args = func_get_args();
-	$this->debug = $GLOBALS['classes']['debug'];
-	$this->debug->init( $args );
 	$this->debug->in();
+
+	$args = func_get_args();
+	while( is_array($args) && (count($args) < 2) ){
+		$args = array_pop( $args );
+		}
 
 	$this->exts = array();		#	File Extension RegExps
 	$this->exts['png'] = "png|pngp";
@@ -153,6 +122,12 @@ function init()
 
 	$this->algos = hash_algos();
 
+	$this->temp_path = "c:/temp/files";
+	if( !file_exists("c:/temp") ){ mkdir( "c:/temp" ); chmod( "c:/temp", 0777 ); }
+	if( !file_exists("c:/temp/files") ){
+		mkdir( "c:/temp/files" ); chmod( "c:/temp/files", 0777 );
+		}
+
 	$this->all_exts = substr( $this->all_exts, 0, -1 );
 	$this->debug->out();
 }
@@ -168,19 +143,30 @@ function get_files( $top_dir=null, $regexp=null, $opt=null )
 	if( is_null($top_dir) ){ $top_dir = "./"; }
 	if( is_null($regexp) ){ $regexp = "/.*/"; }
 	if( is_null($opt) ){ $opt = true; }
+	if( !preg_match(";/;", $regexp) ){ $regexp = "/" . $regexp . "/"; }
 
 	$this->debug->msg( "Here : " . __LINE__ . "\n" );
 	$dirs[] = $top_dir;
 	$bad = array();
 	$files = array();
+	$this->debug->log( "Line " . __LINE__ . " : TOP_DIR = $top_dir\n" );
 	while( count($dirs) > 0 ){
+		$this->debug->msg( $dirs );
 		$this->debug->msg( "Here : " . __LINE__ . "\n" );
 		$dir = array_pop( $dirs );
+		$this->debug->msg( "Line " . __LINE__ . " : DIR = $dir\n" );
+		if( strlen(trim($dir)) < 1 ){
+			$this->debug->msg( "Line " . __LINE__ . " : Aborting - blank dir\n" );
+			continue;
+			}
 #
 #	See if we have permissions to read this.
 #
+		$this->debug->msg( "Line " . __LINE__ . " : Getting permissions from : $dir\n" );
 		$perms = explode( ",", $this->get_perms($dir) );
 
+		if( !is_array($perms) ){ $this->debug->die( "PERMS is not an array!" ); }
+		if( count($perms) < 1 ){ $this->debug->msg( $perms ); $this->debug->die( "PERMS is blank!"); }
 		if( !$perms[0] === 'd' ){ continue; }
 		if( ($perms[1] === '-') || ($perms[2] === '-') ){ continue; }
 		if( ($perms[4] === '-') || ($perms[5] === '-') ){ continue; }
@@ -192,6 +178,8 @@ function get_files( $top_dir=null, $regexp=null, $opt=null )
 			while( ($file = readdir($dh)) !== false ){
 				$curfile = "$dir/$file";
 				$this->debug->msg( "FOUND : $file\n" );
+#				$this->dump( "regexp", __LINE__, $regexp );
+#				$this->dump( "file", __LINE__, $file );
 				if( $file != "." && $file != ".." ){
 					if( is_dir("$dir/$file") && $opt == true){ $dirs[] = "$dir/$file"; }
 						else if( preg_match($regexp, $file) ){ $files[] = "$dir/$file"; }
@@ -246,6 +234,14 @@ function get_dirs( $top_dir=null, $regexp=null, $opt=null )
 	$dirs[] = $top_dir;
 	while( count($dirs) > 0 ){
 		$dir = array_pop( $dirs );
+		$dir = str_replace( "\\", "/", $dir );
+		$dir = str_replace( "//", "/", $dir );
+		if( !file_exists($dir) ){
+			echo "GET_DIRS : FILE does not exist ($dir)\n";
+			return false;
+			}
+		$perms = $this->get_perms( $dir );
+		if( !preg_match("/r,w,x$/i", $perms) ){ continue; }
 		$files[$dir] = 0;
 		if( ($dh = opendir($dir)) ){
 			while( ($file = readdir($dh)) !== false ){
@@ -261,6 +257,11 @@ function get_dirs( $top_dir=null, $regexp=null, $opt=null )
 
 			closedir( $dh );
 			}
+			else {
+				echo "PERMS = $perms\n";
+				echo "Skipping $dir\n";
+				continue;
+				}
 		}
 
 	foreach( $files as $k=>$v ){
@@ -283,12 +284,12 @@ function get_dirs( $top_dir=null, $regexp=null, $opt=null )
 function get_perms( $file )
 {
 	if( !file_exists($file) ){
-		echo "No such file : $file\n";
+		$this->debug->msg( "Line " . __LINE__ . " : No such file : $file\n" );
 		return false;
 		}
 
 	if( ($perms = fileperms($file)) === false ){
-		echo "Fileperms returned an ERROR : $perms\n";
+		$this->debug->msg( "Line " . __LINE__ . " : Fileperms returned an ERROR : $perms\n" );
 		return false;
 		}
 
@@ -341,6 +342,10 @@ function get_perms( $file )
 	$info .= (($perms & 0x0001) ?
 		(($perms & 0x0200) ? 't,' : 'x,' ) :
 		(($perms & 0x0200) ? 'T,' : '-,'));
+#
+#	Remove the last comma
+#
+	$info = substr( $info, 0, -1 );
 
 	$this->debug->out();
 	return $info;
@@ -396,7 +401,7 @@ function get_image( $file )
 				}
 			else if( preg_match("/png$/i", $file) ){
 				$this->debug->msg( "Loading PNG file : $file\n" );
-				$gd = imagecreatefrompng($file);
+				$gd = imagecreatefrompng( $file );
 				}
 			else if( preg_match("/(web|webp)$/i", $file) ){
 				$this->debug->msg( "Loading WEBP file : $file\n" );
@@ -495,7 +500,7 @@ function put_image( $gd, $file, $del=true )
 		else if( preg_match("/xbm$/i", $file) ){ $ret = imagexbm($gd, $file); }
 		else if( preg_match("/(web|webp)$/i", $file) ){ $ret = imagewebp($gd, $file); }
 		else if( preg_match("/png$/i", $file) ){ $ret = imagepng($gd, $file); }
-		else { $this->debug->msg( "Unknown file format....aborting", true); }
+		else { $this->debug->msg( "Unknown file format....aborting", true ); }
 
 	if( $flag ){ rename( $file, $old_file ); }
 	if( $del ){ imagedestroy( $gd ); }
@@ -667,10 +672,10 @@ function ConvertBMP2GD($src, $dest = false)
 		$gd_palette = "";
 		$j = 0;
 		while ($j < $palette_size) {
-			$b = $palette{$j++};
-			$g = $palette{$j++};
-			$r = $palette{$j++};
-			$a = $palette{$j++};
+			$b = $palette[$j++];
+			$g = $palette[$j++];
+			$r = $palette[$j++];
+			$a = $palette[$j++];
 			$gd_palette .= "$r$g$b$a";
 			}
 
@@ -691,9 +696,9 @@ function ConvertBMP2GD($src, $dest = false)
 			$gd_scan_line = "";
 			$j = 0;
 			while ($j < $scan_line_size) {
-				$b = $scan_line{$j++};
-				$g = $scan_line{$j++};
-				$r = $scan_line{$j++};
+				$b = $scan_line[$j++];
+				$g = $scan_line[$j++];
+				$r = $scan_line[$j++];
 				$gd_scan_line .= "\x00$r$g$b";
 				}
 			}
@@ -704,7 +709,7 @@ function ConvertBMP2GD($src, $dest = false)
 				$gd_scan_line = "";
 				$j = 0;
 				while ($j < $scan_line_size) {
-					$byte = ord($scan_line{$j++});
+					$byte = ord($scan_line[$j++]);
 					$p1 = chr($byte >> 4);
 					$p2 = chr($byte & 0x0F);
 					$gd_scan_line .= "$p1$p2";
@@ -716,7 +721,7 @@ function ConvertBMP2GD($src, $dest = false)
 					$gd_scan_line = "";
 					$j = 0;
 					while ($j < $scan_line_size) {
-						$byte = ord($scan_line{$j++});
+						$byte = ord($scan_line[$j++]);
 						$p1 = chr((int)(($byte & 0x80) != 0));
 						$p2 = chr((int)(($byte & 0x40) != 0));
 						$p3 = chr((int)(($byte & 0x20) != 0));
@@ -815,6 +820,8 @@ function old_imagecreatefrombmp($file)
 function find_box( $gd, $color, $offset=0 )
 {
 	$this->debug->in();
+
+	if( !is_resource($gd) ){ return false; }
 
     $color = imagecolorat( $gd, 0, 0 );
     $w = imagesx( $gd );
@@ -923,9 +930,9 @@ function trim_image( $gd )
 			}
 
 	if( is_resource($this->debug) ){
-		$this->debug->m( "W = $w, H = $h\n" );
-		$this->debug->m( "W2 = $w2, H2 = $h2\n" );
-		$this->debug->m( "Saving : ./" . __FUNCTION__ . "-image-$fc.png @ " . __LINE__ . "\n" );
+		$this->debug->msg( "W = $w, H = $h\n" );
+		$this->debug->msg( "W2 = $w2, H2 = $h2\n" );
+		$this->debug->msg( "Saving : ./" . __FUNCTION__ . "-image-$fc.png @ " . __LINE__ . "\n" );
 		imagepng( $gd2, "./" . __FUNCTION__ . "-image-$fc.png" );
 		$fc++;
 		}
@@ -939,7 +946,6 @@ function trim_image( $gd )
 	$b = $color & 0xff;
 
 	$this->debug->msg( "A = $a, R = $r, G = $g, B = $b\n" );
-
 	$this->debug->msg( "COLOR #2 = " . dechex($color) . "\n" );
 
     $w = imagesx( $gd2 );
@@ -1183,7 +1189,7 @@ function rt_image( $gd )
 #
 #	Now check them
 #
-#		$this->debug->m( "I = $i, W = $w - $w2, H = $h - $h2\n" );
+		$this->debug->msg( "I = $i, W = $w - $w2, H = $h - $h2\n" );
 #		imagepng( $gd2, "./test-3.png" ); sleep( 1 );
 
 		if( ($w2 * $h2) < ($aw * $ah) ){
@@ -1194,7 +1200,7 @@ function rt_image( $gd )
 		}
 
 	if( $angle > 0 ){
-#		$this->debug->m( "Returning NEW : Angle = $angle, W = $aw, H = $ah\n" );
+		$this->debug->msg( "Returning NEW : Angle = $angle, W = $aw, H = $ah\n" );
 		$gd2 = $this->rot_image( $gd, $angle );
 		$gd2 = $this->trim_image( $gd2 );
 
@@ -1202,7 +1208,7 @@ function rt_image( $gd )
 		return $gd2;
 		}
 
-#	$this->debug->m( "Returning OLD\n" );
+	$this->debug->msg( "Returning OLD\n" );
 	$this->debug->out();
 	return $gd;
 }
@@ -1267,11 +1273,11 @@ function get_file_list( $exts=null )
 #
 #	Get where to start
 #
-	$this->debug->m( "Directory to work with? " );
+	$this->debug->msg( "Directory to work with? " );
 	$dir = rtrim( stream_get_line(STDIN, 1024, PHP_EOL) );
 	if( strlen($dir) < 1 ){ $dir = $cwd; }
 	$dir = str_replace( "\\", "/", $dir );
-	$this->debug->m( "DIR = $dir\n" );
+	$this->debug->msg( "DIR = $dir\n" );
 	chdir( $dir );
 
 	list( $good, $bad ) = $this->get_files( $dir, "/$exts$/i" );
@@ -1293,7 +1299,7 @@ function check_files( $good )
 #	First, we need to get the first 1024 bytes from the file.
 #	Nothing else is needed at this point.
 #
-		$this->debug->m( "Working on : $v\n" );
+		$this->debug->msg( "Working on : $v\n" );
 		$fh = fopen( $v, "r" );
 		$r = fread( $fh, 1024 );
 		fclose( $fh );
@@ -1302,7 +1308,7 @@ function check_files( $good )
 #
 		if( preg_match("/pngp$/i", $v) ){
 			$f = preg_replace( "/pngp$/i", "png", $v );
-			$this->debug->m( "Renaming :	$v\nTo		: $f\n" );
+			$this->debug->msg( "Renaming :	$v\nTo		: $f\n" );
 			rename( $v, $f );
 			$v = $f;
 			}
@@ -1314,7 +1320,7 @@ function check_files( $good )
 		$png = preg_match( "/png/i", substr($r, 1, 3) );
 		if( $png && !preg_match("/png$/i", $v) ){
 			$png = preg_replace( "/\.\w{3,4}$/i", ".png", $v );
-			$this->debug->m( "Saving	: $v\nTo	: $png\n" );
+			$this->debug->msg( "Saving	: $v\nTo	: $png\n" );
 			rename( $v, $png );
 			$v = $png;
 			}
@@ -1322,7 +1328,7 @@ function check_files( $good )
 		$gif = preg_match( "/gif/i", substr($r, 1, 3) );
 		if( $gif && !preg_match("/gif$/i", $v) ){
 			$gif = preg_replace( "/\.\w{3,4}$/i", ".gif", $v );
-			$this->debug->m( "Saving	: $v\nTo	: $gif\n" );
+			$this->debug->msg( "Saving	: $v\nTo	: $gif\n" );
 			rename( $v, $gif );
 			$v = $gif;
 			}
@@ -1330,7 +1336,7 @@ function check_files( $good )
 		$bmp = preg_match( "/(bm|ba|ci|cp|ic|pt)/i", substr($r, 1, 2) );
 		if( $bmp && !preg_match("/bmp$/i", $v) ){
 			$bmp = preg_replace( "/\.\w{3,4}$/i", ".bmp", $v );
-			$this->debug->m( "Saving	: $v\nTo	: $bmp\n" );
+			$this->debug->msg( "Saving	: $v\nTo	: $bmp\n" );
 			rename( $v, $bmp );
 			$v = $bmp;
 			}
@@ -1339,7 +1345,7 @@ function check_files( $good )
 		$jpg = preg_match( "/(exif|jfif|jfi|jpg|jpeg)$hs/i", substr($r, 6, 5) );
 		if( $jpg && !preg_match("/(exif|jfif|jfi|jpg|jpeg)$/i", $v) ){
 			$jpg = preg_replace( "/\.\w{3,4}$/i", ".jpg", $v );
-			$this->debug->m( "Saving	: $v\nTo	: $jpg\n" );
+			$this->debug->msg( "Saving	: $v\nTo	: $jpg\n" );
 			rename( $v, $jpg );
 			$v = $jpg;
 			}
@@ -1352,7 +1358,7 @@ function check_files( $good )
 		$tif = preg_match("/($tiff1|$tiff2)/i", $hex );
 		if( $tif && !preg_match("/(tif|tiff)$/i", $v) ){
 			$tif = preg_replace( "/\.\w{3,4}$/i", ".tif", $v );
-			$this->debug->m( "Saving	: $v\nTo	: $tif\n" );
+			$this->debug->msg( "Saving	: $v\nTo	: $tif\n" );
 			rename( $v, $tif );
 			$v = $tif;
 			}
@@ -1360,7 +1366,7 @@ function check_files( $good )
 		$webp = ( preg_match("/riff/i", substr($r, 0, 4)) || preg_match("/webp/i", substr($r, 8, 4)) );
 		if( $webp && !preg_match("/webp$/i", $v) ){
 			$webp = preg_replace( "/\.\w{3,4}$/i", ".webp", $v );
-			$this->debug->m( "Saving	: $v\nTo	: $webp\n" );
+			$this->debug->msg( "Saving	: $v\nTo	: $webp\n" );
 			rename( $v, $webp );
 			$v = $webp;
 			}
@@ -1371,10 +1377,10 @@ function check_files( $good )
 if( false ){
 		if( preg_match("/(web|webp)$/i", $v) &&
 			(preg_match("/riff/i", substr($r, 0, 4)) || preg_match("/webp/i", substr($r, 8, 4)) ) ){
-			$this->debug->m( "Moving $v : WEBP to PNG\n" );
+			$this->debug->msg( "Moving $v : WEBP to PNG\n" );
 			$gd = imagecreatefromwebp( $v );
 			$png = preg_replace( "/(webp|web)$/i", "png", $v );
-			$this->debug->m( "Saving to $png\n" );
+			$this->debug->msg( "Saving to $png\n" );
 			imagepng( $gd, $png );
 			unlink( $v );
 			}
@@ -1573,22 +1579,22 @@ function convert_files( $g=null, $file_ext=null )
 			if( !preg_match("/(tif|tiff)$/i", $v) ){
 				$gd = $this->get_image( $v );
 				$chg = preg_replace( "/\w{3,4}$/i", $file_ext, $v );
-				$this->debug->m( "Moving	: $v\nTo	: $chg\n" );
+				$this->debug->msg( "Moving	: $v\nTo	: $chg\n" );
 				$this->put_image( $gd, $chg );
 
-				$this->debug->m( "Deleting	: $v\n" . str_repeat( '-', 80 ) . "\n" );
-				if( unlink($v) === false ){ echo "CAN NOT DELETE : $v\n"; }
+				$this->debug->msg( "Deleting	: $v\n" . str_repeat( '-', 80 ) . "\n" );
+				if( unlink($v) === false ){ $this->debug->msg( "Line " . __LINE__ . " : CAN NOT DELETE : $v\n" ); }
 				}
 				else {
 					if( preg_match("/tiff$/i", $v) ){
 						$chg = preg_replace( "/\w{3,4}$/i", "tif", $v );
-						$this->debug->m( "Renaming	: $v\nTo	: $chg\n" );
+						$this->debug->msg( "Renaming	: $v\nTo	: $chg\n" );
 						rename( $v, $chg );
 						}
-						else { $this->debug->m( "File OK	: $v\n" ); }
+						else { $this->debug->msg( "File OK	: $v\n" ); }
 					}
 			}
-			else { $this->debug->m( "File OK	: $v\n" ); }
+			else { $this->debug->msg( "File OK	: $v\n" ); }
 		}
 
 	$this->debug->out();
@@ -1607,7 +1613,7 @@ function remove_nonwords( $g=null )
 		$base = preg_replace( "/\W+/", "_", $base );
 		$base = substr( $base, 0, -4 ) . "." . substr( $base, -3, 3 );
 		$f = dirname( $v ) . "/$base";
-		$this->debug->m( "Renaming	: $v\nTo	: $f\n" );
+		$this->debug->msg( "Renaming	: $v\nTo	: $f\n" );
 		rename( $v, $f );
 		$a[] = $f;
 		}
@@ -1697,11 +1703,11 @@ function fput_csv( $file=null, $array=null, $sep=',' )
 	fclose( $fp );
 }
 ################################################################################
-#	get_cert(). Get a certutil done.
+#	get_hash(). Get the hash
 #	Arguments	:	FILE and LEVEL.
 #					FILE is the file to check
-#					LEVEL is the type of cert you want. Default is SHA512.
-#	Example:	:	$val = $cf->get_cert( "file=myfile.dat", "level=MD2" );
+#					LEVEL is the type of hash you want. Default is SHA512.
+#	Example:	:	$val = $cf->get_hash( "file=myfile.dat", "level=MD2" );
 #	Notes	:	Types of hash information
 #				MD2, MD4, MD5, SHA1, SHA256, SHA384, SHA512 (Default)
 #
@@ -1716,14 +1722,19 @@ function fput_csv( $file=null, $array=null, $sep=',' )
 #	---------------------------------------------------------------------------
 #	Switched to using the algorithms given in PHP and stored in $this->algos.
 #
+#	Mark Manning			Simulacron I			Wed 09/01/2021 22:10:16.41 
+#	---------------------------------------------------------------------------
+#	Remember that the SHA1_FILE() is the only one that will give you the unque
+#	id for a file.
+#
 ################################################################################
-function get_cert( $file=null, $level=null, $ram=null )
+function get_hash( $file=null, $level=null, $ram=null )
 {
 	$this->debug->in();
 
 	if( is_null($file) || !file_exists($file) || (strlen(trim($file)) < 1) ){
-		$this->debug->msg( "FILE is NULL", true );
-		$this->debug->msg( "FILE = $file" );
+		$this->debug->msg( "Line " . __LINE__ . " : FILE is NULL\n" );
+		$this->debug->msg( "Line " . __LINE__ . " : FILE = $file\n" );
 		return false;
 		}
 
@@ -1733,42 +1744,41 @@ function get_cert( $file=null, $level=null, $ram=null )
 	if( is_null($ram) ){ $path = $this->temp_path; }
 		else { $path = $ram; }
 
-	$name = uniqid( rand(), true );
-	$ext = $pathinfo['extension'];
-	$name = "$path/$name.$ext";
+	if( is_null($level) ){ $level = "sha512"; }
 
-	$this->debug->msg( "FILE = $file" );
-	$this->debug->msg( "LEVEL = $level" );
+	$flag = false;
+	foreach( $this->algos as $k=>$v ){
+		if( preg_match("/$level/i", $v) ){ $flag = true; break; }
+		}
 
-	if( (array_search($level, $this->algos) === false) && !is_null($level) ){
-		$this->debug->msg( "LEVEL is $level" );
+	if( !$flag ){
+		$this->debug->msg( "Line " . __LINE__ . " : LEVEL = $level\n" );
 		return false;
 		}
-		elseif( is_null($level) ){ $level = "sha512"; }
-		else {
-			$this->debug->msg( "Unknown variable LEVEL = $level\n" );
-			return false;
-			}
 
-	copy( $file, $name );
-	sleep( 3 );
+	$f = file_get_contents( $file );
 
 	$info = null;
-	while( is_null($info = hash_file($level, $name))  ){
-		$this->debug->msg( "INFO is NULL ($info)" );
+	while( is_null($info = hash($level, $file))  ){
+		$this->debug->msg( "Line " . __LINE__ . " : INFO is NULL ($info)\n" );
 		sleep( 3 );
 		}
 
-	unlink( $name );
-	sleep( 3 );
-
+	unset( $f );
 	$this->debug->out();
 
 	return $info;
 }
 ################################################################################
+#	find_dups(). Find all duplicat files in the directory given (and
+#		subdirectories)
+################################################################################
+function find_dups( $dir=null, $opts=null )
+{
+}
+################################################################################
 #	rem_dups(). Remove duplicate files.
-#	Notes:	If opt is 1 = then only get NUMERICALLY named files.
+#	Notes:	If opt is TRUE then only get NUMERICALLY named files.
 ################################################################################
 function rem_dups( $dir=null, $opts=null )
 {
@@ -1777,18 +1787,46 @@ function rem_dups( $dir=null, $opts=null )
 #
 	list( $g, $b ) = $this->get_files( $dir);
 #
-#	Now get the certificates of all of the files
+#	Now get the hashes of all of the files
 #
-	$hashes = [];
+	$a = [];
 	foreach( $g as $k=>$v ){
-		if( $opts == 1 ){
-			if( is_numeric($v) ){ $hashes[$v] = $this->get_cert( $v ); }
+		if( $opts === true ){
+			$b = basename($v);
+			if( is_numeric($b) ){ $a[$v] = sha1_file( $v ); }
 				else { unset( $g[$k] ); }
 			}
-			else { $this->get_cert( $v ); }
+			else { $a[$v] = sha1_file( $v ); }
+		}
+#
+#	Now reverse the array so we have all files for each of the hashes.
+#
+	$b = [];
+	foreach( $a as $k=>$v ){
+		if( !isset($b[$v]) ){ $b[$v] = "$k|"; }
+			else { $b[$v] .= "k|"; }
+		}
+#
+#	Now remove all duplicate files.
+#
+	foreach( $b as $k=>$v ){
+#
+#	Break up the information.
+#
+		$a = explode( "|", $v );
+#
+#	Keep the first file
+#
+		$c = array_shift( $a );
+#
+#	Get rid of all of the rest.
+#
+		foreach( $a as $k1=>$v1 ){
+			if( (strlen(trim($v1)) > 1) && file_exists($v1) ){ unlink( $v1 ); }
+			}
 		}
 
-	return $hashes;
+	return true;
 }
 ################################################################################
 #	chmod_all(). 
@@ -1804,7 +1842,7 @@ function chmod_all( $dir )
 	if( count($dirs) < 1 ){ return false; }
 
 	foreach( $dirs as $k=>$v ){
-		echo "CHMODing : $k\n";
+		$this->debug->msg( "Line " . __LINE__ . " : CHMODing : $k\n" );
 		chmod( $k, 0777 );
 		$cd++;
 #
@@ -1812,7 +1850,7 @@ function chmod_all( $dir )
 #
 		list( $g, $b ) = $this->get_files( $k, null, false );
 		foreach( $g as $k1=>$v1 ){
-			echo "CHMODing : $v1\n";
+			$this->debug->msg( "Line " . __LINE__ . " : CHMODing : $v1\n" );
 			chmod( $v1, 0777 );
 			$cf++;
 			}
@@ -1839,7 +1877,7 @@ function del_empty_dirs( $dir )
 #
 		list( $g, $b ) = $this->get_files( $k, null, false );
 		if( count($g) < 1 ){
-			echo "Removing : $k\n";
+			$this->debug->msg( "Line " . __LINE__ . " : Removing : $k\n" );
 #			rmdir( $k );
 			$cd++;
 			}
@@ -1857,18 +1895,206 @@ function del_empty_dirs( $dir )
 ################################################################################
 function move_files_up( $dir )
 {
-	list( $g, $b ) = $this->get_files( $dir, null, false );
-	if( count($g) > 1 ){ return false; }
+	$this->debug->in();
 
-	$pathinfo = pathinfo( $dir );
-	$uniqid = uniqid( rand(), true );
-	$ext = $pathinfo['extension'];
-	$name = "$path/$name.$ext";
+	$dq = '"';
+	$flag = 1;
+#
+#	Start of the loop. We go through and change everything so we
+#	might wind up with an invalid directory later on in the list.
+#	So this loop starts up, gets the list of directories and then
+#	begins checking them to see if they need to be moved.
+#
+#	This DOES MEAN that this will run through the entire list of
+#	directories AT LEAST ONE EXTRA TIME - IF - WE HAVE CHANGED
+#	ANYTHING. Otherwise - it just goes through once and stops.
+#
+	while( $flag > 0 ){
+		$flag = 0;
+#
+#	Get the list of directories
+#
+		$dirs = $this->get_dirs( $dir );
+#
+#	Now go through them and look for single files in a directory.
+#
+		if( !is_array($dirs) ){ return false; }
+		if( count($dirs) < 1 ){ return false; }
+		foreach( $dirs as $k=>$v ){
+			echo "Looking at : $k\n";
+#
+#	Because we are REMOVING directories - we always have to check to see
+#	if we have already done something to the directory and if so - we
+#	have to wait until the next run through.
+#
+			if( file_exists($k) ){
+				list( $g, $b ) = $this->get_files( $k, null, false );
+				if( count($g) == 1 ){
+#
+#	Get information about the file.
+#
+					$pathinfo = pathinfo( $g[0] );
+					$uniqid = uniqid( rand(), true );
+					$path = $pathinfo['dirname'];
+					$file = $pathinfo['basename'];
+					$a = explode( '/', $path );
+					$last_dir = array_pop( $a );
+					$old_path = implode( '/', $a );
+#
+#	If the filename and last directory are the same - then
+#	since there is only one file in the directory - we move it up
+#	one level.
+#
+					if( $file === $last_dir ){
+						$flag++;
+						$new_dir = $last_dir . "-" . $uniqid;
+						$new_path = "$old_path/$new_dir";
+						echo "RENAME( $k, $dq$new_path$dq )\n";
+						rename( $k, "$new_path" );
+						sleep( 1 );
+						echo "RENAME( $dq$new_path/$file$dq, $k );\n";
+						rename( "$new_path/$file", $k );
+						echo "---->DELETING $new_path\n";
+						if( rmdir("$new_path") === false ){ $flag--; }
+						echo str_repeat( '=', 80 ) . "\n";
+						}
+					}
+					else if( count($g) < 1 ){
+						$flag++;
+						echo "---->DELETING $k\n";
+						if( rmdir($k) === false ){ $flag--; }
+						echo str_repeat( '=', 80 ) . "\n";
+						}
+				}
+			}
+		}
+}
+################################################################################
+#	remdir(). Remove all files and directories.
+#	NOTE	:	You CAN NOT delete a directory without first getting rid of
+#				all of the files IN that directory.
+#	Variables	:	$cur_dir is the directory we want to work with.
+#					$opt is whether or not to delete the $cur_dir directory.
+################################################################################
+function remdir( $cur_dir=null, $opt=true )
+{
+	$this->debug->in();
+
+	if( is_null($cur_dir) || !is_dir($cur_dir) ){ return false; }
+
+	$c = 0;
+	$dirs = [];
+	$files = [];
+	$dir_list = [];
+
+	$pathinfo = pathinfo( $cur_dir );
+
+	$dirs[] = $cur_dir;
+	while( count($dirs) > 0 ){
+		$dir = array_pop( $dirs );
+		echo "Looking at : $dir\n";
+
+		$dir_list[] = $dir;
+		if( is_link($dir) ){
+			$c++;
+			echo "Deleting LINK DIRECTORY : $dir\n";
+			if( file_exists($dir) ){ unlink( $dir ); }
+			continue;
+			}
+
+		if( ($dh = @opendir($dir)) ){
+			if( !is_resource($dh) ){ continue; }
+			while( ($file = readdir($dh)) !== false ){
+				$curfile = "$dir/$file";
+				echo "Looking at : $curfile\n";
+				if( $file != "." && $file != ".." ){
+					if( is_dir($curfile) ){
+						echo "Adding directory : $curfile\n";
+						$dirs[] = $curfile;
+						$dir_list[] = $curfile;
+						}
+						else {
+							echo "Deleting : $curfile\n";
+							if( file_exists($curfile) ){
+								chmod( $curfile, 0777 );
+								unlink( $curfile );
+								}
+							}
+					}
+				}
+
+			closedir( $dh );
+			}
+		}
+#
+#	Now that we have gotten rid of all of the files
+#	we need to get rid of the directories. But first - we
+#	have to sort the strings in order to get the longest
+#	strings FIRST.
+#
+	usort( $dir_list, "class_files::len_sort" );
+	foreach( $dir_list as $k=>$v ){
+		if( $opt && ($cur_dir === $v) ){
+			echo "Skipping : $v\n";
+			continue;
+			}
+
+		echo "Deleting REAL DIRECTORY : $v\n";
+		if( file_exists($v) ){
+			chmod( $v, 0777 );
+			rmdir( $v );
+			}
+		}
+
+	echo "All files are removed\n";
+	$this->debug->out();
+	return true;
+}
+################################################################################
+#	len_sort(). Do a sort according to length of the string.
+#	NOTE	:	This is useful because you can't get rid of the directories
+#				if there is any kind of a file IN that directory. (Besides
+#				the . and .. files.)
+################################################################################
+function len_sort( $a, $b )
+{
+	$a_len = strlen( $a );
+	$b_len = strlen( $b );
+
+	if( $a_len == $b_len ){ return 0; }
+#
+#	Reverse if b is shorter than a
+#
+	return ($b_len < $a_len) ? -1 : 1;
+}
+################################################################################
+#	dump(). A simple function to dump some information.
+#	Ex:	$this->dump( "NUM", __LINE__, $num );
+################################################################################
+function dump( $title=null, $line=null, $arg=null )
+{
+	$this->debug->in();
+
+	if( is_null($title) ){ return false; }
+	if( is_null($line) ){ return false; }
+	if( is_null($arg) ){ return false; }
+
+	if( is_array($arg) ){
+		echo "$title @ Line : $line =\n";
+		print_r( $arg );
+		echo "\n";
+		}
+		else {
+			echo "$title @ Line : $line = $arg\n";
+			}
+
+	$this->debug->out();
+	return true;
 }
 ################################################################################
 #	dump(). A short function to dump a file.
 ################################################################################
-function dump( $f=null, $l=null )
+function dumpfile( $f=null, $l=null )
 {
 	$this->debug->in();
 
@@ -1883,20 +2109,20 @@ function dump( $f=null, $l=null )
 	$r = fread( $fh, 1024 );
 	fclose( $fh );
 
-	$this->debug->m( "Dump	: " );
+	$this->debug->msg( "Dump File	: " );
 	for ($i = 0; $i < $l; $i++) {
-		$this->debug->m( str_pad(dechex(ord($r[$i])), 2, '0', STR_PAD_LEFT) );
+		$this->debug->msg( str_pad(dechex(ord($r[$i])), 2, '0', STR_PAD_LEFT) );
 		}
 
-	$this->debug->m( "\nHeader  : " );
+	$this->debug->msg( "\nHeader  : " );
 	for ($i = 0; $i < 32; $i++) {
 		$s = ord( $r[$i] );
 		$s = ($s > 127) ? $s - 127 : $s;
 		$s = ($s < 32) ? ord(" ") : $s;
-		$this->debug->m( chr( $s ) );
+		$this->debug->msg( chr( $s ) );
 		}
 
-	$this->debug->m( "\n" );
+	$this->debug->msg( "\n" );
 
 	$this->debug->out();
 
@@ -1906,6 +2132,8 @@ function dump( $f=null, $l=null )
 }
 
 	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['files']) ){ $GLOBALS['classes']['files'] = new class_files(); }
+	if( !isset($GLOBALS['classes']['files']) ){
+		$GLOBALS['classes']['files'] = new class_files();
+		}
 
 ?>

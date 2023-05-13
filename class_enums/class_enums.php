@@ -1,32 +1,87 @@
 <?php
+#
+#	Standard error function
+#
+	set_error_handler(function($errno, $errstring, $errfile, $errline ){
+		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		});
+
+	date_default_timezone_set( "UTC" );
+#
+#	$lib is where my libraries are located.
+#	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
+#	because of my UNIX background. So I used the following to find them
+#	no matter where I was. I created an environment variable called "my_libs"
+#	and then it could find my classes. IF YOU SET THINGS UP DIFFERENTLY then
+#	you will have to modify the following.
+#
+	$lib = getenv( "my_libs" );
+	$lib = str_replace( "\\", "/", $lib );
+	if( !file_exists($lib) ){ $lib = ".."; }
+
+	if( file_exists("$lib/class_debug.php") ){
+		include_once( "$lib/class_debug.php" );
+		}
+		else if( !isset($GLOBALS['classes']['debug']) ){
+			die( __FILE__ . ": Can not load CLASS_DEBUG" );
+			}
+
 ################################################################################
-#	Class ENUMS
+#BEGIN DOC
 #
-#		Original code by Mark Manning.
-#		Copyrighted (c) 2015 by Mark Manning.
-#		All rights reserved.
+#-Calling Sequence:
 #
-#		This set of code is hereby placed into the free software universe
-#		via the GNU greater license thus placing it under the Copyleft
-#		rules and regulations with the following modifications:
+#	enums();
 #
-#		1. You may use this work in any other work.  Commercial or otherwise.
-#		2. You may make as much money as you can with it.
-#		3. You owe me nothing except to give me a small blurb somewhere in
-#			your program or maybe have pity on me and donate a dollar to
-#			sim_sales@paypal.com.  :-)
+#-Description:
 #
-#	Blurb:
+#	A class to handle enums. All you do is to put :
 #
-#		PHP Class Enums by Mark Manning (markem-AT-sim1-DOT-us).
-#		Used with permission.
+#		$ce = new class_enums();
 #
-#	Notes:
+#	At the beginning of your program and then just put new variables after
+#	the "$ce" part like so:
 #
-#		VIM formatting.  Set tabs to four(4) spaces.
+#		$ce->a = "X";
+#		$ce->b= 5;
+#
+#	and so on.
+#
+#-Inputs:
+#
+#	None.
+#
+#-Outputs:
+#
+#	None.
+#
+#-Revisions:
+#
+#	Name					Company					Date
+#	---------------------------------------------------------------------------
+#	Mark Manning			Simulacron I			11/14/2015
+#		Original Program.
+#
+#	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
+#	---------------------------------------------------------------------------
+#		This is now under the BSD Three Clauses Plus Patents License.
+#		See the BSD-3-Patent.txt file.
+#
+#	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
+#	---------------------------------------------------------------------------
+#	Please note that _MY_ Legal notice _HERE_ is as follows:
+#
+#		CLASS_DEBUG.PHP. A class to handle working with debugging programs.
+#		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
+#		except for those given by the BSD License.
+#
+#	Please place _YOUR_ legal notices _HERE_. Thank you.
 #
 ################################################################################
-class enums
+#
+#END DOC
+################################################################################
+class class_enums
 {
 	private $enums;
 	private $clear_flag;
@@ -37,15 +92,27 @@ class enums
 ################################################################################
 function __construct()
 {
+	$this->debug = $GLOBALS['classes']['debug'];
+	if( !isset($GLOBALS['class']['enums']) ){
+		return $this->init( func_get_args() );
+		}
+		else { return $GLOBALS['class']['enums']; }
+}
+################################################################################
+#	init(). Way to be able to re-init the class.
+################################################################################
+function init()
+{
 	$this->enums = array();
 	$this->clear_flag = false;
 	$this->last_value = 0;
 
-	if( func_num_args() > 0 ){
-		return $this->put( func_get_args() );
+	$args = func_get_args();
+	while( is_array($args) && (count($args) < 2) ){
+		$args = array_pop( $args );
 		}
 
-	return true;
+	return $this->put( $args );
 }
 ################################################################################
 #	put(). Insert one or more enums.
@@ -53,16 +120,19 @@ function __construct()
 function put()
 {
 	$args = func_get_args();
+	while( is_array($args) && (count($args) < 2) ){
+		$args = array_pop( $args );
+		}
 #
 #	Did they send us an array of enums?
 #	Ex: $c->put( array( "a"=>0, "b"=>1,...) );
 #	OR  $c->put( array( "a", "b", "c",... ) );
 #
-	if( is_array($args[0]) ){
+	if( is_array($args) ){
 #
 #	Add them all in
 #
-		foreach( $args[0] as $k=>$v ){
+		foreach( $args as $k=>$v ){
 #
 #	Don't let them change it once it is set.
 #	Remove the IF statement if you want to be able to modify the enums.
@@ -93,7 +163,7 @@ function put()
 #	Is this just a default declaration?
 #	Ex: $c->put( "a" );
 #
-			if( count($args) < 2 ){
+			if( is_array($args) && count($args) < 2 ){
 #
 #	Again - remove the IF statement if you want to be able to change the enums.
 #
@@ -208,6 +278,9 @@ function __get($name)
 ################################################################################
 function __set( $name, $value=null )
 {
+	if( is_array($value) ){ return false; }
+	if( is_object($value) ){ return false; }
+	if( is_resource($value) ){ return false; }
 	if( isset($this->enums[$name]) ){ return false; }
 		else if( !isset($this->enums[$name]) && !is_null($value) ){
 			$this->last_value = $value + 1;
@@ -220,6 +293,30 @@ function __set( $name, $value=null )
 			}
 
 	return false;
+}
+################################################################################
+#	dump(). A simple function to dump some information.
+#	Ex:	$this->dump( "NUM", __LINE__, $num );
+################################################################################
+function dump( $title=null, $line=null, $arg=null )
+{
+	$this->debug->in();
+
+	if( is_null($title) ){ return false; }
+	if( is_null($line) ){ return false; }
+	if( is_null($arg) ){ return false; }
+
+	if( is_array($arg) ){
+		echo "$title @ Line : $line =\n";
+		print_r( $arg );
+		echo "\n";
+		}
+		else {
+			echo "$title @ Line : $line = $arg\n";
+			}
+
+	$this->debug->out();
+	return true;
 }
 ################################################################################
 #	__destruct().  Deconstruct the class.  Remove the list of enums.
@@ -245,4 +342,8 @@ function __destruct()
 #	echo $c->YELLOW_LIGHT . "\n";
 #	echo $c->GREEN_LIGHT . "\n";
 
+	if( !isset($GLOBALS['classes']) ){ global $classes; }
+	if( !isset($GLOBALS['classes']['enums']) ){
+		$GLOBALS['classes']['enums'] = new class_enums();
+		}
 ?>

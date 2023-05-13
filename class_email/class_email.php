@@ -1,5 +1,13 @@
 <?php
 #
+#	Standard error function
+#
+	set_error_handler(function($errno, $errstring, $errfile, $errline ){
+		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		});
+
+	date_default_timezone_set( "UTC" );
+#
 #	$lib is where my libraries are located.
 #	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
 #	because of my UNIX background. So I used the following to find them
@@ -7,12 +15,13 @@
 #	and then it could find my classes. IF YOU SET THINGS UP DIFFERENTLY then
 #	you will have to modify the following.
 #
-	$lib = getenv( "my_libs");
+	$lib = getenv( "my_libs" );
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
 	if( file_exists("$lib/class_debug.php") ){
 		include_once( "$lib/class_debug.php" );
+		include_once( "$lib/class_files.php" );
 		}
 		else if( !isset($GLOBALS['classes']['debug']) ){
 			die( __FILE__ . ": Can not load CLASS_DEBUG" );
@@ -44,54 +53,10 @@
 #	Mark Manning			Simulacron I			Tue 12/31/2019 16:49:20.50 
 #		Original Program.
 #
-#	Name					Company					Date
+#	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
 #	---------------------------------------------------------------------------
-#	Mark Manning			Simulacron I			Sun 01/24/2021 23:28:17.25 
-#		These classes are now under the MIT License.  Any and all works
-#		whether derivatives or extensions should be sent back to markem@sim1.us.
-#		In this way, anything that makes these routines better
-#		can be incorporated into them for the greater good
-#		of mankind.  All additions and who made them should be
-#		noted here in this file OR in a separate file to be called
-#		the HISTORY.DAT file since, at some point in the future,
-#		this list will get to be too big to store within the class
-#		itself.  If there is a standard on such things - see the
-#		MIT license file for details.  If you do not agree with the
-#		license - then do NOT use these routines in any way, shape,
-#		or form.  Failure to do so or using these routines in whole
-#		or in part - constitutes a violation of the MIT licensing
-#		terms and can and will result in prosecution under the law.
-#
-#	_MY_ Legal Statement follows:
-#
-#		<NAME OF PRODUCT>. <A SHORT STATEMENT OF WHAT IT DOES>
-#		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
-#		except for those given by the MIT License.
-#
-#		Here is the standard MIT disclaimer which should be included
-#		in the program:
-#
-#--------------------------------------------------------------------------------
-#
-#	Copyright (c) <year> <copyright holders>
-#	
-#	Permission is hereby granted, free of charge, to any person obtaining a copy
-#	of this software and associated documentation files (the "Software"), to deal
-#	in the Software without restriction, including without limitation the rights
-#	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#	copies of the Software, and to permit persons to whom the Software is
-#	furnished to do so, subject to the following conditions:
-#	
-#	The above copyright notice and this permission notice shall be included in all
-#	copies or substantial portions of the Software.
-#	
-#	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-#	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-#	SOFTWARE.
+#		This is now under the BSD Three Clauses Plus Patents License.
+#		See the BSD-3-Patent.txt file.
 #
 #	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
 #	---------------------------------------------------------------------------
@@ -99,7 +64,7 @@
 #
 #		CLASS_EMAIL.PHP. A class to handle working with email.
 #		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
-#		except for those given by the MIT License.
+#		except for those given by the BSD License.
 #
 #	Please place _YOUR_ legal notices _HERE_. Thank you.
 #
@@ -107,27 +72,38 @@
 ################################################################################
 class class_email
 {
+	private $cf = null;
 	private $debug = null;
 	private $mboxes = null;
 	private $num_mboxes = null;
+	private $temp_dir = null;
 
 ################################################################################
 #	__construct(). Constructor.
 ################################################################################
-function __construct(){ $this->init( func_get_args() ); }
+function __construct()
+{
+	$this->debug = $GLOBALS['classes']['debug'];
+	if( !isset($GLOBALS['class']['email']) ){
+		return $this->init( func_get_args() );
+		}
+		else { return $GLOBALS['class']['email']; }
+}
 ################################################################################
 #	init(). Because we need to be able to call this to get started from
 #		multiple locations.
 ################################################################################
 function init()
 {
-#
-#	Arguments are looked at HERE. Don't put them in!
-#
-	$args = func_get_args();
-	$this->debug = $GLOBALS['classes']['debug'];
-	$this->debug->init( $args );
 	$this->debug->in();
+
+	$args = func_get_args();
+	while( is_array($args) && (count($args) < 2) ){
+		$args = array_pop( $args );
+		}
+
+	$this->temp_dir = "c:/temp/mail";
+	$this->cf = $GLOBALS['classes']['files'];
 
 	$this->mboxes = array();
 	$this->debug->out();
@@ -141,7 +117,7 @@ function load( $file )
 	$c = 0;
 
 	if( !file_exists($file) ){
-		$this->debug->t( "DIE : The file does NOT exist\nFile : $file" );
+		$this->debug->msg( "DIE : The file does NOT exist\nFile : $file" );
 		}
 
 	$a = file_get_contents( $file );
@@ -197,11 +173,11 @@ function sep( $num=null )
 	$this->debug->in();
 
 	if( is_null($num) ){
-		$this->debug->t( "DIE : No message number given" );
+		$this->debug->msg( "DIE : No message number given" );
 		}
 
 	if( ($num < 0) || ($num >= $this->num_mboxes) ){
-		$this->debug-t( "DIE : Number given is wrong. NUM = $num" );
+		$this->debug->msg( "DIE : Number given is wrong. NUM = $num" );
 		}
 
 	$cmd = "";
@@ -264,21 +240,26 @@ function sep( $num=null )
 function split( $file, $subfolder=null )
 {
 	$c = 0;
-	$gb = 8589934592;
+	$buffer_size = pow( 2, 19 );
+
 	if( is_null($subfolder) ){
 		$curdir = dirname( __FILE__ );
 		$subfolder = "$curdir/email-" . uniqid( rand() );
+		$subfolder = str_replace( "\\", "/", $subfolder );
+		echo "SUBFOLDER #2 = $subfolder\n";
 		if( !file_exists($subfolder) ){
-			mkdir( $subfolder );
-			sleep( 3 );
-			chmod( $subfolder, 0777 );
+			mkdir( $subfolder, 0777, true );
 			sleep( 3 );
 			}
 		}
 		else {
-			list( $g, $b ) = $this->get_files( $k, null, false );
+			list( $g, $b ) = $this->cf->get_files( $subfolder, null, false );
 			$c = count( $g );
 			}
+
+	$subfolder = str_replace( "\\", "/", $subfolder );
+	echo "SUBFOLDER #1 = $subfolder\n";
+	if( strlen($subfolder) < 5 ){ exit; }
 
 	if( ($fp = fopen($file, "r")) === false ){
 		die( "Could not open : $file" );
@@ -286,7 +267,7 @@ function split( $file, $subfolder=null )
 
 	$out = [];
 	while( !feof($fp) ){
-		if( ($buf = fread($fp, $gb)) != false ){
+		if( ($buf = fread($fp, $buffer_size)) != false ){
 			$info = explode( "\n", $buf );
 			foreach( $info as $k=>$v ){
 				if( preg_match("/^from\s+-\s+\w+\s+\w+\s+\d+\s+\d+:\d+:\d+\s+\d+/i", $v) ){
@@ -294,9 +275,7 @@ function split( $file, $subfolder=null )
 						$out = implode( "\n", $out );
 						$out_file = "$subfolder/" . $c++ . ".eml";
 						file_put_contents( $out_file, $out );
-						sleep( 3 );
 						chmod( $out_file, 0777 );
-						sleep( 3 );
 						}
 
 					$out = [];
@@ -310,9 +289,9 @@ function split( $file, $subfolder=null )
 	$out = implode( "\n", $out );
 	$out_file = "$subfolder/" . $c++ . ".eml";
 	file_put_contents( $out_file, $out );
-	sleep( 3 );
+	sleep( 1 );
 	chmod( $out_file, 0777 );
-	sleep( 3 );
+	sleep( 1 );
 	fclose( $fp );
 
 	return $subfolder;
@@ -350,6 +329,79 @@ function search( $file=null, $preg=null )
 	return false;
 }
 ################################################################################
+#	rem_dup_msgs(). Remove duplicate messages. Leave the first one only.
+################################################################################
+function rem_dup_msgs( $dir )
+{
+	if( is_null($dir) || !file_exists($dir) ){ return false; }
+#
+#	Get the files
+#
+	list( $g, $b ) = $this->cf->get_files( $dir );
+#
+#	Get the certificates. OK. It turns out that the sha1_file()
+#	function is the ONLY ONE which can check to make sure the
+#	files are the same.
+#
+	$certs = [];
+	foreach( $g as $k=>$v ){
+		$b = basename( $v );
+		if( is_numeric($b) ){ $certs[$v] = sha1_file( $v ); }
+		}
+#
+#	Create the list of files reversed.
+#
+	$list = [];
+	foreach( $certs as $k=>$v ){
+		if( !isset($list[$v]) ){ $list[$v] = "$k|"; }
+			else { $list[$v] .= "$k|"; }
+		}
+#
+#	Get rid of everything EXCEPT the first file of the duplicate files.
+#
+	foreach( $list as $k=>$v ){
+		$a = explode( "|", $v );
+		while( strlen($b = array_shift($a)) < 1 && (count($a) > 0) );
+		echo "Keeping : $b\n";
+		foreach( $a as $k1=>$v1 ){
+			if( !is_null(trim($v1)) && (strlen($v1) > 0) ){
+				echo "Unlinking : $v1\n";
+				unlink( $v1 );
+				}
+			}
+		}
+#
+#	Renumber all of the files for slypheed.
+#	To do this we first have to get the list of directories.
+#
+	$dirs = $this->cf->get_dirs( $dir );
+#
+#	Then we ONLY WANT those files IN that directory.
+#
+	foreach( $dirs as $k=>$v ){
+#
+#	Get rid of these two files : .sylpheed_cache and .sylpheed_mark
+#
+#	if( file_exists("$v/.sylpheed_cache") ){ unlink( "$v/.sylpheed_cache"); }
+#	if( file_exists("$v/.sylpheed_mark") ){ unlink( "$v/.sylpheed_mark"); }
+#
+#	BE SURE to just get the files IN this directory.
+#
+		list( $g, $b ) = $this->cf->get_files( $k, "/\d+$/", false );
+		if( count($g) > 0 ){
+			$nums = [];
+			foreach( $g as $k1=>$v1 ){
+				$nums[$v1] = basename( $v1 );
+				}
+
+			sort( $nums, SORT_NUMERIC );
+			print_r( $nums );
+			}
+		}
+
+	return true;
+}
+################################################################################
 #	count(). Return how many messages there are in the mboxes array.
 ################################################################################
 function count(){ return $this->num_mboxes; }
@@ -366,10 +418,36 @@ function put( $msg )
 	$this->mboxes[] = $msg;
 	return true;
 }
+################################################################################
+#	dump(). A simple function to dump some information.
+#	Ex:	$this->dump( "NUM", __LINE__, $num );
+################################################################################
+function dump( $title=null, $line=null, $arg=null )
+{
+	$this->debug->in();
+
+	if( is_null($title) ){ return false; }
+	if( is_null($line) ){ return false; }
+	if( is_null($arg) ){ return false; }
+
+	if( is_array($arg) ){
+		echo "$title @ Line : $line =\n";
+		print_r( $arg );
+		echo "\n";
+		}
+		else {
+			echo "$title @ Line : $line = $arg\n";
+			}
+
+	$this->debug->out();
+	return true;
+}
 
 }
 
 	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['files']) ){ $GLOBALS['classes']['files'] = new class_files(); }
+	if( !isset($GLOBALS['classes']['email']) ){
+		$GLOBALS['classes']['email'] = new class_email();
+		}
 
 ?>

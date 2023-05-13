@@ -1,10 +1,21 @@
 <?php
+#
+#	Standard error function
+#
+	set_error_handler(function($errno, $errstring, $errfile, $errline ){
+		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		});
 
+	date_default_timezone_set( "UTC" );
 #
-#	$lib is where my libraries are located. Change this to whereever
-#	you are keeping them.
+#	$lib is where my libraries are located.
+#	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
+#	because of my UNIX background. So I used the following to find them
+#	no matter where I was. I created an environment variable called "my_libs"
+#	and then it could find my classes. IF YOU SET THINGS UP DIFFERENTLY then
+#	you will have to modify the following.
 #
-	$lib = getenv( "my_libs");
+	$lib = getenv( "my_libs" );
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
@@ -41,43 +52,27 @@
 #	Mark Manning			Simulacron I			Sat 11/21/2009 16:15:20.35 
 #		Original Program.
 #
-#	Mark Manning			Simulacron I			Sat 11/21/2009 14:51:42.95 
-#		These classes are now under the MIT License.  Any and all works
-#		whether derivatives or extensios should be sent back to markem@sim1.us as
-#		per the MIT License.  In this way, anything that makes these
-#		routines better can be incorporated into them for the greater
-#		good of mankind.  All additions and who made them should be noted here
-#		in this file OR in a separate file to be called the HISTORY.DAT file
-#		since, at some point in the future, this list will get to be too big
-#		to store within the class itself.  See the MIT license file for details
-#		on the MIT license.  If you do not agree with the license - then do NOT
-#		use these routines in any way, shape, or form.  Failure to do so or using
-#		these routines in whole or in part - constitutes a violation of the MIT
-#		licensing terms and can and will result in prosecution under the law.
+#	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
+#	---------------------------------------------------------------------------
+#		This is now under the BSD Three Clauses Plus Patents License.
+#		See the BSD-3-Patent.txt file.
 #
-#	Legal Statement follows:
+#	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
+#	---------------------------------------------------------------------------
+#	Please note that _MY_ Legal notice _HERE_ is as follows:
 #
-#		class_color. A PHP class to handle color.
-#		Copyright (C) 2001.  Mark Manning
+#		CLASS_COLOR.PHP. A class to handle working with colors.
+#		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
+#		except for those given by the BSD License.
 #
-#		This program is free software: you can redistribute it
-#		and/or modify it under the terms of the MIT 
-#		License as published by the Free Software Foundation.
-#
-#		This program is distributed in the hope that it will be useful,
-#		but WITHOUT ANY WARRANTY; without even the implied warranty of
-#		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#		MIT License for more details.
-#
-#		You should have received a copy of the MIT License
-#		along with this program.
+#	Please place _YOUR_ legal notices _HERE_. Thank you.
 #
 #END DOC
 ################################################################################
 class class_color
 {
 	private $debug = null;
-	private	$colorTable = array();
+	private	$color_table = array();
 
 ################################################################################
 #BEGIN DOC
@@ -110,12 +105,25 @@ class class_color
 ################################################################################
 function __construct()
 {
-	$args = func_get_args();
 	$this->debug = $GLOBALS['classes']['debug'];
-	$this->debug->init( func_get_args() );
+	if( !isset($GLOBALS['class']['color']) ){
+		return $this->init( func_get_args() );
+		}
+		else { return $GLOBALS['class']['color']; }
+}
+################################################################################
+#	init(). A way to reinitialize this class.
+################################################################################
+function init()
+{
 	$this->debug->in();
 
-	$colorTable = array(
+	$args = func_get_args();
+	while( is_array($args) && (count($args) < 2) ){
+		$args = array_pop( $args );
+		}
+
+	$this->color_table = array(
 		'0' => array( 'name' => 'alice blue', 'red' => '240', 'green' => '248', 'blue' => '255', 'hex' => 'F0F8FF' ),
 		'1' => array( 'name' => 'aliceblue', 'red' => '240', 'green' => '248', 'blue' => '255', 'hex' => 'F0F8FF' ),
 		'2' => array( 'name' => 'antique white', 'red' => '250', 'green' => '235', 'blue' => '215', 'hex' => 'FAEBD7' ),
@@ -369,7 +377,8 @@ function __construct()
 		'250' => array( 'name' => 'floral white', 'red' => '255', 'green' => '250', 'blue' => '240', 'hex' => 'FFFAF0' ),
 		'251' => array( 'name' => 'floralwhite', 'red' => '255', 'green' => '250', 'blue' => '240', 'hex' => 'FFFAF0' ),
 		'252' => array( 'name' => 'forest green', 'red' => '34', 'green' => '139', 'blue' => '34', 'hex' => '228B22' ),
-		'253' => array( 'name' => 'forest green, khaki, medium aquamarine', 'red' => '35', 'green' => '142', 'blue' => '35', 'hex' => '238E23' ),
+		'253' => array( 'name' => 'forest green, khaki, medium aquamarine',
+						'red' => '35', 'green' => '142', 'blue' => '35', 'hex' => '238E23' ),
 		'254' => array( 'name' => 'forestgreen', 'red' => '34', 'green' => '139', 'blue' => '34', 'hex' => '228B22' ),
 		'255' => array( 'name' => 'free speech aquamarine', 'red' => '2', 'green' => '157', 'blue' => '116', 'hex' => '029D74' ),
 		'256' => array( 'name' => 'free speech blue', 'red' => '65', 'green' => '86', 'blue' => '197', 'hex' => '4156C5' ),
@@ -1224,34 +1233,34 @@ function rgb2name( $r, $g, $b )
 #
 #	Try to find the perfect match.
 #
-	for( $i=0; $i<count($this->colorTable); $i++ ){
-		if( ($this->colorTable[$i]['red'] == $r) &&
-			($this->colorTable[$i]['green'] == $g) &&
-			($this->colorTable[$i]['blue'] == $b) ){
-			return $this->colorTable[$i]['name'];
+	for( $i=0; $i<count($this->color_table); $i++ ){
+		if( ($this->color_table[$i]['red'] == $r) &&
+			($this->color_table[$i]['green'] == $g) &&
+			($this->color_table[$i]['blue'] == $b) ){
+			return $this->color_table[$i]['name'];
 			}
 		}
 #
 #	Try to find a good match.
 #
-	for( $i=0; $i<count($this->colorTable); $i++ ){
-		if( (($this->colorTable[$i]['red'] == $r) &&
-			($this->colorTable[$i]['green'] == $g)) ||
-			(($this->colorTable[$i]['red'] == $r) &&
-			($this->colorTable[$i]['blue'] == $b)) ||
-			(($this->colorTable[$i]['green'] == $g) &&
-			($this->colorTable[$i]['blue'] == $b)) ){
-			return $this->colorTable[$i]['name'];
+	for( $i=0; $i<count($this->color_table); $i++ ){
+		if( (($this->color_table[$i]['red'] == $r) &&
+			($this->color_table[$i]['green'] == $g)) ||
+			(($this->color_table[$i]['red'] == $r) &&
+			($this->color_table[$i]['blue'] == $b)) ||
+			(($this->color_table[$i]['green'] == $g) &&
+			($this->color_table[$i]['blue'] == $b)) ){
+			return $this->color_table[$i]['name'];
 			}
 		}
 #
 #	Can we find anything at all?
 #
-	for( $i=0; $i<count($this->colorTable); $i++ ){
-		if( ($this->colorTable[$i]['red'] == $r) ||
-			($this->colorTable[$i]['green'] == $g) ||
-			($this->colorTable[$i]['blue'] == $b) ){
-			return $this->colorTable[$i]['name'];
+	for( $i=0; $i<count($this->color_table); $i++ ){
+		if( ($this->color_table[$i]['red'] == $r) ||
+			($this->color_table[$i]['green'] == $g) ||
+			($this->color_table[$i]['blue'] == $b) ){
+			return $this->color_table[$i]['name'];
 			}
 		}
 #
@@ -1314,42 +1323,42 @@ function hex2name()
 #
 #	Try to find a perfect match.
 #
-	for( $i=0; $i<count($this->colorTable); $i++ ){
-		if( $this->colorTable['hex'] == $h ){
-			return $this->colorTable[$i]['name'];
+	for( $i=0; $i<count($this->color_table); $i++ ){
+		if( $this->color_table['hex'] == $h ){
+			return $this->color_table[$i]['name'];
 			}
 		}
 #
 #	Try to find a good match.
 #
-	for( $i=0; $i<count($this->colorTable); $i++ ){
-		if( substr($this->colorTable['hex'],0,4) == substr($h,0,4) ){
-			return $this->colorTable[$i]['name'];
+	for( $i=0; $i<count($this->color_table); $i++ ){
+		if( substr($this->color_table['hex'],0,4) == substr($h,0,4) ){
+			return $this->color_table[$i]['name'];
 			}
 
-		if( substr($this->colorTable['hex'],2,4) == substr($h,2,4) ){
-			return $this->colorTable[$i]['name'];
+		if( substr($this->color_table['hex'],2,4) == substr($h,2,4) ){
+			return $this->color_table[$i]['name'];
 			}
 
-		if( substr($this->colorTable['hex'],0,2).substr($this->colorTable['hex'],4,2) ==
+		if( substr($this->color_table['hex'],0,2).substr($this->color_table['hex'],4,2) ==
 			substr($h,0,2).substr($h,4,2) ){
-			return $this->colorTable[$i]['name'];
+			return $this->color_table[$i]['name'];
 			}
 		}
 #
 #	Try to find a some kind of a match.
 #
-	for( $i=0; $i<count($this->colorTable); $i++ ){
-		if( substr($this->colorTable['hex'],0,2) == substr($h,0,2) ){
-			return $this->colorTable[$i]['name'];
+	for( $i=0; $i<count($this->color_table); $i++ ){
+		if( substr($this->color_table['hex'],0,2) == substr($h,0,2) ){
+			return $this->color_table[$i]['name'];
 			}
 
-		if( substr($this->colorTable['hex'],2,2) == substr($h,2,2) ){
-			return $this->colorTable[$i]['name'];
+		if( substr($this->color_table['hex'],2,2) == substr($h,2,2) ){
+			return $this->color_table[$i]['name'];
 			}
 
-		if( substr($this->colorTable['hex'],4,2) == substr($h,4,2) ){
-			return $this->colorTable[$i]['name'];
+		if( substr($this->color_table['hex'],4,2) == substr($h,4,2) ){
+			return $this->color_table[$i]['name'];
 			}
 		}
 #
@@ -1496,16 +1505,16 @@ function hex2rgb()
 #
 #END DOC
 ################################################################################
-function name2rgb( $s )
+function name2rgb( $s=null )
 {
 	$this->debug->in();
+	if( is_null($s) ){ $this->die("COLOR NAME is NULL", __LINE__ ); }
 
-	$ns = trim( $s );
-	for( $i=0; $i<count($this->colorTable); $i++ ){
-		if( strtolower($this->colorTable[$i]['name']) == strtolower($ns) ){
-			return array( $this->colorTable[$i]['red'],
-				$this->colorTable[$i]['green'],
-				$this->colorTable[$i]['blue'] );
+	for( $i=0; $i<count($this->color_table); $i++ ){
+		if( preg_match("/$s/i", $this->color_table[$i]['name']) ){
+			return array( $this->color_table[$i]['red'],
+				$this->color_table[$i]['green'],
+				$this->color_table[$i]['blue'] );
 			}
 		}
 
@@ -1545,18 +1554,66 @@ function name2hex( $s )
 {
 	$this->debug->in();
 
-	$ns = trim( $s );
-	for( $i=0; $i<count($this->colorTable); $i++ ){
-		if( strtolower($this->colorTable[$i]['name']) == strtolower($ns) ){
-			return $this->colorTable[$i]['hex'];
+	for( $i=0; $i<count($this->color_table); $i++ ){
+		if( preg_match("/$s/i", $this->color_table[$i]['name']) ){
+			return $this->color_table[$i]['hex'];
 			}
 		}
 
 	$this->debug->out();
 }
+################################################################################
+#	dump(). A simple function to dump some information.
+#	Ex:	$this->dump( "NUM", __LINE__, $num );
+################################################################################
+function dump( $title=null, $line=null, $arg=null )
+{
+	$this->debug->in();
+
+	if( is_null($title) ){ return false; }
+	if( is_null($line) ){ return false; }
+	if( is_null($arg) ){ return false; }
+
+	if( is_array($arg) ){
+		echo "$title @ Line : $line =\n";
+		print_r( $arg );
+		echo "\n";
+		}
+		else {
+			echo "$title @ Line : $line = $arg\n";
+			}
+
+	$this->debug->out();
+	return true;
+}
+################################################################################
+#	die(). A simple function to print an error message and then die.
+################################################################################
+function die( $string=null, $line=null )
+{
+	$this->debug->in();
+
+	if( is_null($string) ){ $string = "Program Aborted"; }
+	if( is_null($string) ){ $line = __LINE__; }
+
+	echo __FILE__ . ":" . __CLASS__ . ":" . __METHOD__ . ":" . __LINE__ . " = $string";
+
+	$this->debug->out();
+
+	exit(-1);
+}
+################################################################################
+#	__destruct(). Do the clean-up necessary.
+################################################################################
+function __destruct()
+{
+	unset( $this->color_table );
+}
 
 }
 
 	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['color']) ){ $GLOBALS['classes']['color'] = new class_color(); }
+	if( !isset($GLOBALS['classes']['color']) ){
+		$GLOBALS['classes']['color'] = new class_color();
+		}
 ?>

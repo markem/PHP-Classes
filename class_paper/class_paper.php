@@ -1,8 +1,19 @@
 <?php
-
 #
-#	$lib is where my libraries are located. Change this to whereever
-#	you are keeping them.
+#	Standard error function
+#
+	set_error_handler(function($errno, $errstring, $errfile, $errline ){
+		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		});
+
+	date_default_timezone_set( "UTC" );
+#
+#	$lib is where my libraries are located.
+#	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
+#	because of my UNIX background. So I used the following to find them
+#	no matter where I was. I created an environment variable called "my_libs"
+#	and then it could find my classes. IF YOU SET THINGS UP DIFFERENTLY then
+#	you will have to modify the following.
 #
 	$lib = getenv( "my_libs" );
 	$lib = str_replace( "\\", "/", $lib );
@@ -73,32 +84,20 @@
 #	Mark Manning			Simulacron I			Sat 06/15/2019 14:16:52.63 
 #		Original Program.
 #
-#	Mark Manning			Simulacron I			Sat 06/15/2019 14:17:38.11 
+#	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
 #	---------------------------------------------------------------------------
-#		These classes are now under the MIT License.  Any and all works
-#		whether derivatives or extensios should be sent back to markem@sim1.us as
-#		per the MIT License.  In this way, anything that makes these
-#		routines better can be incorporated into them for the greater
-#		good of mankind.  All additions and who made them should be noted here
-#		in this file OR in a separate file to be called the HISTORY.DAT file
-#		since, at some point in the future, this list will get to be too big
-#		to store within the class itself.  See the MIT license file for details
-#		on the MIT license.  If you do not agree with the license - then do NOT
-#		use these routines in any way, shape, or form.  Failure to do so or using
-#		these routines in whole or in part - constitutes a violation of the MIT
-#		licensing terms and can and will result in prosecution under the law.
+#		This is now under the BSD Three Clauses Plus Patents License.
+#		See the BSD-3-Patent.txt file.
 #
-#	Legal Statement follows:
+#	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
+#	---------------------------------------------------------------------------
+#	Please note that _MY_ Legal notice _HERE_ is as follows:
 #
-#		class_color. A PHP class to handle color.
-#		Copyright (C) 2001.  Mark Manning
+#		CLASS_PAPER.PHP. A class to handle working with paper.
+#		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
+#		except for those given by the BSD License.
 #
-#		This program is free software: you can redistribute it
-#		and/or modify it under the terms of the MIT License.
-#
-#		This program is distributed in the hope that it will be useful,
-#		but WITHOUT ANY WARRANTY; without even the implied warranty of
-#		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#	Please place _YOUR_ legal notices _HERE_. Thank you.
 #
 #END DOC
 ################################################################################
@@ -143,7 +142,11 @@ class class_paper
 ################################################################################
 function __construct( $debug=false )
 {
-	$this->init( func_get_args() );
+	$this->debug = $GLOBALS['classes']['debug'];
+	if( !isset($GLOBALS['class']['paper']) ){
+		return $this->init( func_get_args() );
+		}
+		else { return $GLOBALS['class']['paper']; }
 }
 ################################################################################
 #	init(). Moved __construct() to here so it can be called outside of the
@@ -154,11 +157,12 @@ function __construct( $debug=false )
 ################################################################################
 function init()
 {
-	$args = func_get_args();
-	$this->debug = $GLOBALS['classes']['debug'];
-	$this->debug->init( func_get_args() );
 	$this->debug->in();
-	$this->debug->out();
+
+	$args = func_get_args();
+	while( is_array($args) && (count($args) < 2) ){
+		$args = array_pop( $args );
+		}
 
 	$this->papers = array();
 #
@@ -937,12 +941,16 @@ public function name( $n )
 #		an array (w,h) or a string "WxH".
 #		You can ONLY find one entry this way.
 ################################################################################
-public function size( $s )
+public function sizes( $s )
 {
 	$this->debug->in();
 
 	$paper = $this->papers;
+
 	$args = func_get_args();
+	while( is_array($args) && (count($args) < 2) ){
+		$args = array_pop( $args );
+		}
 #
 #	Did they send us an array or just a string?
 #
@@ -1007,7 +1015,9 @@ public function dump( $file=null )
 }
 
 	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['paper']) ){ $GLOBALS['classes']['paper'] = new class_paper(); }
+	if( !isset($GLOBALS['classes']['paper']) ){
+		$GLOBALS['classes']['paper'] = new class_paper();
+		}
 
 	$a = new class_paper(true);
 	$out = $a->sizes(8.5, 11.0);

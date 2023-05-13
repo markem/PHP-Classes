@@ -1,10 +1,21 @@
 <?php
+#
+#	Standard error function
+#
+	set_error_handler(function($errno, $errstring, $errfile, $errline ){
+		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		});
 
+	date_default_timezone_set( "UTC" );
 #
-#	$lib is where my libraries are located. Change this to whereever
-#	you are keeping them.
+#	$lib is where my libraries are located.
+#	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
+#	because of my UNIX background. So I used the following to find them
+#	no matter where I was. I created an environment variable called "my_libs"
+#	and then it could find my classes. IF YOU SET THINGS UP DIFFERENTLY then
+#	you will have to modify the following.
 #
-	$lib = getenv( "my_libs");
+	$lib = getenv( "my_libs" );
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
@@ -41,32 +52,48 @@
 #	Mark Manning			Simulacron I			Fri 02/05/2021 14:21:56.65 
 #		Original Program.
 #
-#	Mark Manning			Simulacron I			Sat 05/13/2023 16:28:39.29 
+#	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
 #	---------------------------------------------------------------------------
-#	This class is now under the NEW BSD 3 Clauses AND Patents found in this
-#	folder.
+#		This is now under the BSD Three Clauses Plus Patents License.
+#		See the BSD-3-Patent.txt file.
+#
+#	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
+#	---------------------------------------------------------------------------
+#	Please note that _MY_ Legal notice _HERE_ is as follows:
+#
+#		CLASS_ARRAYS.PHP. A class to handle working with arrays.
+#		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
+#		except for those given by the BSD License.
+#
+#	Please place _YOUR_ legal notices _HERE_. Thank you.
 #
 #END DOC
 ################################################################################
-function class_arrays
+class class_arrays
 {
 
 ################################################################################
 #	__construct(). Constructor.
 ################################################################################
-function __construct(){ $this->init( func_get_args() ); }
+function __construct()
+{
+	$this->debug = $GLOBALS['classes']['debug'];
+	if( !isset($GLOBALS['class']['arrays']) ){
+		return $this->init( func_get_args() );
+		}
+		else { return $GLOBALS['class']['arrays']; }
+}
 ################################################################################
 #	init(). Used instead of __construct() so you can re-init() if necessary.
 ################################################################################
 function init()
 {
-#
-#	Arguments are looked at HERE. Don't put them in!
-#
-	$args = func_get_args();
-	$this->debug = $GLOBALS['classes']['debug'];
-	$this->debug->init( $args );
 	$this->debug->in();
+
+	$args = func_get_args();
+	while( is_array($args) && (count($args) < 2) ){
+		$args = array_pop( $args );
+		}
 
 	$this->debug->out();
 }
@@ -133,21 +160,20 @@ function dump( $f=null, $l=null )
 	$r = fread( $fh, 1024 );
 	fclose( $fh );
 
-	$this->debug->m( "Dump	: " );
+	$this->debug->msg( "Dump	: " );
 	for ($i = 0; $i < $l; $i++) {
-		$this->debug->m( str_pad(dechex(ord($r[$i])), 2, '0', STR_PAD_LEFT) );
+		$this->debug->msg( str_pad(dechex(ord($r[$i])), 2, '0', STR_PAD_LEFT) );
 		}
 
-	$this->debug->m( "\nHeader  : " );
+	$this->debug->msg( "\nHeader  : " );
 	for ($i = 0; $i < 32; $i++) {
 		$s = ord( $r[$i] );
 		$s = ($s > 127) ? $s - 127 : $s;
 		$s = ($s < 32) ? ord(" ") : $s;
-		$this->debug->m( chr( $s ) );
+		$this->debug->msg( chr( $s ) );
 		}
 
-	$this->debug->m( "\n" );
-
+	$this->debug->msg( "\n" );
 	$this->debug->out();
 
 	return true;
@@ -156,6 +182,8 @@ function dump( $f=null, $l=null )
 }
 
 	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['files']) ){ $GLOBALS['classes']['files'] = new class_files(); }
+	if( !isset($GLOBALS['classes']['arrays']) ){
+		$GLOBALS['classes']['arrays'] = new class_arrays();
+		}
 
 ?>

@@ -1,8 +1,19 @@
 <?php
-
 #
-#	$lib is where my libraries are located. Change this to whereever
-#	you are keeping them.
+#	Standard error function
+#
+	set_error_handler(function($errno, $errstring, $errfile, $errline ){
+		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		});
+
+	date_default_timezone_set( "UTC" );
+#
+#	$lib is where my libraries are located.
+#	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
+#	because of my UNIX background. So I used the following to find them
+#	no matter where I was. I created an environment variable called "my_libs"
+#	and then it could find my classes. IF YOU SET THINGS UP DIFFERENTLY then
+#	you will have to modify the following.
 #
 	$lib = getenv( "my_libs" );
 	$lib = str_replace( "\\", "/", $lib );
@@ -42,9 +53,20 @@
 #	Mark Manning			Simulacron I			Mon 05/27/2019 19:03:25.71 
 #		Original Program.
 #
-#	Mark Manning			Simulacron I			Sun 01/24/2021 23:30:46.28 
+#	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
 #	---------------------------------------------------------------------------
-#	This code is now under the MIT License.
+#		This is now under the BSD Three Clauses Plus Patents License.
+#		See the BSD-3-Patent.txt file.
+#
+#	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
+#	---------------------------------------------------------------------------
+#	Please note that _MY_ Legal notice _HERE_ is as follows:
+#
+#		CLASS_JSON.PHP. A class to handle working with json.
+#		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
+#		except for those given by the BSD License.
+#
+#	Please place _YOUR_ legal notices _HERE_. Thank you.
 #
 #END DOC
 ################################################################################
@@ -57,10 +79,24 @@ class class_json
 ################################################################################
 function __construct()
 {
-	$args = func_get_args();
 	$this->debug = $GLOBALS['classes']['debug'];
-	$this->debug->init( func_get_args() );
+	if( !isset($GLOBALS['class']['gd']) ){
+		return $this->init( func_get_args() );
+		}
+		else { return $GLOBALS['class']['gd']; }
+}
+################################################################################
+#	init(). A function to allow someone to start over for some reason.
+################################################################################
+function init()
+{
 	$this->debug->in();
+
+	$args = func_get_args();
+	while( is_array($args) && (count($args) < 2) ){
+		$args = array_pop( $args );
+		}
+
 	$this->debug->out();
 }
 ################################################################################
@@ -71,7 +107,6 @@ function __construct()
 function html_getJSON( $json='json' )
 {
 	$this->debug->in();
-
 //
 //	grab JSON data if there...
 //
@@ -197,13 +232,39 @@ function key_decode( $array )
 function errmsg( $func, $line, $msg )
 {
 	$this->debug->in();
-	$this->debug->m( $msg );
+	$this->debug->msg( $msg );
 	$this->debug->out();
+}
+################################################################################
+#	dump(). A simple function to dump some information.
+#	Ex:	$this->dump( "NUM", __LINE__, $num );
+################################################################################
+function dump( $title=null, $line=null, $arg=null )
+{
+	$this->debug->in();
+
+	if( is_null($title) ){ return false; }
+	if( is_null($line) ){ return false; }
+	if( is_null($arg) ){ return false; }
+
+	if( is_array($arg) ){
+		echo "$title @ Line : $line =\n";
+		print_r( $arg );
+		echo "\n";
+		}
+		else {
+			echo "$title @ Line : $line = $arg\n";
+			}
+
+	$this->debug->out();
+	return true;
 }
 
 }
 
 	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['json']) ){ $GLOBALS['classes']['json'] = new class_json(); }
+	if( !isset($GLOBALS['classes']['json']) ){
+		$GLOBALS['classes']['json'] = new class_json();
+		}
 
 ?>

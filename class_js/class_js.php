@@ -1,8 +1,19 @@
 <?php
-
 #
-#	$lib is where my libraries are located. Change this to whereever
-#	you are keeping them.
+#	Standard error function
+#
+	set_error_handler(function($errno, $errstring, $errfile, $errline ){
+		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		});
+
+	date_default_timezone_set( "UTC" );
+#
+#	$lib is where my libraries are located.
+#	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
+#	because of my UNIX background. So I used the following to find them
+#	no matter where I was. I created an environment variable called "my_libs"
+#	and then it could find my classes. IF YOU SET THINGS UP DIFFERENTLY then
+#	you will have to modify the following.
 #
 	$lib = getenv( "my_libs" );
 	$lib = str_replace( "\\", "/", $lib );
@@ -41,36 +52,25 @@
 #	Mark Manning			Simulacron I				Sat 06/14/2008 21:34:38.65
 #		Original Program
 #
-#	Mark Manning			Simulacron I			Sat 11/21/2009 14:51:42.95 
-#		These classes are now under the MIT License.  Any and all works
-#		whether derivatives or whatever must be sent back to markem@sim1.us as
-#		per the MIT License.  In this way, anything that makes these
-#		routines better can and will be incorporated into them for the greater
-#		good of mankind.  All additions and who made them should be noted here
-#		in this file OR in a separate file to be called the HISTORY.DAT file
-#		since, at some point in the future, this list will get to be too big
-#		to store within the class itself.  See the MIT license file for details
-#		on the MIT license.  If you do not agree with the license - then do NOT
-#		use these routines in any way, shape, or form.  Failure to do so or using
-#		these routines in whole or in part - constitutes a violation of the MIT
-#		licensing terms and can and will result in prosecution under the law.
-#
-#	Legal Statement follows:
-#
-#		class_js. A PHP class to handle Javascript.
-#		Copyright (C) 2001.  Mark Manning
-#
-#		This program is free software: you can redistribute it
-#		and/or modify it under the terms of the MIT License.
-#
-#		This program is distributed in the hope that it will be useful,
-#		but WITHOUT ANY WARRANTY; without even the implied warranty of
-#		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
 #	Mark Manning			Simulacron I			Sat 04/18/2015 18:45:32.85 
 #	---------------------------------------------------------------------------
 #		All new.  Wiped and started again.  Much simpler now.
 #		Adding in Javascript routines.
+#
+#	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
+#	---------------------------------------------------------------------------
+#		This is now under the BSD Three Clauses Plus Patents License.
+#		See the BSD-3-Patent.txt file.
+#
+#	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
+#	---------------------------------------------------------------------------
+#	Please note that _MY_ Legal notice _HERE_ is as follows:
+#
+#		CLASS_JS.PHP. A class to handle working with javascript.
+#		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
+#		except for those given by the BSD License.
+#
+#	Please place _YOUR_ legal notices _HERE_. Thank you.
 #
 #END DOC
 ################################################################################
@@ -83,6 +83,7 @@ class class_js
 	private $jsCode = null;
 	private $jsVars = null;
 	private	$jsc = null;
+	private $ds = '$';
 
 ################################################################################
 #	__construct(). Construction function.
@@ -104,25 +105,41 @@ class class_js
 ################################################################################
 function __construct()
 {
-	$args = func_get_args();
 	$this->debug = $GLOBALS['classes']['debug'];
-	$this->debug->init( func_get_args() );
+	if( !isset($GLOBALS['class']['gd']) ){
+		return $this->init( func_get_args() );
+		}
+		else { return $GLOBALS['class']['gd']; }
+}
+################################################################################
+#	init().  Set up all of the basic stuff.
+################################################################################
+function init()
+{
 	$this->debug->in();
+
+	$args = func_get_args();
+	while( is_array($args) && (count($args) < 2) ){
+		$args = array_pop( $args );
+		}
 #
-#	PATH will have slashes in it (ie: "C:/..." or "A/B"... - BUT - IT MUST HAVE AT LEAST ONE SLASH IN IT!
+#	PATH will have slashes in it (ie: "C:/..." or "A/B"... - BUT -
+#		IT MUST HAVE AT LEAST ONE SLASH IN IT!
 #	FILE will have a NAME.TYPE set up (ie: "A.PDF", "B.BMP", whatever)
 #	DEBUG will be a Boolean (ie: True/False)
 #
 	$path = null;
 	$file = null;
-	foreach( $args as $k=>$v ){
-		$a = explode( '=', $v );
-		if( preg_match("/path/i", $a[0]) ){ $path = $a[1]; }
-			elseif( preg_match("/file/i", $a[0]) ){ $file = $a[1]; }
-			elseif( preg_match("/pf/i", $a[0]) ){
-				$path = dirname( $a[1] );
-				$file = basename( $a[1] );
-				}
+	if( is_array($args) ){
+		foreach( $args as $k=>$v ){
+			$a = explode( '=', $v );
+			if( preg_match("/^path/i", $a[0]) ){ $path = $a[1]; }
+				elseif( preg_match("/^file/i", $a[0]) ){ $file = $a[1]; }
+				elseif( preg_match("/^pf/i", $a[0]) ){
+					$path = dirname( $a[1] );
+					$file = basename( $a[1] );
+					}
+			}
 		}
 
 	$this->jsc = "jsc";
@@ -134,22 +151,14 @@ function __construct()
 
 	if( !is_null($file) ){ $this->base_file = $file; }
 		else { $this->base_file = "scripts.js"; }
+#
+#	I do not like paths with backslashes in them - convert them to forward slashes.
+#
+	$this->base_path = str_replace( "\\", "/", $this->base_path );
+	$this->base_file = str_replace( "\\", "/", $this->base_file );
 
-	$this->init( "jsc" );
-
-	$this->debug->out();
-
-	return true;
-}
-################################################################################
-#	init().  Set up all of the basic stuff.
-################################################################################
-function init( $site_href, $libName="jsc" )
-{
-	$this->debug->in();
-
-	$this->jsc = $jsc = $libName;
-
+	$jsc = $this->jsc;
+	$site_href = '$site_href';
 	$this->jsVars = <<<END_OF_JAVASCRIPT
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -182,12 +191,13 @@ function init( $site_href, $libName="jsc" )
 	$jsc.vars['hasXMLHR'] = window.XMLHttpRequest ? true : false;\n
 END_OF_JAVASCRIPT;
 
+	$ds = $this->ds;
 	$this->jsCode = <<<END_OF_JAVASCRIPT
 ////////////////////////////////////////////////////////////////////////////////
 //	Cursor Functions.
 ////////////////////////////////////////////////////////////////////////////////
-$jsc.wait = function(){ \$("body").css('cursor','wait'); }
-$jsc.auto = function(){ \$("body").css('cursor','auto'); }
+$jsc.wait = function(){ $ds("body").css('cursor','wait'); }
+$jsc.auto = function(){ $ds("body").css('cursor','auto'); }
 ////////////////////////////////////////////////////////////////////////////////
 //	doesExist.  A function to detect whether something exists or not.
 ////////////////////////////////////////////////////////////////////////////////
@@ -267,6 +277,44 @@ $jsc.getElement = function(psID)
 	return null;
 }
 ////////////////////////////////////////////////////////////////////////////////
+//	isHex(). Is this a hex string/value?
+//	Arguments	:	0	=	Item to test
+//					1	=	V(alue) or S(tring). Default is STRING.
+////////////////////////////////////////////////////////////////////////////////
+$jsc.isHex = function()
+{
+	var p = 0;
+	var re1 = /(\n|\r)+/g;
+	var re2 = /[\Wg-zG-Z]/;
+	var re3 = /v/i;
+//
+//	Make sure the string is really a string.
+//
+	var s = arguments[0];
+	if( typeof s != "string" ){ s = s.toString(); }
+//
+//	If you want to check if this is a value hex VALUE
+//	and NOT a hex STRING - you can also use this:
+//
+	var opt = arguments[1];
+	if( re3.test(opt) && s.length % 2 > 0 ){ return false; }
+//
+//	Remove any returns. BinHex files can be megabytes in length with 80
+//	column information. So we have to remove all returns first.
+//
+	s.replace( re1, "" );
+//
+//	IF they send us something with the universal "0x" or the HTML "#" on the
+//	front of it - we have to FIRST move where we look at the string.
+//
+	if( s.substr(0,1) == "#" ){ p = 1; }
+		else if( s.substr(0,2).toLowerCase() == "0x" ){ p = 2; }
+
+	if( re2.test(s.substr(p,s.length)) ){ return false; }
+
+	return true;
+}
+////////////////////////////////////////////////////////////////////////////////
 //	toHex().  Convert an ASCII string to hexadecimal.
 //	Copyrighted (c) 1992-2015 by Mark Manning (markem@sim1.us)
 //	Used with permission
@@ -298,6 +346,7 @@ $jsc.fromHex = function(s)
 	var o = "";
 
 	if( typeof s != "string" ){ s = s.toString(); }
+	if( !isHex(s) ){ return false; }
 	if( s.substr(0,2) == "0x" ){ start = 2; }
 
 	for( var i=start; i<s.length; i+=2 ){
@@ -321,8 +370,8 @@ $jsc.getParams = function()
 //
 	if( arguments.length > 0 ){ s = "file=" + arguments[0]; }
 
-	\$('input, input:hidden, select, textarea').each( function(index){
-		var input = \$(this);
+	$ds('input, input:hidden, select, textarea').each( function(index){
+		var input = $ds(this);
 		var v = null;
 		if( input.attr('type') == 'radio' ){
 			if( input.checked ){ v = $jsc.escapeHtmlEntities( $jsc.trim(input.val()) ); }
@@ -356,14 +405,14 @@ $jsc.loadPage = function()
 {
 	var arg = arguments[0];
 
-	\$.ajax({
+	$ds.ajax({
 		type: "POST",
 		async: false,
 		url: "$site_href/index.php",
 		dataType: "html",
 		data: arg,
 //		success: function(data){ document.write( data ); document.close(); },
-		success: function(data){ \$(document.body).html( data ); },
+		success: function(data){ $ds(document.body).html( data ); },
 
 		error: function(jqXHR, textStatus, errorThrown){
 			alert( "FAILED: " + textStatus + " - " + errorThrown );
@@ -441,11 +490,11 @@ $jsc.cookies = function(cookie_dough)
 //	Add in the data
 //
 	if( ret == false ){
-		if( \$('#COOKIE_DOUGH').length > 0 ){
-			\$('#COOKIE_DOUGH').val(cookie_dough);
+		if( $ds('#COOKIE_DOUGH').length > 0 ){
+			$ds('#COOKIE_DOUGH').val(cookie_dough);
 			}
 			else {
-				\$('<input>').attr({
+				$ds('<input>').attr({
 					type: 'hidden',
 					id: 'COOKIE_DOUGH',
 					name: 'COOKIE_DOUGH'
@@ -478,7 +527,7 @@ function checkEmail()
 $jsc.checkEmail = function(id)
 {
 	var s = "";
-	var v = \$("#"+id).val();
+	var v = $ds("#"+id).val();
 	var re = new RegExp( "/^\w+\@\w+\.\w+$/" );
 
 	if( !re.test(s) ){
@@ -515,7 +564,7 @@ $jsc.isAlnum = function(id)
 
 	if( re.test(t) ){ return false; }
 
-	var v = \$("#"+id).val();
+	var v = $ds("#"+id).val();
 	re = new RegExp( "/\W/" );
 
 	if( re.test(v) ){ return false; }
@@ -765,10 +814,36 @@ function save( $js=null )
 
 	return "<script type='text/javascript' language='javascript' src='$base_path/$base_file'></script>";
 }
+################################################################################
+#	dump(). A simple function to dump some information.
+#	Ex:	$this->dump( "NUM", __LINE__, $num );
+################################################################################
+function dump( $title=null, $line=null, $arg=null )
+{
+	$this->debug->in();
+
+	if( is_null($title) ){ return false; }
+	if( is_null($line) ){ return false; }
+	if( is_null($arg) ){ return false; }
+
+	if( is_array($arg) ){
+		echo "$title @ Line : $line =\n";
+		print_r( $arg );
+		echo "\n";
+		}
+		else {
+			echo "$title @ Line : $line = $arg\n";
+			}
+
+	$this->debug->out();
+	return true;
+}
 
 }
 
-if( !isset($GLOBALS['classes']) ){ global $classes; }
-if( !isset($GLOBALS['classes']['js']) ){ $GLOBALS['classes']['js'] = new class_js(); }
+	if( !isset($GLOBALS['classes']) ){ global $classes; }
+	if( !isset($GLOBALS['classes']['js']) ){
+		$GLOBALS['classes']['js'] = new class_js();
+		}
 
 ?>

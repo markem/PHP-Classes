@@ -1,8 +1,19 @@
 <?php
-
 #
-#	$lib is where my libraries are located. Change this to whereever
-#	you are keeping them.
+#	Standard error function
+#
+	set_error_handler(function($errno, $errstring, $errfile, $errline ){
+		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		});
+
+	date_default_timezone_set( "UTC" );
+#
+#	$lib is where my libraries are located.
+#	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
+#	because of my UNIX background. So I used the following to find them
+#	no matter where I was. I created an environment variable called "my_libs"
+#	and then it could find my classes. IF YOU SET THINGS UP DIFFERENTLY then
+#	you will have to modify the following.
 #
 	$lib = getenv( "my_libs" );
 	$lib = str_replace( "\\", "/", $lib );
@@ -41,32 +52,57 @@
 #	Mark Manning			Simulacron I			Mon 10/05/2020 22:20:48.71 
 #		Original Program.
 #
-#	Mark Manning			Simulacron I			Sun 01/24/2021 23:35:07.31 
+#	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
 #	---------------------------------------------------------------------------
-#	This code is now under the MIT License.
+#		This is now under the BSD Three Clauses Plus Patents License.
+#		See the BSD-3-Patent.txt file.
+#
+#	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
+#	---------------------------------------------------------------------------
+#	Please note that _MY_ Legal notice _HERE_ is as follows:
+#
+#		CLASS_RGB.PHP. A class to handle working with rgb stuff.
+#		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
+#		except for those given by the BSD License.
+#
+#	Please place _YOUR_ legal notices _HERE_. Thank you.
 #
 #END DOC
 ################################################################################
-function class_rgb()
+class class_rgb
 {
 	private $debug = null;
 	private $colors = null;
+	private $transparent = null;
 	private $gd = null;
+	private $new_gd = null;
 
 ################################################################################
 #	__construct(). Starts the class.
 ################################################################################
 function __construct()
 {
-	$args = func_get_args();
 	$this->debug = $GLOBALS['classes']['debug'];
-	$this->debug->init( func_get_args() );
+	if( !isset($GLOBALS['class']['gd']) ){
+		return $this->init( func_get_args() );
+		}
+		else { return $GLOBALS['class']['gd']; }
+}
+################################################################################
+#	init(). A function to start the entire thing over again.
+################################################################################
+function init()
+{
 	$this->debug->in();
-	$this->debug->out();
 
+	$args = func_get_args();
+	while( is_array($args) && (count($args) < 2) ){
+		$args = array_pop( $args );
+		}
+
+	$this->debug->out();
 	return true;
 }
-
 ################################################################################
 #	get_ARGB(). Get the A-R-G-B elements out of a color.
 ################################################################################
@@ -124,34 +160,27 @@ function put_ARGB( $a=null, $r=null, $g=null, $b=null )
 	$b = ($b & 0xff);
 
 	$this->debug->out();
-
 	return ($a + $r + $g + $b);
 }
 ################################################################################
 #	rgb_DIFF(). Get the difference of two colors.
 ################################################################################
-function rgb_DIFF( $a=null, $b=null, $diff=25, $roll="rgb" )
+function argb_DIFF( $c1=null, $c2=null )
 {
 	$this->debug->in();
 
-	if( is_null($a) || is_null($b) ){ return false; }
+	if( is_null($c1) || is_null($c2) ){ return false; }
 
-	list( $aa, $ar, $ag, $ab ) = $this->get_ARGB( $a );
-	list( $ba, $br, $bg, $bb ) = $this->get_ARGB( $b );
+	list( $c1a, $c1r, $c1g, $c1b ) = $this->get_ARGB( $c1 );
+	list( $c2a, $c2r, $c2g, $c2b ) = $this->get_ARGB( $c2 );
 
-	$ca = abs( $aa - $ba );
-	$cr = abs( $ar - $br );
-	$cg = abs( $ag - $bg );
-	$cb = abs( $ab - $bb );
-
-	if( preg_match("/a/i", $roll) && $ca > $diff ){ return true; }
-	if( preg_match("/r/i", $roll) && $cr > $diff ){ return true; }
-	if( preg_match("/g/i", $roll) && $cg > $diff ){ return true; }
-	if( preg_match("/b/i", $roll) && $cb > $diff ){ return true; }
+	$da = abs( $c1a - $c2a );
+	$dr = abs( $c1r - $c2r );
+	$dg = abs( $c1g - $c2g );
+	$db = abs( $c1b - $c2b );
 
 	$this->debug->out();
-
-	return false;
+	return array( $da, $dr, $dg, $db );
 }
 ################################################################################
 #	unique_color(). Find a color to be our unique color.
@@ -179,7 +208,7 @@ function unique_color( $gd=null )
 					$r = 0;
 					if( ++$g > 255 ){
 						$g = 0;
-						if( ++$b > 255 ){ $this->debug-t( "B > 255" ); }
+						if( ++$b > 255 ){ echo "B > 255\n"; }
 						}
 					}
 				}
@@ -198,7 +227,7 @@ function unique_color( $gd=null )
 }
 ################################################################################
 #	is_trans(). Checks to see if there is already a transparent background.
-#		If there is - it returns TRUE, else FALSE.
+#		If there is - it returns the color - else it returns FALSE.
 ################################################################################
 function is_trans( $gd=null )
 {
@@ -215,13 +244,12 @@ function is_trans( $gd=null )
 			list( $a, $r, $g, $b ) = $this->get_ARGB( $color );
 			if( ($a > 0) && ($a < 128) ){
 				$this->debug->out();
-				return true;
+				return $color;
 				}
 			}
 		}
 
 	$this->debug->out();
-
 	return false;
 }
 ################################################################################
@@ -489,17 +517,41 @@ function trim_image( $gd=null, $color=null )
 	$gd = trim_bot( $gd, $color );
 
 	$this->debug->out();
-
 	return $gd;
+}
+################################################################################
+#	copy_some(). Copies part of an image according to the parameters.
+################################################################################
+function copy_some( $gd=null, $top=null, $left=null, $bot=null, $right=null )
+{
+	$this->debug->in();
+
+	if( !is_resource($gd) ){ return false; }
+	if( is_null($top) ){ return false; }
+	if( is_null($bot) ){ return false; }
+	if( is_null($left) ){ return false; }
+	if( is_null($right) ){ return false; }
+
+	$w = abs( $right - $left );
+	$h = abs( $bot - $top );
+
+	$gd2 = imagecreatetruecolor( $w, $h );
+	imagealphablending( $gd2, false );
+	imagesavealpha( $gd2, true );
+	imagecopyresampled( $gd2, $gd, 0, 0, $left, $top, $w, $h, $w, $h );
+	imagedestroy( $gd );
+
+	$this->debug->out();
+	return $gd2;
 }
 ################################################################################
 #	get_colors(). Get the colors in an image.
 ################################################################################
-function get_colors( $gd=null )
+function get_colors( $gd=null, $alpha=true )
 {
 	$this->debug->in();
 
-	if( is_null($gd) || !is_resource($gd) ){ return false; }
+	if( is_null($gd) ){ $gd = $this->gd; }
 
 	$colors = [];
 	$w = imagesx( $gd );
@@ -507,6 +559,14 @@ function get_colors( $gd=null )
 	for( $i=0; $i<$w; $i++ ){
 		for( $j=0; $j<$h; $j++ ){
 			$rgb = imagecolorat( $gd, $i, $j );
+#
+#	Remove the alpha from the color. IF WE ONLY WWANT THE RGB VALUES.
+#	(See $alpha above.)
+#
+			if( $alpha == false ){
+				list( $r, $g, $b ) = $this->get_RGB( $rgb );
+				$rgb = $this->put_RGB( $r, $g, $b );
+				}
 
 			if( isset($colors[$rgb]) ){ $colors[$rgb]++; }
 				else { $colors[$rgb] = 1; }
@@ -528,10 +588,14 @@ function fc( $gd, $color )
 
 	$w = imagesx( $gd );
 	$h = imagesy( $gd );
+	$this->transparent = $this->unique_color( $gd );
+
 	for( $i=0; $i<$w; $i++ ){
 		for( $j=0; $j<$h; $j++ ){
 			$rgb = imagecolorat( $gd, $i, $j );
-			if( $rgb === $color ){ $this->fca( $i, $j, $color ); }
+			if( ($rgb === $this->transparent) === false ){
+				if( $rgb === $color ){ $this->fca( $i, $j, $color ); }
+				}
 			}
 		}
 
@@ -552,8 +616,8 @@ function fca( $x, $y, $color )
 	$c = count( $this->colors );
 	$this->colors[$c][0] = $x;
 	$this->colors[$c][1] = $y;
-	$blank = imagecolorat( $gd, 0, 0 );
-	imagesetpixel( $gd, $x, $y, $blank );
+	$transparent = $this->transparent;
+	imagesetpixel( $gd, $x, $y, $transparent );
 
 	for( $i=-1; $i<2; $i++ ){
 		$nx = $x + $i;
@@ -570,10 +634,44 @@ function fca( $x, $y, $color )
 
 	$this->debug->out();
 }
+################################################################################
+#	split(). Break up an image into it's separate parts.
+################################################################################
+function split( $gd )
+{
+	$new_gd = [];
+	$new_gd[] = $gd;
+}
+################################################################################
+#	dump(). A simple function to dump some information.
+#	Ex:	$this->dump( "NUM", __LINE__, $num );
+################################################################################
+function dump( $title=null, $line=null, $arg=null )
+{
+	if( !is_null($this->debug) ){ $this->debug->in(); }
+
+	if( is_null($title) ){ return false; }
+	if( is_null($line) ){ return false; }
+	if( is_null($arg) ){ return false; }
+
+	if( is_array($arg) ){
+		echo "$title @ Line : $line =\n";
+		print_r( $arg );
+		echo "\n";
+		}
+		else {
+			echo "$title @ Line : $line = $arg\n";
+			}
+
+	if( !is_null($this->debug) ){ $this->debug->out(); }
+	return true;
+}
 
 }
 
 	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['rgb']) ){ $GLOBALS['classes']['rgb'] = new class_rgb(); }
+	if( !isset($GLOBALS['classes']['rgb']) ){
+		$GLOBALS['classes']['rgb'] = new class_rgb();
+		}
 
 ?>

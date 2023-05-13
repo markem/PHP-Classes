@@ -1,8 +1,19 @@
 <?php
-
 #
-#	$lib is where my libraries are located. Change this to whereever
-#	you are keeping them.
+#	Standard error function
+#
+	set_error_handler(function($errno, $errstring, $errfile, $errline ){
+		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		});
+
+	date_default_timezone_set( "UTC" );
+#
+#	$lib is where my libraries are located.
+#	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
+#	because of my UNIX background. So I used the following to find them
+#	no matter where I was. I created an environment variable called "my_libs"
+#	and then it could find my classes. IF YOU SET THINGS UP DIFFERENTLY then
+#	you will have to modify the following.
 #
 	$lib = getenv( "my_libs" );
 	$lib = str_replace( "\\", "/", $lib );
@@ -41,6 +52,20 @@
 #	Mark Manning			Simulacron I			Sat 05/04/2019  0:58:43.83 
 #		Original Program.
 #
+#	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
+#	---------------------------------------------------------------------------
+#		This is now under the BSD Three Clauses Plus Patents License.
+#		See the BSD-3-Patent.txt file.
+#
+#	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
+#	---------------------------------------------------------------------------
+#	Please note that _MY_ Legal notice _HERE_ is as follows:
+#
+#		CLASS_RND.PHP. A class to handle working with random numbers.
+#		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
+#		except for those given by the BSD License.
+#
+#	Please place _YOUR_ legal notices _HERE_. Thank you.
 #
 #END DOC
 ################################################################################
@@ -49,6 +74,7 @@ class class_rnd
 	private $debug_flag = false;
 
 	private $rnd = null;
+	private $seed = null;
 	private $mult = 5432109876.0;
 
 ################################################################################
@@ -62,14 +88,30 @@ class class_rnd
 ################################################################################
 public function __construct()
 {
-	$args = func_get_args();
 	$this->debug = $GLOBALS['classes']['debug'];
-	$this->debug->init( func_get_args() );
+	if( !isset($GLOBALS['class']['rnd']) ){
+		return $this->init( func_get_args() );
+		}
+		else { return $GLOBALS['class']['rnd']; }
+}
+################################################################################
+#	init(). A function to allow someone to start the whole process over
+################################################################################
+private function init()
+{
 	$this->debug->in();
 
-	foreach( $args as $k=>$v ){
-		$a = explode( '=', $v );
-		if( preg_match("/seed/i", $a[0]) ){ $seed = $a[1]; }
+	$seed = $this->seed;
+	$args = func_get_args();
+	while( is_array($args) && (count($args) < 2) ){
+		$args = array_pop( $args );
+		}
+
+	if( is_array($args) ){
+		foreach( $args as $k=>$v ){
+			$a = explode( '=', $v );
+			if( preg_match("/seed/i", $a[0]) ){ $seed = $a[1]; }
+			}
 		}
 
 	if( (is_null($seed) || is_NAN($seed) || strlen(trim($seed)) < 1) && is_null($this->rnd) ){
@@ -77,8 +119,8 @@ public function __construct()
 		}
 		else if( !is_null($seed) ){ $this->rnd = $seed; }
 
+	$this->seed = $seed;
 	$this->debug->out();
-	return true;
 }
 ################################################################################
 #	rand($seed). Get a pseudo random number.
@@ -206,6 +248,30 @@ public function guid( $opt = false )
 	$this->debug->out();
 }
 
+}
+################################################################################
+#	dump(). A simple function to dump some information.
+#	Ex:	$this->dump( "NUM", __LINE__, $num );
+################################################################################
+function dump( $title=null, $line=null, $arg=null )
+{
+	$this->debug->in();
+
+	if( is_null($title) ){ return false; }
+	if( is_null($line) ){ return false; }
+	if( is_null($arg) ){ return false; }
+
+	if( is_array($arg) ){
+		echo "$title @ Line : $line =\n";
+		print_r( $arg );
+		echo "\n";
+		}
+		else {
+			echo "$title @ Line : $line = $arg\n";
+			}
+
+	$this->debug->out();
+	return true;
 }
 
 	if( !isset($GLOBALS['classes']) ){ global $classes; }
