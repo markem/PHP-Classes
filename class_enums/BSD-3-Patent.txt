@@ -1,4 +1,6 @@
-Copyright <YEAR> <COPYRIGHT HOLDER>
+The BSD Three Clause Plus License
+by Mark Manning (markem@sim1.us)
+Copyright 1992-NOW
 
 Redistribution and use in source and binary forms, with
 or without modification, are permitted provided that the
@@ -42,10 +44,52 @@ combination to be necessarily infringed. The patent license
 shall not apply to any other combinations which include
 the Contribution.
 
+Any and all works whether derivatives or extensions or
+whatever should be sent back to markem@sim1.us.  In this
+way, anything that makes these routines better can be
+incorporated into them for the greater good of mankind.
+All additions and who made them should be noted here
+in this file OR in a separate file to be called the
+HISTORY.DAT file since, at some point in the future, this
+list will get to be too big to store within the class
+itself.  If there is a standard on such things - see the
+BSD license file for details.  If you do not agree with the
+license - then do NOT use these routines in any way, shape,
+or form.  Failure to do so or using these routines in whole
+or in part - constitutes a violation of the BSD licensing
+terms and can and will result in prosecution under the law.
+
+An example follows on what should be included in your
+manuals, and in your program, and shown while your program
+is being run.
+
+	Please note that _MY_ Legal notice for each class
+	is as follows:
+
+	<PUT CLASS NAME HERE>. A class to <What it does>.
+	Copyright (C) 1992-NOW.  By Mark Manning.
+	All rights reserved except for those given by the
+	BSD License.
+
+	Please place _YOUR_ legal notices _HERE_. Thank you.
+
 Except as expressly stated above, no rights or licenses
 from any copyright holder or contributor is granted under
 this license, whether expressly, by implication, estoppel
 or otherwise.
+
+Note that contributions to me can be made at
+sim_sales@sim1.us via PayPal. YOUR ARE NOT REQUIRED
+to make a contribution - it is just if you want to do
+so. Because this is not noted anywhere else, I decided to
+put it here. Please DO NOT send more than 1% of whatever
+software it is you are selling or maybe a $1.00. Thank you
+in advance if you do send anything to me. Comments (like
+"You suck!" or "Great Software!") can be sent to either
+email addresses. Nasty comments will get dumped into the
+bit bucket. Nicer comments will be responded to as I can
+do so. Not that I am busy - I'm retired, lazy, and may or
+may not feel like responding. (But I usually do.)
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES,

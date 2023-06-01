@@ -96,6 +96,10 @@
 #		This is now under the BSD Three Clauses Plus Patents License.
 #		See the BSD-3-Patent.txt file.
 #
+#	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
+#	---------------------------------------------------------------------------
+#	Please note that _MY_ Legal notice _HERE_ is as follows:
+#
 #		CLASS_DEBUG.PHP. A class to handle working with debugging programs.
 #		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
 #		except for those given by the BSD License.

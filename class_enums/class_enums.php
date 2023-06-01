@@ -71,7 +71,7 @@
 #	---------------------------------------------------------------------------
 #	Please note that _MY_ Legal notice _HERE_ is as follows:
 #
-#		CLASS_DEBUG.PHP. A class to handle working with debugging programs.
+#		CLASS_ENUMS.PHP. A class to handle working with ENUMS.
 #		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
 #		except for those given by the BSD License.
 #

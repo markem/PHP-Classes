@@ -168,9 +168,9 @@ function get_files( $top_dir=null, $regexp=null, $opt=null )
 		if( !is_array($perms) ){ $this->debug->die( "PERMS is not an array!" ); }
 		if( count($perms) < 1 ){ $this->debug->msg( $perms ); $this->debug->die( "PERMS is blank!"); }
 		if( !$perms[0] === 'd' ){ continue; }
-		if( ($perms[1] === '-') || ($perms[2] === '-') ){ continue; }
-		if( ($perms[4] === '-') || ($perms[5] === '-') ){ continue; }
-		if( ($perms[7] === '-') || ($perms[8] === '-') ){ continue; }
+		if( (count($perms) > 0) && (($perms[1] === '-') || ($perms[2] === '-')) ){ continue; }
+		if( (count($perms) > 0) && (($perms[4] === '-') || ($perms[5] === '-')) ){ continue; }
+		if( (count($perms) > 0) && (($perms[7] === '-') || ($perms[8] === '-')) ){ continue; }
 		$this->debug->msg( "Here : " . __LINE__ . "\n" );
 
 		if( ($dh = @opendir($dir)) ){
@@ -227,7 +227,7 @@ function get_dirs( $top_dir=null, $regexp=null, $opt=null )
 	$this->debug->in();
 
 	if( is_null($top_dir) ){ $top_dir = "./"; }
-	if( is_null($regexp) ){ $regexp = "/.*/"; }
+	if( is_null($regexp) ){ $regexp = "/./"; }
 	if( is_null($opt) ){ $opt = true; }
 
 	$files = array();
@@ -245,12 +245,20 @@ function get_dirs( $top_dir=null, $regexp=null, $opt=null )
 		$files[$dir] = 0;
 		if( ($dh = opendir($dir)) ){
 			while( ($file = readdir($dh)) !== false ){
+				echo "Looking at : $file\n";
 				$cur_dir = "$dir/$file";
 				$this->debug->msg( "FOUND : $file\n" );
 				if( $file != "." && $file != ".." ){
 					if( preg_match($regexp, $cur_dir) ){
-						if( is_dir($cur_dir) && $opt == true){ $files[$dir]++; $dirs[] = $cur_dir; }
-							else { $files[$dir]++; }
+						if( is_dir($cur_dir) && $opt == true){
+							echo "Adding a Directory : $cur_dir\n";
+							$files[$dir]++;
+							$dirs[] = $cur_dir;
+							}
+							else {
+								echo "Adding a File : $dir\n";
+								$files[$dir]++;
+								}
 						}
 					}
 				}
