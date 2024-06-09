@@ -31,11 +31,12 @@
 #
 #-Calling Sequence:
 #
-#	class_ansicon();
+#	class_ansi();
 #
 #-Description:
 #
-#	
+#	This class ONLY does the ANSI standard stuff for output. This will allow
+#	PHP to do things like clear the screen, colors, etc....
 #
 #-Inputs:
 #
@@ -94,7 +95,7 @@
 #	\e8		DECRC	Restore Cursor
 #	\e7		DECSC	Save Cursor
 #	\e[?5W		DECST8C Set Tab at Every 8 Columns
-#	\e[?5;#W	DECST8C Set Tab at Every # Columns (ANSICON extension)
+#	\e[?5;#W	DECST8C Set Tab at Every # Columns (ANSI extension)
 #	\e[#;#r 	DECSTBM Set Top and Bottom Margins
 #	\e[!p		DECSTR	Soft Terminal Reset
 #	\e[?25h 	DECTCEM Text Cursor Enable Mode (show cursor)
@@ -138,7 +139,7 @@
 #
 #	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
 #	---------------------------------------------------------------------------
-#	Please note that _MY_ Legal notice _HERE_ is as follows:
+#	Please note that _MY_ Legal notice _HERE_ is as follows: (Example)
 #
 #		CLASS_FILES.PHP. A class to handle working with files.
 #		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
@@ -148,22 +149,12 @@
 #
 #END DOC
 ################################################################################
-#	class class_ansicon(). A class to use the ansi program.
+#	class class_ansi(). A class to use the ansi program.
 ################################################################################
-class class_ansicon
+class class_ansi
 {
 	private $debug = null;
 	private $debug_flag = false;
-#
-#	Change to your path to the ansi program.
-#
-	private $path_ansi = null;
-	private $path_ciso = null;
-#
-#	Ansi program.
-#
-	private $prog_ansi = "ansicon.exe -p";
-	private $prog_ciso = "ciso.exe";
 #
 #	Pipes for proc_open
 #
@@ -203,10 +194,10 @@ class class_ansicon
 function __construct()
 {
 	$this->debug = $GLOBALS['classes']['debug'];
-	if( !isset($GLOBALS['class']['ansicon']) ){
+	if( !isset($GLOBALS['class']['ansi']) ){
 		return $this->init( func_get_args() );
 		}
-		else{ return $GLOBALS['class']['ansicon']; }
+		else{ return $GLOBALS['class']['ansi']; }
 }
 ################################################################################
 #	init(). Using the INIT function so you can call it multiple times.
@@ -237,83 +228,14 @@ function init()
 		}
 
 	$this->debug->msg( ">" );
-	$this->path_ansi = 'C:\Program_Files\ansi189';
-	$this->path_ciso = 'C:\Program_Files\ansi189\ciso';
-
-	$this->path_ansi = str_replace( "\\", "/", $this->path_ansi );
-	$this->path_ciso = str_replace( "\\", "/", $this->path_ciso );
 
 	$this->cwd = getcwd();
 	$this->cwd = str_replace( "\\", "/", $this->cwd );
-#
-#	If this is a 32bit system - pass in 32.
-#	If this is a 64bit system - pass in 64.
-#
-	if( PHP_INT_SIZE < 8 ){ $this->path_ansi.= "/x86"; }
-		else{ $this->path_ansi .= "/x64"; }
 #
 #	Make sure we are flushing everything.
 #
 	@ini_set( "implicit_flush", 1 );
 	ob_implicit_flush();
-#
-#	If this is Windows - then you use TaskList to get a list of processes
-#
-    $this->uniqid = uniqid();
-    $this->out = $this->uniqid . ".out";
-    $this->err = $this->uniqid . ".err";
-
-	$ansi = "$this->path_ansi/$this->prog_ansi";
-	echo "CMD = $ansi\n";
-
-	$ret = $this->start( $ansi );
-	if( !$ret ){
-		$ret = $ret ? "TRUE" : "FALSE";
-		die( "*****ERROR : RET = $ret, Could not start ANSICON\n" );
-		}
-
-	$ansicon = getenv( "ANSICON" );
-	if( $ansicon === true ){
-#
-#	Get ANSICON information
-#
-		$a = str_replace( "(", "", $ansicon );
-		$a = str_replace( ")", "", $a );
-		echo "A = $a\n";
-		$b = explode( " ", $a );
-		$c = explode( "x", $b[0] );
-		$d = explode( "x", $b[1] );
-
-		$this->buf[0] = $c[0];
-		$this->buf[1] = $c[1];
-		$this->win[0] = $d[0];
-		$this->win[1] = $d[1];
-		}
-		else {
-			$this->buf[0] = 80;
-			$this->buf[1] = 20;
-			$this->win[0] = 132;
-			$this->win[1] = 40;
-			}
-#
-#	Get the version of ANSICON.
-#
-	$ver = getenv( "ANSICON_VER" );
-	$version_flag = getenv( "ANSICON_VERSION" );
-	echo "Version : $ver\n";
-	if( strlen($version_flag) > 0 ){
-		$this->ver = substr( $version_flag, 0, 1 ) . "." .
-			substr( $version_flag, 1, strlen($version_flag) );
-		}
-		else if( strlen($ver) > 0 ){
-			putenv( "ANSICON_VERSION=$ver");
-			$this->ver = substr( $ver, 0, 1 ) . "." .
-				substr( $ver, 1, strlen($ver) );
-			}
-		else {
-			$this->ver = 1.0;
-			putenv( "ANSICON_VERSION=1.0");
-			}
 #
 #	Get the CLICOLOR environment variable.
 #
@@ -598,7 +520,7 @@ function init()
 		[ "255", "377", "FF", "11111111", "ÿ", "&amp;#255;", "&amp;yuml;", "Latin small letter y with diaeresis" ]
 		];
 
-	$bel = chr( 7 );
+	$bell = chr( 7 );
 
 	$c = 0;
 	$this->ansi_cmds = [
@@ -611,10 +533,10 @@ function init()
 #
 #		<options> = TRUE/FALSE. True = there is something to print
 #
-		[ false,  "f" . $c++,  "\e]0;", "%s", $bel, "xterm:", "Set window's title (and icon, ignored)" ],
-		[ false,  "f" . $c++,  "\e]2;", "%s", $bel, "xterm:", "Set window's title" ],
-		[ false,  "f" . $c++,  "\e]4;", "%d;%d;%d", $bel, "xterm:", "Change color(s)" ],
-		[ false,  "f" . $c++,  "\e]104;...", "%d;%d;%d", $bel, "xterm:", "Reset color(s)" ],
+		[ false,  "f" . $c++,  "\e]0;", "%s", $bell, "xterm:", "Set window's title (and icon, ignored)" ],
+		[ false,  "f" . $c++,  "\e]2;", "%s", $bell, "xterm:", "Set window's title" ],
+		[ false,  "f" . $c++,  "\e]4;", "%d;%d;%d", $bell, "xterm:", "Change color(s)" ],
+		[ false,  "f" . $c++,  "\e]104;...", "%d;%d;%d", $bell, "xterm:", "Reset color(s)" ],
 		[ true,  "f" . $c++,  "\e[21t", null, null, "xterm:", "Report window's title", "%s" ],
 		[ false,  "f" . $c++,  "\e[s", null, null, "ANSI.SYS:", "Save Cursor Position" ],
 		[ false,  "f" . $c++,  "\e[u", null, null, "ANSI.SYS:", "Restore Cursor Position" ],
@@ -630,7 +552,7 @@ function init()
 		[ false,  "f" . $c++,  "\e[", "%d", "D", "CUB", "Cursor Left" ],
 		[ false,  "f" . $c++,  "\e[", "%d", "B", "CUD", "Cursor Down" ],
 		[ false,  "f" . $c++,  "\e[", "%d", "C", "CUF", "Cursor Right" ],
-		[ false,  "f" . $c++,  "\e[", "%d;%d", "H", "CUP", "Cursor Position - 'X;Y'" ],
+		[ false,  "f" . $c++,  "\e[", "%d;%d", "H", "CUP", "Cursor Position - 'Y;X'" ],
 		[ false,  "f" . $c++,  "\e[", "%d", "A", "CUU", "Cursor Up" ],
 		[ true,  "f" . $c++,  "\e[c", null, null, "DA", "Device Attributes", "%s" ],
 		[ false,  "f" . $c++,  "\e[", "%d", "P", "DCH", "Delete Character" ],
@@ -646,7 +568,7 @@ function init()
 		[ false,  "f" . $c++,  "\e8", null, null, "DECRC", "Restore Cursor" ],
 		[ false,  "f" . $c++,  "\e7", null, null, "DECSC", "Save Cursor" ],
 		[ false,  "f" . $c++,  "\e[?5W", null, null, "DECST8C", "Set Tab at Every 8 Columns" ],
-		[ false,  "f" . $c++,  "\e[?5;", "%d", "W", "DECST8C", "Set Tab at Every # Columns (ANSICON extension)" ],
+		[ false,  "f" . $c++,  "\e[?5;", "%d", "W", "DECST8C", "Set Tab at Every # Columns (ANSI extension)" ],
 		[ false,  "f" . $c++,  "\e[", "%d;%d", "r", "DECSTBM", "Set Top and Bottom Margins - '#;#'" ],
 		[ false,  "f" . $c++,  "\e[!p", null, null, "DECSTR", "Soft Terminal Reset" ],
 		[ false,  "f" . $c++,  "\e[?25h", null, null, "DECTCEM", "Text Cursor Enable Mode (show cursor)" ],
@@ -737,7 +659,9 @@ function init()
 		[ false,  "f" . $c++,  "\e[", "%s", null, "ESC [", "Used for testing purposes", "Mixed" ],
 		[ false,  "f" . $c++,  "\e]", "%s", null, "ESC ]", "Used for testing purposes", "Mixed" ],
 		[ false,  "f" . $c++,  "\e[?", "%s", null, "ESC [ ?", "Used for testing purposes", "Mixed" ],
+		[ false, "f" . $c++, "\e[8;", "%d;%d", "t", null, "Change a window's size (Y,X)", "unknown" ],
 		];
+
 #
 #	SGR Commands
 #
@@ -1020,51 +944,6 @@ EOD;
 	$this->debug->msg( "<" );
 }
 ################################################################################
-#	sys(). A system command
-################################################################################
-private function start( $cmd=null )
-{
-	if( is_null($cmd) ){
-		$this->debug->msg( "CMD is NULL in start()" );
-		return false;
-		}
-
-	if( preg_match("/ansicon/i", $cmd) ){ return true; }
-
-	$pipe_setup = array(
-		0 => array("pipe", "r"),  // stdin is a pipe that the child will read from
-		1 => array("pipe", "w"),  // stdout is a pipe that the child will write to
-		2 => array("file", "$this->cwd/error-output.txt", "a") // stderr is a file to write to
-		);
-
-echo "Pipe Setup : \n";
-print_r( $pipe_setup ); echo "\n";
-
-#	$ansi_handle = proc_open( $cmd, $pipe_setup, $pipes );
-	system( $cmd ); return;
-
-	if( !is_resource($ansi_handle) ){
-		if( is_bool($ansi_handle) ){
-			$handle = $this->ansi_handle ? "TRUE" : "FALSE";
-			}
-
-		echo "\$ansi_handle = $handle\n";
-		echo "\$ansi_handle = " . gettype( $ansi_handle ) . "\n";
-		return false;
-		}
-
-	$ret = fread( $pipes[0], 2096 );
-echo "\nRET = $ret\n\n";
-
-echo "Pipes :\n";
-print_r( $pipes ); echo "\n";
-
-	$this->pipes = $pipes;
-	$this->ansi_handle = $ansi_handle;
-
-	return true;
-}
-################################################################################
 #	__call(). Allows any function to be executed.
 #
 #	Notes:
@@ -1076,7 +955,7 @@ print_r( $pipes ); echo "\n";
 function __call( $name, $arguments )
 {
 #
-#	The NAME is the number from the ANSI_CMDS array or ANSICON documentation.
+#	The NAME is the number from the ANSI_CMDS array or ANSI documentation.
 #
 #	The NAME is comprised of the letter "f" followed by the id number in the
 #	above documentation. No spaces. No funky characters. Just a simple "f###".
@@ -1085,27 +964,15 @@ function __call( $name, $arguments )
 #	It is YOUR choice which to pass in to the function. Being lazy - I'll probably
 #	use just f41(6).
 #
-echo "Pipes :\n";
-print_r( $this->pipes ); echo "\n";
-
 	$dq = '"';
 	$name = substr( $name, 1, strlen($name) );
 	$ansi_cmd = $this->ansi_cmds[$name];
 	$ansi_handle = $this->ansi_handle;
-	$pipes = $this->pipes;
-	if( is_null($pipes) ){
-		echo "Reinitalizing the pipes\n";
-		$this->init( $ansi_cmd );
-		if( is_null($pipes) ){
-			echo "Something is WRONG - FIXIT!\n"; exit();
-			}
-		}
 
 	if( !is_array($ansi_cmd) ){ return false; }
 
 	$b = $ansi_cmd[2];	//	Beginning of the string
 	$e = $ansi_cmd[4];	//	Ending of the string
-echo "Name = $name\n";
 #
 #	The ARGUMENTS variable will contain ALL of the arguments.
 #	So we need to put it all together in one string. The arguments
@@ -1132,22 +999,21 @@ echo "Name = $name\n";
 #	Now create the command and do it
 #
 	$cmd = $b . $info . $e;
-	echo "CMD = $cmd\n";
-	fwrite( $pipes[1], $cmd );
+	echo $cmd;
 #
 #	Are we supposed to send something back?
 #
-	if( isset($ansi_cmd[0]) && $ansi_cmd[0] ){
-		$ciso = "$this->path_ciso/$this->prog_ciso";
-		if( isset($ansi_cmd[7]) ){ $a = $ansi_cmd[7]; }
-			else { $a = "%s"; }
-
-		$handle = popen( $ciso, 'r' );
-		$ret = fscanf( $handle, $a );
-		pclose( $handle );
-
-		return $ret;
-		}
+#		if( isset($ansi_cmd[0]) && $ansi_cmd[0] ){
+#			$ciso = "$this->path_ciso/$this->prog_ciso";
+#			if( isset($ansi_cmd[7]) ){ $a = $ansi_cmd[7]; }
+#				else { $a = "%s"; }
+#	
+#			$handle = popen( $ciso, 'r' );
+#			$ret = fscanf( $handle, $a );
+#			pclose( $handle );
+#	
+#			return $ret;
+#			}
 
 	return true;
 }
@@ -1159,14 +1025,26 @@ public function docs( $file=null )
 	$width = $this->width;
 	$width2 = $width + 100;
 	$max_width = $this->max_width;
-	$buf = $this->buf[0] . "x" . $this->buf[1];
-	$win = $this->win[0] . "x" . $this->win[1];
+	if( isset($this->buf) ){
+		$buf = $this->buf[0] . "x" . $this->buf[1];
+		}
+		else {
+			$buf = "80x60";
+			}
+
+	if( isset($this->win) ){
+		$win = $this->win[0] . "x" . $this->win[1];
+		}
+		else {
+			$win = "80x60";
+			}
+
 	$td = "align='right' width='$width2'";
 	$border = "style='border:thin solid black;'";
 	$version = $this->ver;
 	$version = str_replace( '..', '.', $version );
 
-	if( is_null($file) ){ $file = "./ansicon_docs.htm"; }
+	if( is_null($file) ){ $file = "./ansi_docs.htm"; }
 #
 #	Some spacing standards
 #
@@ -1177,7 +1055,7 @@ public function docs( $file=null )
 	$doc = <<<EOD
 <html>
 <head>
-<title>ANSICON Documentation</title>
+<title>ANSI Documentation</title>
 <style>
 h1.font { font: 36pt normal serif; }
 h1.border {border-top: 1px solid black; border-bottom: 1px solid black; width: 800px; }
@@ -1198,6 +1076,7 @@ td.c1 { text-align:center; }
 td.w1 { width : 75%; }
 td.w2 { width : 25%; }
 td.w3 { width : $space_20px; }
+td.w4 { width : 50%; }
 td.t1 { font: normal 12pt serif; }
 td.t2 { font: normal 14pt serif; }
 td.t3 { font: normal 18pt serif; }
@@ -1267,7 +1146,7 @@ font.m5 { font: bold 36pt monospace; }
 </head>
 <body width="800px">
 <p style="page-break-before: always">
-<h1 class='border font'>ANSICON Information</h1>
+<h1 class='border font'>ANSI Information</h1>
 <TABLE CELLPADDING="3" CELLSPACING="0" class="tblw w1"><tbody>
 <tr class='trw'><td width='$width'> </td>
 	<td class='tdb l1 w1'><b>VERSION</b></td>
@@ -1286,7 +1165,7 @@ font.m5 { font: bold 36pt monospace; }
 EOD;
 
 	$doc .= $this->docs_bit34();
-	$doc .= $this->docs_ansicon();
+	$doc .= $this->docs_ansi();
 	$doc .= $this->docs_sgr();
 	$doc .= $this->docs_ascii();
 	$doc .= $this->docs_display_1();
@@ -1328,16 +1207,16 @@ EOD;
 	return $doc;
 }
 ################################################################################
-#	docs_ansicon(). Dump the ansicon documentation as html.
+#	docs_ansi(). Dump the ansi documentation as html.
 ################################################################################
-private function docs_ansicon()
+private function docs_ansi()
 {
 	$width = $this->width;
 	$max_width = $this->max_width;
 
 	$doc = <<<EOD
 <p style="page-break-before: always">
-<h1 class='border font'>ANSICON Documenation</h1>
+<h1 class='border font'>ANSI Documenation</h1>
 
 $this->who
 
@@ -1348,25 +1227,25 @@ $this->who
 <p class='ml'>First - you declare a variable and it becomes a pointer
 to the class. Like so:</p>
 
-<font class='e1'>\$var = new class_ansicon();</font><p>
+<font class='e1'>\$var = new class_ansi();</font><p>
 
 <font class='e1'>or</font><p>
 
-<font class='e1'>\$var = \$GLOBALS['class']['ansicon'];</font><p>
+<font class='e1'>\$var = \$GLOBALS['class']['ansi'];</font><p>
 
 EOD;
 
-	$doc .= $this->createNote( null, "ALL of my classes create a GLOBALS entry under the " .
-		"CLASS entry (as above). This is so you don't have to keep " .
-		"using the NEW command and instead can just set a variable " .
-		"to the class. Also, the GLOBALS array is really globally " .
-		"defined which means you can use the class in functions " .
+	$doc .= $this->createNote( null, "ALL of my classes create a GLOBALS entry under the" .
+		"CLASS entry (as above). This is so you don't have to keep" .
+		"using the NEW command and instead can just set a variable" .
+		"to the class. Also, the GLOBALS array is really globally" .
+		"defined which means you can use the class in functions" .
 		"without having to pass it in to the function itself.", 800 );
 
 	$doc .= <<<EOD
 <p>
 
-<p class='ml'>Then you look up the funcion ID number in the ANSICON
+<p class='ml'>Then you look up the funcion ID number in the ANSI
 table. (That is the column with the "f###" number in
 it. You then call THAT function. The reason I'm using the
 "f###" id numbers is because then you don't have to remember
@@ -1392,7 +1271,7 @@ go. Like this:</p><p>
 <p class='ml'>This returns where the cursor currenly is located. This
 SPECIAL function already has the proper string to look for
 and so it does the fscanf() function on it to return an
-array with two entries in it. (In other words : (x,y).) So
+array with two entries in it. (In other words : (Y,X).) So
 the above returns:</p><p>
 
 <font class='e1'>\$info[0] and \$info[1] which are X and Y.</font><p>
@@ -1477,7 +1356,7 @@ EOD;
 	$title = [ "Return", "Function Name", "Beginning Text",
 		"Pass Something In?", "Ending Text", "Info", "Text", "Return Type" ];
 
-	$doc .= $this->createTable( "Ansicon", $title, $this->ansi_cmds, 4, true );
+	$doc .= $this->createTable( "Ansi", $title, $this->ansi_cmds, 4, true );
 
 	return $doc;
 }
@@ -1538,8 +1417,8 @@ which is a superset of ISO 8859-1 in terms of printable
 characters. In the range 128 to 159 (hex 80 to 9F), ISO/IEC
 8859-1 has invisible control characters, while Windows-1252
 has writable characters. Windows-1252 is probably the
-most-used 8-bit character encoding in the world.<br>
-Injosoft (Sweden) - Webbdesign & Systemveckling</p><p>
+most-used 8-bit character encoding in the world.</p><p style="text-indent:20px;">
+From : Injosoft (Sweden) - Webbdesign & Systemveckling</p><p>
 
 <h3 class='font'>ASCII control characters (character code 0-31)</h3>
 
@@ -1597,7 +1476,7 @@ $this->who
 
 <p class='ml'>Use these commands to send the appropriate id number to a terminal
 So you get all of the colors and blink letters and such. This is
-used with the ANSICON Table "f61" command found above.</p>
+used with the ANSI Table "f61" command found above.</p>
 <p class='ml'>
 <table class='tbln' width='885px'><tbody><tr class='trn'>
 <td class='tdn pad10'>NOTE</td>
@@ -1658,7 +1537,7 @@ the ANSI mode control sequences. A more complete listing
 appears in Appendix A. This document was produced by Paul
 Flo Williams (paul-AT-frixxon.co.uk) and is copyrighted
 1998-2020. It is referenced here because it is the most
-complete document on the VT100 terminal which ansicon
+complete document on the VT100 terminal which ansi
 emulates.</p><p>
 
 <h3 class='font'>Control Sequence Introducer (CSI)</h3>
@@ -3070,357 +2949,12 @@ private function cvt_ascii( $a )
 ################################################################################
 public function __set( $name, $value )
 {
-	if( preg_match("/ansi/i", $name) ){
-		$this->path_ansi = $value;
-		$this->path_ansi = str_replace( "\\", "/", $this->path_ansi );
-		}
-		else if( preg_match("/ciso/i", $name) ){
-			$this->path_ciso = $value;
-			$path_ciso = str_replace( "\\", "/", $path_ciso );
-			}
-		else {
-			$this->debug->die(
-				"DIE : Unknown variable. Only 'ansi' and 'ciso' are defined.\n",
-				true ); 
-			}
 }
 ################################################################################
 #	__get(). Set a path.
 ################################################################################
 public function __get( $name )
 {
-	if( preg_match("/ansi/i", $name) ){ return $this->path_ansi; }
-		else if( preg_match("/ciso/i", $name) ){ return $this->path_ciso; }
-		else {
-			$this->debug->die(
-				"DIE : Unknown variable. Only 'ansi' and 'ciso' are defined.\n",
-				true ); 
-			}
-}
-################################################################################
-#	test().	You can call this function with the function name and then the
-#		arguments. Always does just that call, then waits 3 seconds after
-#		displaying any kind of a return.
-################################################################################
-function test()
-{
-	$blank = str_repeat( " ", 40 );
-	$lets = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-	$lenlets = strlen( $lets );
-#
-#	DO ALL of the ansi commands
-#
-	foreach( $this->ansi_cmds as $K=>$v ){
-#
-#	We need to get each command and do them one-by-one.
-#
-		$ary = $v;
-#
-#		array( <Return>, <Function Name>, <Beginning Text>,
-#			<Options>, <Ending Text>, <Info>, <Text>, <Return Type> )
-#
-		$a = explode( ';', $ary[3] );
-#
-#	Remove any blank entries
-#
-#		while( (count($a) > 0) && (strlen($a[count($a)-1]) < 1) ){ array_pop( $a ); }
-#
-#	Now look at the entries
-#
-		if( count($a) > 1 ){
-			$flag = false;
-			foreach( $a as $k1=>$v1 ){
-				if( preg_match("/\[/", $v1) || $flag ){ unset($a[$k1]); $flag = true; }
-				}
-#
-#	Now we need to know - integers or strings?
-#
-			if( count($a) == 1 ){
-				if( preg_match("/d/i", $a[0]) ){
-					for( $i=0; $i<10; $i++ ){
-						$cmd = "$ary[2]$i$ary[4]";
-						$new_cmd = $this->makePrintable( $cmd );
-						$this->f49( 10, 80 );
-						echo "Calling : $new_cmd" . $this->f44(0);
-						$ret = $this->$cmd();
-						$this->f49( 11, 80 );
-						if( $ret === false ){ $ret = "FALSE"; }
-							else if( $ret === true ){ $ret = "TRUE"; }
-
-						if( is_array($ret) ){
-							$offset = 0;
-							$this->f49( 15, 80 );
-							echo "RETURN : ARRAY" . $this->f44(5);
-							foreach( $ret as $k=>$v ){
-								$this->f49( $k+16+$offset, 80 );
-								if( is_array($v) ){
-									$offset++;
-									$this->f49( $k+16+$offset, 85 );
-									echo "RETURN : ARRAY" . $this->f44($k+6+$offset);
-									foreach( $v as $k1=>$v1 ){
-										$offset++;
-										$this->f49( $k+16+$offset, 85 );
-										if( $v1 === false ){ $v1 = "FALSE"; }
-											else if( $v1 === true ){ $v1 = "TRUE"; }
-											else { $v1 = $this->makePrintable( $v1 ); }
-
-										echo "RET : $v1" . $this->f44( $k+6+$offset );
-										}
-									}
-									else {
-										$v1 = $this->makePrintable( $v1 );
-										$this->f49( 15, 80 );
-										echo "RET : $ret" . $this->f44(5);
-										}
-								}
-							}
-							else {
-								$v1 = $this->makePrintable( $v1 );
-								$this->f49( 12, 80 );
-								echo "RET : $ret" . $this->f44(2);
-								}
-						}
-					}
-					else if( preg_match("/s/i", $a[0]) ){
-						for( $i=0; $i<$lenlets; $i++ ){
-							$cmd = $ary[2] . chr($i) . $ary[4];
-							$new_cmd = $this->makePrintable( $cmd );
-							
-							$this->f49( 10, 80 );
-							echo "Calling : $new_cmd" . $this->f44(0);
-							$ret = $this->$cmd();
-							$this->f49( 11, 80 );
-							if( $ret === false ){ $ret = "FALSE"; }
-								else if( $ret === true ){ $ret = "TRUE"; }
-
-							if( is_array($ret) ){
-								$offset = 0;
-								$this->f49( 15, 80 );
-								echo "RETURN : ARRAY" . $this->f44(5);
-								foreach( $ret as $k=>$v ){
-									$this->f49( $k+16+$offset, 80 );
-									if( is_array($v) ){
-										$offset++;
-										$this->f49( $k+16+$offset, 85 );
-										echo "RETURN : ARRAY" . $this->f44($k+6+$offset);
-										foreach( $v as $k1=>$v1 ){
-											$offset++;
-											$this->f49( $k+16+$offset, 85 );
-											if( $v1 === false ){ $v1 = "FALSE"; }
-												else if( $v1 === true ){ $v1 = "TRUE"; }
-												else { $v1 = $this->makePrintable( $v1 ); }
-
-											echo "RET : $v1" . $this->f44( $k+6+$offset );
-											}
-										}
-										else {
-											$v1 = $this->makePrintable( $v1 );
-											$this->f49( 15, 80 );
-											echo "RET : $ret" . $this->f44(5);
-											}
-									}
-								}
-								else {
-									$v1 = $this->makePrintable( $v1 );
-									$this->f49( 12, 80 );
-									echo "RET : $ret" . $this->f44(2);
-									}
-							}
-						}
-					else {
-						for( $i=0; $i<$lenlets; $i++ ){
-							$cmd = $ary[2] . chr($i) . $ary[4];
-							$new_cmd = $this->makePrintable( $cmd );
-							
-							$this->f49( 10, 80 );
-							echo "Calling : $new_cmd" . $this->f44(0);
-							$ret = $this->$cmd();
-							$this->f49( 11, 80 );
-							if( $ret === false ){ $ret = "FALSE"; }
-								else if( $ret === true ){ $ret = "TRUE"; }
-
-							if( is_array($ret) ){
-								$offset = 0;
-								$this->f49( 15, 80 );
-								echo "RETURN : ARRAY" . $this->f44(5);
-								foreach( $ret as $k=>$v ){
-									$this->f49( $k+16+$offset, 80 );
-									if( is_array($v) ){
-										$offset++;
-										$this->f49( $k+16+$offset, 85 );
-										echo "RETURN : ARRAY" . $this->f44($k+6+$offset);
-										foreach( $v as $k1=>$v1 ){
-											$offset++;
-											$this->f49( $k+16+$offset, 85 );
-											if( $v1 === false ){ $v1 = "FALSE"; }
-												else if( $v1 === true ){ $v1 = "TRUE"; }
-												else { $v1 = $this->makePrintable( $v1 ); }
-
-											echo "RET : $v1" . $this->f44( $k+6+$offset );
-											}
-										}
-										else {
-											$v1 = $this->makePrintable( $v1 );
-											$this->f49( 15, 80 );
-											echo "RET : $ret" . $this->f44(5);
-											}
-									}
-								}
-								else {
-									$v1 = $this->makePrintable( $v1 );
-									$this->f49( 12, 80 );
-									echo "RET : $ret" . $this->f44(2);
-									}
-							}
-						}
-
-				$this->f49( 0, 80 );
-				}
-				else if( count($a) > 1 ){
-					if( preg_match("/d/i", $a[0]) ){
-						for( $i=0; $i<10; $i++ ){
-							$cmd = "$ary[2]$i$ary[4]";
-							$new_cmd = $this->makePrintable( $cmd );
-							$this->f49( 10, 80 );
-							echo "Calling : $new_cmd" . $this->f44(0);
-							$ret = $this->$cmd();
-							$this->f49( 11, 80 );
-							if( $ret === false ){ $ret = "FALSE"; }
-								else if( $ret === true ){ $ret = "TRUE"; }
-
-							if( is_array($ret) ){
-								$offset = 0;
-								$this->f49( 15, 80 );
-								echo "RETURN : ARRAY" . $this->f44(5);
-								foreach( $ret as $k=>$v ){
-									$this->f49( $k+16+$offset, 80 );
-									if( is_array($v) ){
-										$offset++;
-										$this->f49( $k+16+$offset, 85 );
-										echo "RETURN : ARRAY" . $this->f44($k+6+$offset);
-										foreach( $v as $k1=>$v1 ){
-											$offset++;
-											$this->f49( $k+16+$offset, 85 );
-											if( $v1 === false ){ $v1 = "FALSE"; }
-												else if( $v1 === true ){ $v1 = "TRUE"; }
-												else { $v1 = $this->makePrintable( $v1 ); }
-
-											echo "RET : $v1" . $this->f44( $k+6+$offset );
-											}
-										}
-										else {
-											$v1 = $this->makePrintable( $v1 );
-											$this->f49( 15, 80 );
-											echo "RET : $ret" . $this->f44(5);
-											}
-									}
-								}
-								else {
-									$v1 = $this->makePrintable( $v1 );
-									$this->f49( 12, 80 );
-									echo "RET : $ret" . $this->f44(2);
-									}
-							}
-						}
-						else if( preg_match("/s/i", $a[0]) ){
-							for( $i=0; $i<$lenlets; $i++ ){
-								$cmd = $ary[2] . chr($i) . $ary[4];
-								$new_cmd = $this->makePrintable( $cmd );
-								
-								$this->f49( 10, 80 );
-								echo "Calling : $new_cmd" . $this->f44(0);
-								$ret = $this->$cmd();
-								$this->f49( 11, 80 );
-								if( $ret === false ){ $ret = "FALSE"; }
-									else if( $ret === true ){ $ret = "TRUE"; }
-
-								if( is_array($ret) ){
-									$offset = 0;
-									$this->f49( 15, 80 );
-									echo "RETURN : ARRAY" . $this->f44(5);
-									foreach( $ret as $k=>$v ){
-										$this->f49( $k+16+$offset, 80 );
-										if( is_array($v) ){
-											$offset++;
-											$this->f49( $k+16+$offset, 85 );
-											echo "RETURN : ARRAY" . $this->f44($k+6+$offset);
-											foreach( $v as $k1=>$v1 ){
-												$offset++;
-												$this->f49( $k+16+$offset, 85 );
-												if( $v1 === false ){ $v1 = "FALSE"; }
-													else if( $v1 === true ){ $v1 = "TRUE"; }
-													else { $v1 = $this->makePrintable( $v1 ); }
-
-												echo "RET : $v1" . $this->f44( $k+6+$offset );
-												}
-											}
-											else {
-												$v1 = $this->makePrintable( $v1 );
-												$this->f49( 15, 80 );
-												echo "RET : $ret" . $this->f44(5);
-												}
-										}
-									}
-									else {
-										$v1 = $this->makePrintable( $v1 );
-										$this->f49( 12, 80 );
-										echo "RET : $ret" . $this->f44(2);
-										}
-								}
-							}
-						else {
-							for( $i=0; $i<$lenlets; $i++ ){
-								$cmd = $ary[2] . chr($i) . $ary[4];
-								$new_cmd = $this->makePrintable( $cmd );
-								
-								$this->f49( 10, 80 );
-								echo "Calling : $new_cmd" . $this->f44(0);
-								$ret = $this->$cmd();
-								$this->f49( 11, 80 );
-								if( $ret === false ){ $ret = "FALSE"; }
-									else if( $ret === true ){ $ret = "TRUE"; }
-
-								if( is_array($ret) ){
-									$offset = 0;
-									$this->f49( 15, 80 );
-									echo "RETURN : ARRAY" . $this->f44(5);
-									foreach( $ret as $k=>$v ){
-										$this->f49( $k+16+$offset, 80 );
-										if( is_array($v) ){
-											$offset++;
-											$this->f49( $k+16+$offset, 85 );
-											echo "RETURN : ARRAY" . $this->f44($k+6+$offset);
-											foreach( $v as $k1=>$v1 ){
-												$offset++;
-												$this->f49( $k+16+$offset, 85 );
-												if( $v1 === false ){ $v1 = "FALSE"; }
-													else if( $v1 === true ){ $v1 = "TRUE"; }
-													else { $v1 = $this->makePrintable( $v1 ); }
-
-												echo "RET : $v1" . $this->f44( $k+6+$offset );
-												}
-											}
-											else {
-												$v1 = $this->makePrintable( $v1 );
-												$this->f49( 15, 80 );
-												echo "RET : $ret" . $this->f44(5);
-												}
-										}
-									}
-									else {
-										$v1 = $this->makePrintable( $v1 );
-										$this->f49( 12, 80 );
-										echo "RET : $ret" . $this->f44(2);
-										}
-								}
-							}
-					}
-
-			$this->f49( 0, 80 );
-			}
-		}
-
-	return true;
 }
 ################################################################################
 #	makePrintable(). A simple function to make invisible character visiable.
@@ -3529,7 +3063,7 @@ function makePrintable( $string=null, $leftBracket=null, $rightBracket=null,
 #		size	=	Font size. This can be a number from one to five (1-5).
 #					1 = 12pt, 2 = 14pt, 3 = 18pt, 4 = 24pt, and 5 = 36pt
 #		wrap	=	Whether to wrap lines or not (Default is FALSE)
-#	NOTES:	The GD function imagettfbbox() does NOT need GD in order to work.
+#	NOTES:	The GD function imageftbbox() does NOT need GD in order to work.
 #			UGH. Ok. the simple "<line" command is now the "<Dborder=\d+>" command.
 #				This means the "D" is either T)op, B)ottom, L)eft, or R)ight.
 #				The "command" part is the "line" saying you want to make a line
@@ -3568,7 +3102,7 @@ EOD;
 				$colspan = $a[1];
 				}
 				else {
-					$bbox = imagettfbbox( 12, 0, "C:/Users/marke/My Programs/PHP/lib/fonts/times.ttf", $v );
+					$bbox = imageftbbox( 12, 0, "C:/Windows/Fonts/times.ttf", $v );
 #					print_r( $bbox ); echo "\n";
 					$cols[$k] = $bbox[2] - $bbox[0];
 
@@ -3597,8 +3131,7 @@ EOD;
 				if( !preg_match("/<colspan=\d+>/i", $v1) ){
 					$v1 = wordwrap( $v1, 60, "<br>" );
 					$a = explode( "<br>", $v1 );
-
-					$bbox = imagettfbbox( 12, 0, "C:/Users/marke/My Programs/PHP/lib/fonts/times.ttf", $a[0] );
+					$bbox = imageftbbox( 12, 0, "c:/Windows/Fonts/times.ttf", $a[0] );
 #					print_r( $bbox ); echo "\n";
 					$len = $bbox[2] - $bbox[0];
 
@@ -3633,7 +3166,7 @@ EOD;
 		for( $i=$k1+1; $i<$titles; $i++ ){
 			$flag = true;
 
-			$bbox = imagettfbbox( 12, 0, "C:/Users/marke/My Programs/PHP/lib/fonts/times.ttf", $na );
+			$bbox = imageftbbox( 12, 0, "C:/Windows/Fonts/times.ttf", $na );
 #			print_r( $bbox ); echo "\n";
 			$len = $bbox[2] - $bbox[0];
 
@@ -3651,15 +3184,50 @@ EOD;
 
 	if( $flag ){
 		$len = 0;
-		for( $i=0; $i<$titles; $i++ ){ echo "$name : LEN = $cols[$i]\n"; $len += $cols[$i]; }
+		$doc .= "</tbody></table>\n";
+		$doc .= $this->createNote( $titles, null, null );
+#		$doc .= <<<EOD
+#<p>
+#<TABLE CELLPADDING="3" CELLSPACING="0" class='tblw'><tbody>
+#<tr><td colspan=3 class='c1 t$size w4 bold'>$name Table Notes</td></tr>
+#EOD;
+#		for( $i=0; $i<$titles; $i++ ){
+#			$even_odd = ($even_odd + 1) % 2;
+#			if( $even_odd < 1 ){ $doc .= "<tr class='trb even'>\n"; }
+#				else { $doc .= "<tr class='trb odd'>\n"; }
+#
+#			$doc .= "<td class='tdb c1 pad5 $wrap' style='$border'>$name</td>\n";
+#			$doc .= "<td class='tdb c1 pad5 $wrap' style='$border'>LEN</td>\n";
+#			$doc .= "<td class='tdb c1 pad5 $wrap' style='$border'>$cols[$i]</td>\n";
+#			$doc .= "</tr>\n";
+#			$len += $cols[$i];
+#			}
+
 		$len = $len + ($titles * 9);
 #		if( $len > 900 ){ $len = $len - floor( $len / 10 ); }
-		echo "$name : SUBTOTAL = " . $len . "\n";
-		echo "$name : TOTAL = " . $len . "\n";
-		$doc .= $this->createNote( $titles, null, $len );
+#		$even_odd = ($even_odd + 1) % 2;
+#		if( $even_odd < 1 ){ $doc .= "<tr class='trb even'>\n"; }
+#			else { $doc .= "<tr class='trb odd'>\n"; }
+#
+#		$doc .= "<td class='tdb c1 pad5 $wrap' style='$border'>$name</td>\n";
+#		$doc .= "<td class='tdb c1 pad5 $wrap' style='$border'>SUBTOTAL</td>\n";
+#		$doc .= "<td class='tdb c1 pad5 $wrap' style='$border'>$len</td>\n";
+#		$doc .= "</tr>\n";
+#
+#		$even_odd = ($even_odd + 1) % 2;
+#		if( $even_odd < 1 ){ $doc .= "<tr class='trb even'>\n"; }
+#			else { $doc .= "<tr class='trb odd'>\n"; }
+#
+#		$doc .= "<td class='tdb c1 pad5 $wrap' style='$border'>$name</td>\n";
+#		$doc .= "<td class='tdb c1 pad5 $wrap' style='$border'>TOTAL</td>\n";
+#		$doc .= "<td class='tdb c1 pad5 $wrap' style='$border'>$len</td>\n";
+		$doc .= "</tr>\n";
+		$doc .= "</tbody></table>\n";
 		}
-
-	$doc .= "</tbody></table>\n";
+		else {
+			$doc .= "</tbody></table>\n";
+			$doc .= $this->createNote( $titles, null, null );
+			}
 
 	return $doc;
 }
@@ -3729,36 +3297,6 @@ function __destruct()
 		}
 }
 ################################################################################
-#	debug(). Print debug statements.
-################################################################################
-private function debug( $msg=null, $opt=null )
-{
-	$dbg = debug_backtrace();
-	$debug = $dbg[0];
-	if( false || $this->debug_flag ){
-		echo "--->Entering	:	" . $debug['file'] . " [" . $debug['class'] . "] " .
-			$debug['function'] . " # " . $debug['line'] . "\n";
-		}
-
-	array_shift( $dbg );
-	$debug = $dbg[0];
-	if( $this->debug_flag ){
-		if( preg_match("/>/", $msg) ){ $msg = "--->Entering"; }
-			else if( preg_match("/</", $msg) ){ $msg = "<--- Exiting"; }
-
-		$msg = "$msg	:	" . $debug['file'] . " [" . $debug['class'] . "] " .
-			$debug['function'] . " # " . $debug['line'] . "\n";
-
-		if( $opt ){ die( $msg ); }
-			else { echo $msg; }
-		}
-
-	if( false || $this->debug_flag ){
-		echo "<---Exiting :	" . $debug['file'] . " [" . $debug['class'] . "] " .
-			$debug['function'] . " # " . $debug['line'] . "\n";
-		}
-}
-################################################################################
 #	dump(). A simple function to dump some information.
 #	Ex:	$this->dump( "NUM", $num );
 ################################################################################
@@ -3815,10 +3353,8 @@ function dump( $title=null, $arg=null )
 }
 
 	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['ansicon']) ){
-		$GLOBALS['classes']['ansicon'] = new class_ansicon();
+	if( !isset($GLOBALS['classes']['ansi']) ){
+		$GLOBALS['classes']['ansi'] = new class_ansi();
 		}
 
-	$ca = new class_ansicon();
-	$ca->test();
 ?>
