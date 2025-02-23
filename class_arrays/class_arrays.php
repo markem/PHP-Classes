@@ -1,9 +1,13 @@
 <?php
 #
+#	Defines
+#
+	if( !defined("[]") ){ define( "[]", "array[]" ); }
+#
 #	Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
 		});
 
 	date_default_timezone_set( "UTC" );
@@ -147,9 +151,9 @@ function __destruct()
 	$this->debug->out();
 }
 ################################################################################
-#	dump(). A short function to dump a file.
+#	dump_file(). A short function to dump a file.
 ################################################################################
-function dump( $f=null, $l=null )
+function dump_file( $f=null, $l=null )
 {
 	$this->debug->in();
 
@@ -176,6 +180,59 @@ function dump( $f=null, $l=null )
 	$this->debug->msg( "\n" );
 	$this->debug->out();
 
+	return true;
+}
+################################################################################
+#	dump(). A simple function to dump some information.
+#	Ex:	$this->dump( "NUM", $num );
+################################################################################
+function dump( $title=null, $arg=null )
+{
+	$this->debug->in();
+	echo "--->Entering DUMP\n";
+
+	if( is_null($title) ){ return false; }
+	if( is_null($arg) ){ return false; }
+
+	$title = trim( $title );
+#
+#	Get the backtrace
+#
+	$dbg = debug_backtrace();
+#
+#	Start a loop
+#
+	foreach( $dbg as $k=>$v ){
+		$a = array_pop( $dbg );
+
+		foreach( $a as $k1=>$v1 ){
+			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
+			}
+
+		$func = $a['function'];
+		$line = $a['line'];
+		$file = $a['file'];
+		$class = $a['class'];
+		$obj = $a['object'];
+		$type = $a['type'];
+		$args = $a['args'];
+
+		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
+		foreach( $args as $k1=>$v1 ){
+			if( is_array($v1) ){
+				foreach( $v1 as $k2=>$v2 ){
+					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
+					}
+				}
+				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
+			}
+
+#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
+#			else { echo "ARG = $arg\n"; }
+		}
+
+	echo "<---Exiting DUMP\n\n";
+	$this->debug->out();
 	return true;
 }
 

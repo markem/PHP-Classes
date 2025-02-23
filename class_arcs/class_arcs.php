@@ -1,9 +1,13 @@
 <?php
 #
+#	Defines
+#
+	if( !defined("[]") ){ define( "[]", "array[]" ); }
+#
 #	Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
 		});
 
 	date_default_timezone_set( "UTC" );
@@ -77,12 +81,22 @@ class class_arcs
 #	Remember to change all "\"s to "/"s.
 #
 	private $loc_zip	=	"C:/Program_Files/WinZip";
-	private $loc_7zip	=	"C:/Program Files/7-Zip";
-	private $loc_rar	=	"C:/Program Files/WinRAR";
-	private $prg_zip	=	"WINZIP32.EXE";
-	private $prg_7zip	=	"7z.exe";
-	private $prg_rar	=	"Rar.exe";
+	private $prg_zip	=	"winzip32.exe";
+
+	private $loc_gzip	=	"C:/DOS/UnxUtils/usr/local/wbin";
+	private $prg_gzip	=	"gzip.exe";
+
+	private $loc_unzip	=	"C:/DOS/UnxUtils/usr/local/wbin";
 	private $prg_unzip	=	"unzip.exe";
+
+	private $loc_tar	=	"C:/DOS/UnxUtils/usr/local/wbin";
+	private $prg_tar	=	"tar.exe";
+
+	private $loc_7zip	=	"C:/Program Files/7-Zip";
+	private $prg_7zip	=	"7z.exe";
+
+	private $loc_rar	=	"C:/Program Files/WinRAR";
+	private $prg_rar	=	"Rar.exe";
 ################################################################################
 #	__construct(). Constructor.
 ################################################################################
@@ -112,12 +126,16 @@ function init()
 #	zip(). Lets me archive something to a ZIP file.
 #	NOTES	:	You can ONLY send single letter options to this function.
 ################################################################################
-function zip( $opt=null, $file=null, $suf=null )
+function zip( $file=null, $opt=null )
 {
 	if( is_null($opt) ){ die( "NO OPTIONS GIVEN" ); }
 	if( is_null($file) ){ die( "NO FILE GIVEN" ); }
 
-	$cmd = "$loc_zip/$prg_zip $opt $file";
+	$dq = '"';
+	$loc_zip = $this->loc_zip;
+	$prg_zip = $this->prg_zip;
+
+	$cmd = "$dq$loc_zip/$prg_zip$dq $opt $dq$file$dq";
 	echo "CMD = $cmd\n";
 
 	return system( $cmd );
@@ -125,20 +143,61 @@ function zip( $opt=null, $file=null, $suf=null )
 ################################################################################
 #	unzip(). Allows me to unzip a ZIP file.
 ################################################################################
-function unzip( $opt=null, $file=null, $suf=null )
+function unzip( $file=null, $opt=null )
 {
 	if( is_null($opt) ){ die( "NO OPTIONS GIVEN" ); }
 	if( is_null($file) ){ die( "NO FILE GIVEN" ); }
 
-	$cmd = "$loc_zip/$prg_unzip $opt $file";
+	$dq = '"';
+	$loc_unzip = $this->loc_unzip;
+	$prg_unzip = $this->prg_unzip;
+
+	$cmd = "$dq$loc_zip/$prg_unzip$dq $opt $dq$file$dq";
 	echo "CMD = $cmd\n";
 
 	return system( $cmd );
 }
 ################################################################################
-#	zip_help(). Prints out the help for the gzip command.
+#	gzip(). Lets me archive something to a GZIP file.
+#	Notes : The best option is the "-r" option to recursively go through a
+#		directory.
 ################################################################################
-function zip_help()
+function gzip( $file=null, $opt=null )
+{
+	if( is_null($file) ){ die( "NO FILE GIVEN" ); }
+
+	$dq = '"';
+	$loc_gzip = $this->loc_gzip;
+	$prg_gzip = $this->prg_gzip;
+
+	$cmd = "$dq$loc_gzip/$prg_gzip$dq $opt $dq$file$dq &";
+	echo "CMD = $cmd\n";
+
+	return system( $cmd );
+}
+################################################################################
+#	ungzip(). Lets me archive something to a GZIP file.
+#	Notes : The best option is the "-r" option to recursively go through a
+#		directory.
+################################################################################
+function ungzip( $file=null, $opt=null )
+{
+	if( is_null($opt) ){ $opt = "-d"; }
+	if( is_null($file) ){ die( "NO FILE GIVEN" ); }
+
+	$dq = '"';
+	$loc_gzip = $this->loc_gzip;
+	$prg_gzip = $this->prg_gzip;
+
+	$cmd = "$dq$loc_gzip/$prg_gzip$dq $opt $dq$file$dq";
+	echo "CMD = $cmd\n";
+
+	return system( $cmd );
+}
+################################################################################
+#	gzip_help(). Prints out the help for the gzip command.
+################################################################################
+function gzip_help()
 {
 	$out = <<<EOD
 # 
@@ -164,6 +223,45 @@ function zip_help()
 #	 -1 --fast        compress faster
 #	 -9 --best        compress better
 #	 file...          files to (de)compress. If none given, use standard input.
+#
+################################################################################
+#	
+EOD;
+
+	return $out;
+}
+################################################################################
+#	zip_help(). Prints out the help for the zip command.
+################################################################################
+function zip_help()
+{
+	$out = <<<EOD
+# 
+################################################################################
+#
+#	Copyright (C) 1990-1999 Info-ZIP
+#	Type 'zip "-L"' for software license.
+#	Zip 2.3 (November 29th 1999). Usage:
+#	zip [-options] [-b path] [-t mmddyyyy] [-n suffixes] [zipfile list] [-xi list]
+#	  The default action is to add or replace zipfile entries from list, which
+#	  can include the special name - to compress standard input.
+#	  If zipfile and list are omitted, zip compresses stdin to stdout.
+#	  -f   freshen: only changed files  -u   update: only changed or new files
+#	  -d   delete entries in zipfile    -m   move into zipfile (delete files)
+#	  -r   recurse into directories     -j   junk (don't record) directory names
+#	  -0   store only                   -l   convert LF to CR LF (-ll CR LF to LF)
+#	  -1   compress faster              -9   compress better
+#	  -q   quiet operation              -v   verbose operation/print version info
+#	  -c   add one-line comments        -z   add zipfile comment
+#	  -@   read names from stdin        -o   make zipfile as old as latest entry
+#	  -x   exclude the following names  -i   include only the following names
+#	  -F   fix zipfile (-FF try harder) -D   do not add directory entries
+#	  -A   adjust self-extracting exe   -J   junk zipfile prefix (unzipsfx)
+#	  -T   test zipfile integrity       -X   eXclude eXtra file attributes
+#	  -!   use privileges (if granted) to obtain all aspects of WinNT security
+#	  -R   PKZIP recursion (see manual)
+#	  -$   include volume label         -S   include system and hidden files
+#	  -h   show this help               -n   don't compress these suffixes
 #
 ################################################################################
 #	
@@ -213,17 +311,42 @@ EOD;
 ################################################################################
 #	arc7z(). Lets me ARChive something to a 7Z file.
 ################################################################################
-function arc7z( $opt=null, $switches=null, $arc=null, $file=null )
+function arc7z( $file=null, $command=null, $switch=null )
 {
-	if( is_null($opt) ){ die( "NO OPTIONS GIVEN" ); }
+	if( is_null($command) ){ $command = "a"; }
+	if( is_null($switch) ){ $switch = "-y"; }
 
-	$cmd = "$loc_7z/$prg_7z $opt $file";
+	$dq = '"';
+	$loc_7zip = $this->loc_7zip;
+	$prg_7zip = $this->prg_7zip;
+
+	$pathinfo = pathinfo( $file );
+	$archive = $pathinfo['filename'] . ".zip";
+
+	$cmd = "$dq$loc_7zip/$prg_7zip$dq $command $switch $dq$archive$dq $dq$file$dq";
 	echo "CMD = $cmd\n";
 
 	return system( $cmd );
 }
 ################################################################################
-#	arc7z_help(). Help on the 7zip function.
+#	unarc7z(). Lets me ARChive something to a 7Z file.
+################################################################################
+function unarc7z( $archive=null, $command=null, $switch=null )
+{
+	if( is_null($command) ){ $command = "e"; }
+	if( is_null($switch) ){ $switch = "-y"; }
+
+	$dq = '"';
+	$loc_7zip = $this->loc_7zip;
+	$prg_7zip = $this->prg_7zip;
+
+	$cmd = "$dq$loc_7zip/$prg_7zip$dq $command $switch $dq$archive$dq";
+	echo "CMD = $cmd\n";
+
+	return system( $cmd );
+}
+################################################################################
+#	7z_help(). Help on the 7zip function.
 ################################################################################
 function arc7z_help()
 {
@@ -278,11 +401,16 @@ EOD;
 ################################################################################
 #	un7z(). Allows me to unzip a 7z file.
 ################################################################################
-function un7z( $opt=null, $switches=null, $arc=null, $file=null )
+function un7z( $file=null, $opt=null, $switches=null, $arc=null )
 {
 	if( is_null($opt) ){ die( "NO OPTIONS GIVEN" ); }
+	if( is_null($file) ){ die( "NO FILENAME GIVEN" ); }
 
-	$cmd = "$loc_7z/$prg_7z $opt $file";
+	$dq = '"';
+	$loc_unzip = $this->loc_unzip;
+	$prg_unzip = $this->prg_unzip;
+
+	$cmd = "$dq$loc_unzip/$prg_unzip$dq $opt $dq$file$dq";
 	echo "CMD = $cmd\n";
 
 	return system( $cmd );
@@ -294,7 +422,11 @@ function rar( $opt=null, $switches=null, $arc=null, $file=null )
 {
 	if( is_null($opt) ){ die( "NO OPTIONS GIVEN" ); }
 
-	$cmd = "$loc_rar/$prg_rar $opt $file";
+	$dq = '"';
+	$loc_rar = $this->loc_rar;
+	$prg_rar = $this->prg_rar;
+
+	$cmd = "$dq$loc_rar/$prg_rar$dq $opt $file";
 	echo "CMD = $cmd\n";
 
 	return system( $cmd );
@@ -450,16 +582,47 @@ EOD;
 ################################################################################
 #	tar(). Lets me archive something to a TAR file.
 ################################################################################
-function tar()
+function tar( $file=null, $tar_file=null )
 {
-	$args = func_get_args();
+	if( is_null($file) ){ die( "TAR : Filename is NULL" ); }
+	if( is_null($tar_file) ){ $tar_file = "archive.tar"; }
+
+	$file = str_replace( "\\", "/", $file );
+	$tar_file = str_replace( "\\", "/", $tar_file );
+
+	$dq = '"';
+	$opt = "-cvf";
+	$loc_tar = $this->loc_tar;
+	$prg_tar = $this->prg_tar;
+
+	$cmd = "$dq$loc_tar/$prg_tar$dq $opt $tar_file $file";
+	echo "CMD = $cmd\n";
+
+	return system( $cmd );
 }
 ################################################################################
-#	untar(). Allows me to unzip a TAR file.
+#	untar(). Allows me to untar a TAR file.
+#	$file = Is the name of the TAR file. If ".tar" is left off - it is put on.
+#	$dir = The directory to save everything to. If empty then it becomes "."
 ################################################################################
-function untar()
+function untar( $file=null, $dir=null )
 {
-	$args = func_get_args();
+	if( is_null($file) ){ die( "UNTAR : Filename is NULL" ); }
+	if( is_null($dir) ){ $dir = "."; }
+
+	$file = str_replace( "\\", "/", $file );
+	$dir = str_replace( "\\", "/", $dir );
+
+	if( preg_match("/\.tar/i", $file) ){ $file .= ".tar"; }
+
+	$dq = '"';
+	$opt = "-xvof";
+	$loc_tar = $this->loc_tar;
+
+	$cmd = "$dq$loc_tar/$prg_tar$dq $opt $file";
+	echo "CMD = $cmd\n";
+
+	return system( $cmd );
 }
 ################################################################################
 #	tar_help(). Prints the TAR help information.
@@ -514,9 +677,9 @@ function __destruct()
 	$this->debug->out();
 }
 ################################################################################
-#	dump(). A short function to dump a file.
+#	dump_file(). A short function to dump a file.
 ################################################################################
-function dump( $f=null, $l=null )
+function dump_file( $f=null, $l=null )
 {
 	$this->debug->in();
 
@@ -540,9 +703,62 @@ function dump( $f=null, $l=null )
 		$this->debug->msg( chr( $s ) );
 		}
 
-	$this->debug->msg( "\n" );
+	$this->debug->msg( "\n\n" );
 	$this->debug->out();
 
+	return true;
+}
+################################################################################
+#	dump(). A simple function to dump some information.
+#	Ex:	$this->dump( "NUM", $num );
+################################################################################
+function dump( $title=null, $arg=null )
+{
+	$this->debug->in();
+	echo "--->Entering DUMP\n";
+
+	if( is_null($title) ){ return false; }
+	if( is_null($arg) ){ return false; }
+
+	$title = trim( $title );
+#
+#	Get the backtrace
+#
+	$dbg = debug_backtrace();
+#
+#	Start a loop
+#
+	foreach( $dbg as $k=>$v ){
+		$a = array_pop( $dbg );
+
+		foreach( $a as $k1=>$v1 ){
+			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
+			}
+
+		$func = $a['function'];
+		$line = $a['line'];
+		$file = $a['file'];
+		$class = $a['class'];
+		$obj = $a['object'];
+		$type = $a['type'];
+		$args = $a['args'];
+
+		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
+		foreach( $args as $k1=>$v1 ){
+			if( is_array($v1) ){
+				foreach( $v1 as $k2=>$v2 ){
+					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
+					}
+				}
+				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
+			}
+
+#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
+#			else { echo "ARG = $arg\n"; }
+		}
+
+	echo "<---Exiting DUMP\n";
+	$this->debug->out();
 	return true;
 }
 

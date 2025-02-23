@@ -1,9 +1,13 @@
 <?php
 #
+#	Defines
+#
+	if( !defined("[]") ){ define( "[]", "array[]" ); }
+#
 #	Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
 		});
 
 	date_default_timezone_set( "UTC" );
@@ -150,12 +154,11 @@ function put_json( $array )
 	$this->debug->in();
 
 	foreach( $array as $k=>$v ){
-		if( is_array($v) ){ $array[$k] = put_json($v); }
-			else {
-				$hex = bin2hex( $v );
-				$hex = (((strlen($hex) % 2) < 1) ? "" : "0") . $hex;
-				$array[$k] = "0x" . $hex;
-				}
+		if( is_array($v) ){ $array[$k] = $this->put_json($v); }
+			else { $hex = bin2hex( $v ); }
+
+		$hex = (((strlen($hex) % 2) < 1) ? "" : "0") . $hex;
+		$array[$k] = "0x" . $hex;
 		}
 
 	$this->debug->out();
@@ -174,7 +177,8 @@ function get_json( $json )
 
 	foreach( $array as $k=>$v ){
 		if( is_array($v) ){ $array[$k] = get_json($v); }
-			else { $array[$k] = hex2bin( substr($v, 2, strlen($v)) ); }
+			else { $array[$k] = gzdecode( $v ); }
+#			else { $array[$k] = hex2bin( substr($v, 2, strlen($v)) ); }
 		}
 
 	$this->debug->out();
@@ -227,6 +231,26 @@ function key_decode( $array )
 	return $array;
 }
 ################################################################################
+#	str2hex(). Convert a string into a hexadecimal value
+################################################################################
+function str2hex( $str=null )
+{
+	if( is_null($str) ){ $str = ""; }
+
+	$hex = pack( "H*", $str );
+	return $hex;
+}
+################################################################################
+#	hex2str(). Convert a hex value into a string
+################################################################################
+function hex2str( $hex=null )
+{
+	if( is_null($hex) ){ $hex = 0x00; }
+
+	$str = unpack( "H*", $hex );
+	return $str;
+}
+################################################################################
 #	errmsg(). Print a message.
 ################################################################################
 function errmsg( $func, $line, $msg )
@@ -237,25 +261,54 @@ function errmsg( $func, $line, $msg )
 }
 ################################################################################
 #	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", __LINE__, $num );
+#	Ex:	$this->dump( "NUM", $num );
 ################################################################################
-function dump( $title=null, $line=null, $arg=null )
+function dump( $title=null, $arg=null )
 {
 	$this->debug->in();
+	echo "--->Entering DUMP\n";
 
 	if( is_null($title) ){ return false; }
-	if( is_null($line) ){ return false; }
 	if( is_null($arg) ){ return false; }
 
-	if( is_array($arg) ){
-		echo "$title @ Line : $line =\n";
-		print_r( $arg );
-		echo "\n";
-		}
-		else {
-			echo "$title @ Line : $line = $arg\n";
+	$title = trim( $title );
+#
+#	Get the backtrace
+#
+	$dbg = debug_backtrace();
+#
+#	Start a loop
+#
+	foreach( $dbg as $k=>$v ){
+		$a = array_pop( $dbg );
+
+		foreach( $a as $k1=>$v1 ){
+			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
 			}
 
+		$func = $a['function'];
+		$line = $a['line'];
+		$file = $a['file'];
+		$class = $a['class'];
+		$obj = $a['object'];
+		$type = $a['type'];
+		$args = $a['args'];
+
+		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
+		foreach( $args as $k1=>$v1 ){
+			if( is_array($v1) ){
+				foreach( $v1 as $k2=>$v2 ){
+					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
+					}
+				}
+				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
+			}
+
+#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
+#			else { echo "ARG = $arg\n"; }
+		}
+
+	echo "<---Exiting DUMP\n\n";
 	$this->debug->out();
 	return true;
 }

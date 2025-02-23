@@ -1,11 +1,16 @@
 <?php
 #
+#	Defines
+#
+	if( !defined("[]") ){ define( "[]", "array[]" ); }
+#
 #	Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
 		});
 
+	ini_set( 'memory_limit', -1 );
 	date_default_timezone_set( "UTC" );
 #
 #	$lib is where my libraries are located.
@@ -25,6 +30,8 @@
 		else if( !isset($GLOBALS['classes']['debug']) ){
 			die( __FILE__ . ": Can not load CLASS_DEBUG" );
 			}
+
+	include_once( "$lib/class_arcs.php" );
 
 ################################################################################
 #BEGIN DOC
@@ -84,6 +91,13 @@ class class_files
 	public $debug = null;
 	public $temp_path = null;
 
+	private $bytes = null;
+	private $kb = null;
+	private $mb = null;
+	private $gb = null;
+
+	private $ca = null;
+
 ################################################################################
 #	__construct(). Constructor.
 ################################################################################
@@ -121,12 +135,18 @@ function init()
 		}
 
 	$this->algos = hash_algos();
+	$this->ca = $GLOBALS['classes']['arcs'];
 
 	$this->temp_path = "c:/temp/files";
 	if( !file_exists("c:/temp") ){ mkdir( "c:/temp" ); chmod( "c:/temp", 0777 ); }
 	if( !file_exists("c:/temp/files") ){
 		mkdir( "c:/temp/files" ); chmod( "c:/temp/files", 0777 );
 		}
+
+	$this->bytes = 1;
+	$this->kb = 1024;
+	$this->mb = 1048576;
+	$this->gb = 1073741824;
 
 	$this->all_exts = substr( $this->all_exts, 0, -1 );
 	$this->debug->out();
@@ -136,9 +156,10 @@ function init()
 #	get_files(). A function to get a list of files from a directory
 #		AND that directory's sub-directories.
 ################################################################################
-function get_files( $top_dir=null, $regexp=null, $opt=null )
+function get_files( $top_dir=null, $regexp=null, $opt=null, $print=false )
 {
 	$this->debug->in();
+#	$this->dump( "Top_dir", $top_dir );
 
 	if( is_null($top_dir) ){ $top_dir = "./"; }
 	if( is_null($regexp) ){ $regexp = "/.*/"; }
@@ -150,38 +171,84 @@ function get_files( $top_dir=null, $regexp=null, $opt=null )
 	$bad = array();
 	$files = array();
 	$this->debug->log( "Line " . __LINE__ . " : TOP_DIR = $top_dir\n" );
+#	$this->dump( "Top_dir", $top_dir );
 	while( count($dirs) > 0 ){
-		$this->debug->msg( $dirs );
-		$this->debug->msg( "Here : " . __LINE__ . "\n" );
+#		$this->dump( "DIRS", $dirs );
 		$dir = array_pop( $dirs );
-		$this->debug->msg( "Line " . __LINE__ . " : DIR = $dir\n" );
+#		print_r( $dir ); echo "\n";
+#		$this->dump( "DIR", $dir );
 		if( strlen(trim($dir)) < 1 ){
-			$this->debug->msg( "Line " . __LINE__ . " : Aborting - blank dir\n" );
+			$this->dump( "Aborting - blank DIR ", $dir);
 			continue;
 			}
 #
 #	See if we have permissions to read this.
 #
-		$this->debug->msg( "Line " . __LINE__ . " : Getting permissions from : $dir\n" );
-		$perms = explode( ",", $this->get_perms($dir) );
+		$a = $this->get_perms( $dir );
+		if( $a === false ){
+#			echo "A is FALSE\n";
+			continue;
+			}
 
+		$perms = explode( ",", $a );
+
+#		$this->dump( "DIR", $dir );
+#		$this->dump( "Perms #1", $a );
+#		$this->dump( "Perms #2", $perms );
+
+		if( $perms === false ){ continue; }
 		if( !is_array($perms) ){ $this->debug->die( "PERMS is not an array!" ); }
 		if( count($perms) < 1 ){ $this->debug->msg( $perms ); $this->debug->die( "PERMS is blank!"); }
 		if( !$perms[0] === 'd' ){ continue; }
 		if( (count($perms) > 0) && (($perms[1] === '-') || ($perms[2] === '-')) ){ continue; }
 		if( (count($perms) > 0) && (($perms[4] === '-') || ($perms[5] === '-')) ){ continue; }
 		if( (count($perms) > 0) && (($perms[7] === '-') || ($perms[8] === '-')) ){ continue; }
-		$this->debug->msg( "Here : " . __LINE__ . "\n" );
 
-		if( ($dh = @opendir($dir)) ){
+		$perms = $this->get_perms( $dir );
+		if( $perms === false ){ continue; }
+		$perms = explode( ',', $perms );
+		if( $perms[1] == '-' && $perms[2] == '-' ){
+#			print_r( $perms );
+			continue;
+			}
+
+#		print_r( $perms ); echo "\n"; exit;
+#
+#	Break up the directory string
+#
+		$ms = array();
+		$m = explode( "/", $dir );
+		foreach( $m as $k=>$v ){
+			if( isset($ms[$v]) ){ $ms[$v]++; }
+				else { $ms[$v] = 0; }
+			}
+#
+#	Now go through. There should only be one file with a given name in the list.
+#	If there are multiple names - it is probably a link.
+#
+		$ms_flag = false;
+		foreach( $ms as $k=>$v ){
+			if( $v > 2 ){ $ms_flag = true; }
+			}
+
+		if( $this->get_stats($dir, 'l') || !is_readable($dir) || is_link($dir) || $ms_flag ){
+			echo "Directory : $dir\nIs a LINK - Can not be opened...skipping\n";
+			continue;
+			}
+
+		if( ($dh = @opendir($dir)) !== false ){
 			if( !is_resource($dh) ){ continue; }
 			while( ($file = readdir($dh)) !== false ){
 				$curfile = "$dir/$file";
-				$this->debug->msg( "FOUND : $file\n" );
-#				$this->dump( "regexp", __LINE__, $regexp );
-#				$this->dump( "file", __LINE__, $file );
+				if( $print){ echo "Looking at : $curfile\n"; }
+#
+#				$this->debug->msg( "FOUND : $file\n" );
+#				$this->dump( "regexp", $regexp );
+#				$this->dump( "file", $file );
+#
 				if( $file != "." && $file != ".." ){
 					if( is_dir("$dir/$file") && $opt == true){ $dirs[] = "$dir/$file"; }
+						else if( is_link($file) ){ continue; }
 						else if( preg_match($regexp, $file) ){ $files[] = "$dir/$file"; }
 						else { $bad[] = "$dir/$file"; }
 					}
@@ -190,6 +257,10 @@ function get_files( $top_dir=null, $regexp=null, $opt=null )
 
 			closedir( $dh );
 			}
+			else {
+				echo "Directory : $dir\nCan not be opened...skipping\n";
+				continue;
+				}
 		}
 
 	foreach( $files as $k=>$v ){
@@ -227,7 +298,7 @@ function get_dirs( $top_dir=null, $regexp=null, $opt=null )
 	$this->debug->in();
 
 	if( is_null($top_dir) ){ $top_dir = "./"; }
-	if( is_null($regexp) ){ $regexp = "/./"; }
+	if( is_null($regexp) ){ $regexp = "/.*/"; }
 	if( is_null($opt) ){ $opt = true; }
 
 	$files = array();
@@ -245,18 +316,18 @@ function get_dirs( $top_dir=null, $regexp=null, $opt=null )
 		$files[$dir] = 0;
 		if( ($dh = opendir($dir)) ){
 			while( ($file = readdir($dh)) !== false ){
-				echo "Looking at : $file\n";
+#				echo "Looking at : $file\n";
 				$cur_dir = "$dir/$file";
 				$this->debug->msg( "FOUND : $file\n" );
 				if( $file != "." && $file != ".." ){
 					if( preg_match($regexp, $cur_dir) ){
 						if( is_dir($cur_dir) && $opt == true){
-							echo "Adding a Directory : $cur_dir\n";
+#							echo "Adding a Directory : $cur_dir\n";
 							$files[$dir]++;
 							$dirs[] = $cur_dir;
 							}
 							else {
-								echo "Adding a File : $dir\n";
+#								echo "Adding a File : $dir\n";
 								$files[$dir]++;
 								}
 						}
@@ -293,14 +364,19 @@ function get_perms( $file )
 {
 	if( !file_exists($file) ){
 		$this->debug->msg( "Line " . __LINE__ . " : No such file : $file\n" );
+		$this->dump( "ERROR", "No such file : $file" );
 		return false;
 		}
+
+#	$this->dump( "FILE", $file );
 
 	if( ($perms = fileperms($file)) === false ){
 		$this->debug->msg( "Line " . __LINE__ . " : Fileperms returned an ERROR : $perms\n" );
+		$this->dump( "Fileperms", "Returned an ERROR : $perms" );
 		return false;
 		}
 
+#	$this->dump( "PERMS", $perms );
 	switch ($perms & 0xF000){
 		case 0xC000: // socket
 			$info = 's,';
@@ -334,6 +410,8 @@ function get_perms( $file )
 	$info .= (($perms & 0x0040) ?
 		(($perms & 0x0800) ? 's,' : 'x,' ) :
 		(($perms & 0x0800) ? 'S,' : '-,'));
+
+#	$this->dump( "Info", $info );
 #
 #	Group
 #
@@ -342,6 +420,8 @@ function get_perms( $file )
 	$info .= (($perms & 0x0008) ?
 		(($perms & 0x0400) ? 's,' : 'x,' ) :
 		(($perms & 0x0400) ? 'S,' : '-,'));
+
+#	$this->dump( "Info", $info );
 #
 #	World
 #
@@ -350,13 +430,59 @@ function get_perms( $file )
 	$info .= (($perms & 0x0001) ?
 		(($perms & 0x0200) ? 't,' : 'x,' ) :
 		(($perms & 0x0200) ? 'T,' : '-,'));
+
+#	$this->dump( "Info", $info );
 #
 #	Remove the last comma
 #
 	$info = substr( $info, 0, -1 );
 
+#	$this->dump( "Info", $info );
+
 	$this->debug->out();
 	return $info;
+}
+################################################################################
+#	get_stats(). Gets the stat of whatever file you send over.
+#		Tests for one or more of the different filetypes given below.
+#
+#	NOTES : You ONLY need to send the first character since the options
+#		are all different.
+#
+#		If you want to send multiple types, use a dash or a comma or a NON-digit
+#		character as a separator. Ex: s-l-r
+################################################################################
+function get_stats( $file=null, $opt=null, $print=false )
+{
+	$opts = preg_split( "/\W/", $opt );
+
+	$filestat = stat( $file );
+	if( $print ){
+		foreach( $filestat as $k=>$v ){
+			echo "Filestat[$k] = $v\n";
+			}
+		}
+
+	$filetypes = array(
+		's' => octdec('014'),
+		'l' => octdec('012'),
+		'r' => octdec('010'),
+		'b' => octdec('006'),
+		'd' => octdec('004'),
+		'c' => octdec('002'),
+		'f' => octdec('001'),
+		);
+
+	$filestat['mode'] = substr(decoct($filestat['mode']),0,-4);
+
+	foreach( $opts as $k=>$v ){
+		if( ($v === "l") && ($filestat['nlink'] > 0) ){ $nlink_flag = true; }
+			else { $nlink_flag = false; }
+
+		if( $nlink_flag && ($filestat['mode'] === $filetypes[$v]) ){ return true; }
+		}
+
+	return false;
 }
 ################################################################################
 #	get_image(). A function to load in an image. Returns GD as a true color
@@ -409,7 +535,7 @@ function get_image( $file )
 				}
 			else if( preg_match("/png$/i", $file) ){
 				$this->debug->msg( "Loading PNG file : $file\n" );
-				$gd = imagecreatefrompng( $file );
+				$gd = @imagecreatefrompng( $file );
 				}
 			else if( preg_match("/(web|webp)$/i", $file) ){
 				$this->debug->msg( "Loading WEBP file : $file\n" );
@@ -486,6 +612,7 @@ function put_image( $gd, $file, $del=true )
 {
 	$this->debug->in();
 
+	$ret = null;
 	$file = trim( $file );
 
 	$flag = false;
@@ -520,7 +647,7 @@ function put_image( $gd, $file, $del=true )
 ################################################################################
 #	dup_image(). A function to duplicate an image.
 ################################################################################
-function dup_image( $gd=null )
+function dup_image( $gd=null, $opt=null )
 {
 	$this->debug->in();
 
@@ -529,6 +656,8 @@ function dup_image( $gd=null )
 		return false;
 		}
 
+	if( is_null($opt) ){ $opt = false; }
+
 	$w = imagesx( $gd );
 	$h = imagesy( $gd );
 
@@ -536,23 +665,23 @@ function dup_image( $gd=null )
 #
 #	Get a unique color for the transparent color
 #
-	$transparent = $this->unique_color( $gd );
-	$ta = ($color >> 24) & 0xff;
-	$tr = ($color >> 16) & 0xff;
-	$tg = ($color >> 8) & 0xff;
-	$tb = $color & 0xff;
+	$trans = $this->unique_color( $gd );
+	$ta = ($trans >> 24) & 0xff;
+	$tr = ($trans >> 16) & 0xff;
+	$tg = ($trans >> 8) & 0xff;
+	$tb = $trans & 0xff;
 
 	if( function_exists('imagecolorallocatealpha') ){
 		imagealphablending($gd2, false);
 		imagesavealpha($gd2, true);
-		$transparent = imagecolorallocatealpha( $gd2, $tr, $tg, $tb, $ta );
-		imagefilledrectangle($gd2, 0, 0, $w, $h, $transparent);
+		$trans = imagecolorallocatealpha( $gd2, $tr, $tg, $tb, $ta );
+		imagefilledrectangle($gd2, 0, 0, $w, $h, $trans);
 
 		imagecopyresampled( $gd2, $gd, 0, 0, 0, 0, $w, $h, $w, $h );
 
 #		if( $this->debug_flag ){ imagepng( $gd, "./" . __FUNCTION__ . "-image-$c.png" ); $c++; }
 
-		imagedestroy( $gd );
+		if( $opt ){ imagedestroy( $gd ); }
 
 #		if( $this->debug_flag ){ imagepng( $gd2, "./" . __FUNCTION__ . "-image-$c.png" ); $c++; }
 		}
@@ -562,11 +691,50 @@ function dup_image( $gd=null )
 	return $gd2;
 }
 ################################################################################
+#	get_colors(). Make a list of all colors in an image.
+################################################################################
+function get_colors( $gd=null, $opt=null )
+{
+	if( is_null($gd) ){ die( "GD is NULL" ); }
+
+	$w = imagesx( $gd );
+	$h = imagesy( $gd );
+
+	$colors = [];
+	for( $x=0; $x<$w; $x++ ){
+		for( $y=0; $y<$h; $y++ ){
+			$point = imagecolorat( $gd, $x, $y );
+			if( isset($colors[$point]) ){ $colors[$point]++; }
+				else { $colors[$point] = 1; }
+			}
+		}
+#
+#	Now sort the array
+#
+	$a = [];
+	foreach( $colors as $k=>$v ){
+		$a[] = sprintf( "%015d-%015d", $v, $k );
+		}
+
+#print_r( $a );
+	rsort( $a );
+#print_r( $a );
+
+	$colors = [];
+	foreach( $a as $k=>$v ){
+		$b = explode( '-', $v );
+		if( $opt ){ $colors[$b[1]] = $b[0]; }
+			else { $colors[$b[1]+0] = $b[0] + 0; }
+		}
+
+	return $colors;
+}
+################################################################################
 #	blank_image(). Send over an image and you get a blank image of the same size
 #		back. If you provide an RGB color - it is set to that color.
 #		Remember that zero(0) is the same as black in RGBA.
 ################################################################################
-function blank_image( $gd=null, $rgb=null )
+function blank_image( $gd=null, $rgb=null, $opt=null )
 {
 	$this->debug->in();
 
@@ -576,6 +744,7 @@ function blank_image( $gd=null, $rgb=null )
 		}
 
 	if( is_null($rgb) ){ $rgb = 0x7fffffff; }
+	if( is_null($opt) ){ $opt = false; }
 
 	$w = imagesx( $gd );
 	$h = imagesy( $gd );
@@ -587,15 +756,19 @@ function blank_image( $gd=null, $rgb=null )
 
 	if( !is_null($rgb) ){
 		$a = ($rgb >> 24) & 0xff;
+#print_r( $a ); echo "\n\n";
 		$r = ($rgb >> 16) & 0xff;
+#print_r( $r ); echo "\n\n";
 		$g = ($rgb >> 8) & 0xff;
+#print_r( $g ); echo "\n\n";
 		$b = $rgb & 0xff;
+#print_r( $b ); echo "\n\n";
 
 		$c = imagecolorallocatealpha( $gd2, $r, $g, $b, $a );
 		imagefilledrectangle($gd2, 0, 0, $w, $h, $c);
 		}
 
-	imagedestroy( $gd );
+	if( $opt ){ imagedestroy( $gd ); }
 
 	$this->debug->out();
 
@@ -645,8 +818,8 @@ function ConvertBMP2GD($src, $dest = false)
 	if (!($src_f = fopen($src, "rb"))) { return false; }
 	if (!($dest_f = fopen($dest, "wb"))) { return false; }
 	$header = unpack("vtype/Vsize/v2reserved/Voffset", fread($src_f, 14));
-	$info = unpack("Vsize/Vwidth/Vheight/vplanes/vbits/Vcompression/Vimagesize/Vxres/Vyres/Vncolor/Vimportant",
-		fread($src_f, 40));
+	$s = "Vsize/Vwidth/Vheight/vplanes/vbits/Vcompression/Vimagesize/Vxres/Vyres/Vncolor/Vimportant";
+	$info = unpack($s, fread($src_f, 40));
 
 	extract($info);
 	extract($header);
@@ -770,8 +943,8 @@ function old_imagebmp ($im, $fn = false)
 #
 #	Image dimensions
 #
-	$biWidth = imagesx ($im);
-	$biHeight = imagesy ($im);
+	$biWidth = imagesx( $im );
+	$biHeight = imagesy( $im );
 	$biBPLine = $biWidth * 3;
 	$biStride = ($biBPLine + 3) & ~3;
 	$biSizeImage = $biStride * $biHeight;
@@ -1676,12 +1849,13 @@ function grey_out( $g=null )
 function fget_csv( $file=null, $sep=',' )
 {
 	$this->debug->in();
+	$fileSize = filesize( $file );
 
 	if( is_null($file) ){ $this->debug->msg( "FILE is NULL", true ); }
 
 	$array = array();
 	if( ($fp = fopen( $file, "r" )) !== FALSE ){
-		while( ($data = fgetcsv($fp, 1024, $sep)) !== FALSE ){ $array[] = $data; }
+		while( ($data = fgetcsv($fp, $fileSize, $sep)) !== FALSE ){ $array[] = $data; }
 		}
 		else { $this->debug->msg( "Could not read $file", true ); }
 
@@ -1778,7 +1952,7 @@ function get_hash( $file=null, $level=null, $ram=null )
 	return $info;
 }
 ################################################################################
-#	find_dups(). Find all duplicat files in the directory given (and
+#	find_dups(). Find all duplicate files in the directory given (and
 #		subdirectories)
 ################################################################################
 function find_dups( $dir=null, $opts=null )
@@ -2076,26 +2250,248 @@ function len_sort( $a, $b )
 	return ($b_len < $a_len) ? -1 : 1;
 }
 ################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", __LINE__, $num );
+#	splitFile(). Takes a file and splits it into multiple files BUT it will
+#		also recognize where it stopped when trying to do this so it can pick
+#		up from that point instead of having to start completely over again.
+#
+#	Notes: The way we do this is to name the new addition to originally name
+#		the file <FILE>-###.zip. The "###" is calculated by dividing the file
+#		size by the size given on the call line.
+#
+#		$size is given by sending a string. Like "200gb" or "50MB".
 ################################################################################
-function dump( $title=null, $line=null, $arg=null )
+function splitFile( $inpFile=null, $outDir=null, $size=null )
 {
-	$this->debug->in();
+	$ca = $this->ca;
+	$class = __CLASS__;
+	$func = __FUNCTION__;
 
-	if( is_null($title) ){ return false; }
-	if( is_null($line) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	if( is_array($arg) ){
-		echo "$title @ Line : $line =\n";
-		print_r( $arg );
-		echo "\n";
+	if( is_null($inpFile) ){
+		die( "$class->$func : Input filename is NULL\n" );
 		}
+
+	$inpFile = realpath( $inpFile );
+	$inpFile = str_replace( "\\", "/", $inpFile );
+
+	if( is_null($outDir) ){
+		$outDir = realpath( $inpFile );
+		$outDir = str_replace( "\\", "/", $outDir );
+		echo "$class->$func : Setting outDir to $outDir\n";
+		}
+
+	if( !file_exists($inpFile) ){
+		die( "$class->$func : Input Filename is NULL\n" );
+		}
+
+	if( ($fileSize = filesize($inpFile)) === false ){
+		die( "$class->$func : Could not get the file size of $inpFile\n" );
+		}
+
+echo "fileSize = $fileSize\n";
+
+	if( ($inpFP = fopen($inpFile, "rb")) === false ){
+		die( "$class->$func : Could not open $inpFile - aborting.\n" );
+		}
+#
+#	Because I have 64GB on my system, I am going to make the program
+#	read up to a gigabyte per read.
+#
+	if( preg_match("/kb/i", $size) ){
+		$actual_file_size = intval($size) * $this->kb;
+		$size_to_read = $actual_file_size;
+		}
+		else if( preg_match("/mb/i", $size) ){
+			$actual_file_size = intval($size) * $this->mb;
+			$size_to_read = $this->mb;
+			}
+		else if( preg_match("/gb/i", $size) ){
+			$actual_file_size = intval($size) * $this->gb;
+			$size_to_read = $this->gb;
+			}
 		else {
-			echo "$title @ Line : $line = $arg\n";
+			$actual_file_size = intval($size) * $this->bytes;
+			$size_to_read = $actual_file_size;
+			}
+#
+#	Check to see if there are files that were already created.  Now - we need to
+#	read the last filename so we can find out what the number was so we know how far to
+#	move through the file and start reading from there. AND YES, this DOES mean that
+#	you could have different sized .GZ files. But you really should not. If you decided
+#	to change the size of each file - then get rid of all of the files and start over.
+#
+#	Backup-w5-2024-11-13-1346-TBI-100gb-000.bin.gz
+#
+#	Get the list of files
+#
+	list( $g, $b ) = $this->get_files( $outDir, "/\.gz$/i" );
+	print_r( $g );
+
+	$file_number = -99999;
+	foreach( $g as $k=>$v ){
+		$a = explode( '.', $v );
+		foreach( $a as $k1=>$v1 ){
+			if( preg_match("/-\d+$/", $v1) ){
+				$b = explode( "-", $v1 );
+				$c = count( $b ) -1;
+				$string = $b[$c] + 0;
+				$dir_file_size = $b[$c-1];
+				if( $string > $file_number ){ $file_number = $string; }
+				}
+			}
+		}
+
+	$file_number++;
+	echo "file_number = $file_number\n";
+#
+#	Are there any files?
+#
+	if( $file_number > 0 ){
+#	
+#		Now convert that to where we should move to.
+#	
+#		Ok, so let's say this is the file name:
+#	
+#		Backup-w5-2024-11-13-1346-TBI-100gb-000.bin.gz
+#	
+#		This means each file is 100gb in size (before compression)
+#		and the 000 means it is the first one of these GZ files.
+#	
+#		So $dir_file_size = 100gb and $file_number is 000.
+#	
+#		Knowing this you can now do the calculations.
+#	
+		if( preg_match("/kb/i", $dir_file_size) ){
+			$e = (intval($dir_file_size) * $this->kb) * $file_number;
+			}
+			else if( preg_match("/mb/i", $dir_file_size) ){
+				$e = (intval($dir_file_size) * $this->mb) * $file_number;
+				}
+			else if( preg_match("/gb/i", $dir_file_size) ){
+				$e = (intval($dir_file_size) * $this->gb) * $file_number;
+				}
+			else { $e = (intval($dir_file_size) * $this->bytes) * $file_number; }
+
+		echo "E = $e\n";
+		fseek( $inpFP, $e );
+		}
+		else { $dir_file_size = 0; $e = 0; }
+
+echo "File_number = $file_number\n";
+echo "Size = $size\n";
+echo "Size_to_read = $size_to_read\n";
+echo "Actual_file_size = $actual_file_size\n";
+echo "E = $e\n";
+
+	$inpInfo = pathinfo( $inpFile );
+	$outInfo = pathinfo( $outDir );
+
+	$filename = $inpInfo['filename'];
+	$ext = $inpInfo['extension'];
+
+echo "Filename = $filename\n";
+#
+#	Start the loop. BUT FIRST determine how far we move each time.
+#	REMEMBER! We ONLY use INTEGERS - Not floating point values.
+#	REMEMBER ALSO! To add ONE(1) on to the number found.
+#
+	$steps_1 = intval($fileSize / $actual_file_size);
+	if( ($fileSize % $actual_file_size) > 0 ){ $steps_1++; }
+
+	$steps_2 = intval($actual_file_size / $size_to_read);
+	if( ($actual_file_size % $size_to_read) > 0 ){ $steps_2++; }
+
+	$steps_3 = $steps_2 / 100;
+	if( $steps_3 < 1 ){ $steps_3 = 1; }
+#
+#	Figure out the length of the size of the file. Don't forget to
+#	add one on to the length.
+#
+	$str = strval( $steps_1 );
+	$len = strlen( $str ) + 1;
+
+echo "steps_1 = $steps_1\n";
+echo "steps_2 = $steps_2\n";
+
+	$cnt = 0;
+	for( $i=$file_number; $i<$steps_1; $i++ ){
+		$cmd = "%s-%s-%s-%0" . $len . "d.bin";
+echo "CMD = $cmd\n";
+		$file = "$outDir/" . sprintf( "$cmd", $filename, $ext, $size, $i );
+echo "File = $file\n";
+
+		if( ($outFP = fopen($file, "wb")) === false ){
+			die( "$class->$func : Could not open the OUTPUT file $file\n" );
 			}
 
+		echo "Creating $file...please wait\n";
+		for( $j=0; $j<$steps_2; $j++ ){
+			$info = fread( $inpFP, $size_to_read );
+			fwrite( $outFP, $info, $size_to_read );
+			if( $cnt++ >= $steps_3 ){ $cnt = 0; echo "."; }
+			}
+
+		echo "\n";
+		fclose( $outFP );
+
+		echo "Creating ARCHIVE file...please wait\n";
+		$ca->gzip( $file );
+		echo "Deleting $file...please wait\n";
+#		unlink( $file );
+		}
+
+	fclose( $inpFP );
+echo "Finished!\n";
+}
+################################################################################
+#	dump(). A simple function to dump some information.
+#	Ex:	$this->dump( "NUM", $num );
+################################################################################
+function dump( $title=null, $arg=null )
+{
+	$this->debug->in();
+	echo "--->Entering DUMP\n";
+
+	if( is_null($title) ){ return false; }
+	if( is_null($arg) ){ return false; }
+
+	$title = trim( $title );
+#
+#	Get the backtrace
+#
+	$dbg = debug_backtrace();
+#
+#	Start a loop
+#
+	foreach( $dbg as $k=>$v ){
+		$a = array_pop( $dbg );
+
+		foreach( $a as $k1=>$v1 ){
+			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
+			}
+
+		$func = $a['function'];
+		$line = $a['line'];
+		$file = $a['file'];
+		$class = $a['class'];
+		$obj = $a['object'];
+		$type = $a['type'];
+		$args = $a['args'];
+
+		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
+		foreach( $args as $k1=>$v1 ){
+			if( is_array($v1) ){
+				foreach( $v1 as $k2=>$v2 ){
+					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
+					}
+				}
+				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
+			}
+
+#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
+#			else { echo "ARG = $arg\n"; }
+		}
+
+	echo "<---Exiting DUMP\n\n";
 	$this->debug->out();
 	return true;
 }
@@ -2131,7 +2527,6 @@ function dumpfile( $f=null, $l=null )
 		}
 
 	$this->debug->msg( "\n" );
-
 	$this->debug->out();
 
 	return true;
@@ -2143,5 +2538,10 @@ function dumpfile( $f=null, $l=null )
 	if( !isset($GLOBALS['classes']['files']) ){
 		$GLOBALS['classes']['files'] = new class_files();
 		}
+
+if( false ){
+$c = new class_files();
+$c->splitFile( "J:/Images/Backup-w5-2024-11-13-1346.TBI", "R:/2024-12-07", "100gb" );
+}
 
 ?>

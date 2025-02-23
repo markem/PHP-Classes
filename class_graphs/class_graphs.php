@@ -1,9 +1,13 @@
 <?php
 #
+#	Defines
+#
+	if( !defined("[]") ){ define( "[]", "array[]" ); }
+#
 #	Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
 		});
 
 	date_default_timezone_set( "UTC" );
@@ -80,7 +84,7 @@
 #
 #		CLASS_GRAPHS.PHP. A class to handle working with graphs.
 #		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
-#		except for those given by the BSD License.
+#		except for those given by the BSD-3-Patent License.
 #
 #	Please place _YOUR_ legal notices _HERE_. Thank you.
 #
@@ -96,8 +100,14 @@ class class_graphs
 	private $data = null;		#	All of the data for the graph
 	private	$titles = null;		#	All of the graph's titles
 	private $labels = null;		#	Subtitles labels for the graph
-	private $min = null;
-	private $max = null;
+	private $min_x = null;
+	private $max_x = null;
+	private $min_y = null;
+	private $max_y = null;
+	private $scale_x = null;	#	How to apply a scale. I.E.: (Max-Min+20)/scale
+	private $scale_y = null;	#	How to apply a scale. I.E.: (Max-Min+20)/scale
+	private $div_x = null;		#	How to divide up each section - X
+	private $div_y = null;		#	How to divide up each section - Y
 	private $colors = null;		#	All of the colors for the graph.
 
 ################################################################################
@@ -116,17 +126,24 @@ public function __construct()
 #
 #	What you can send:
 #
-#		DEBUG	-	Turn on Debugging messages.
+#	min-x, max-x, min-y, max-y, scale-x, scale-y, div-x, div-y
 #
 ################################################################################
-public function init()
+public function init( $min_x=null, $max_x=null, $min_y=null, $max_y=null,
+	$scale_x=null, $scale_y=null, $div_x=null, $div_y=null )
 {
 	$this->debug->in();
-
-	$args = func_get_args();
-	while( is_array($args) && (count($args) < 2) ){
-		$args = array_pop( $args );
-		}
+#
+#	Default items
+#
+	if( is_null($min_x) ){ $min_x = -100; }
+	if( is_null($max_x) ){ $max_x = 100; }
+	if( is_null($min_y) ){ $min_y = -100; }
+	if( is_null($max_y) ){ $max_y = 100; }
+	if( is_null($scale_x) ){ $scale_x = 1; }
+	if( is_null($scale_y) ){ $scale_y = 1; }
+	if( is_null($div_x) ){ $div_x = 1; }
+	if( is_null($div_y) ){ $div_y = 1; }
 
 	$this->gd = null;
 	$this->gd_cnt = -1;
@@ -137,6 +154,14 @@ public function init()
 	$this->labels = [];
 	$this->name = [];
 	$this->colors = [];
+	$this->min_x = $min_x;
+	$this->max_x = $max_x;
+	$this->min_y = $min_y;
+	$this->max_y = $max_y;
+	$this->scale_x = $scale_x;
+	$this->scale_y = $scale_y;
+	$this->div_x = $div_x;
+	$this->div_y = $div_y;
 
 	$this->debug->out();
 }
@@ -560,25 +585,54 @@ private function get_minmax( $name=null )
 }
 ################################################################################
 #	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", __LINE__, $num );
+#	Ex:	$this->dump( "NUM", $num );
 ################################################################################
-function dump( $title=null, $line=null, $arg=null )
+function dump( $title=null, $arg=null )
 {
 	$this->debug->in();
+	echo "--->Entering DUMP\n";
 
 	if( is_null($title) ){ return false; }
-	if( is_null($line) ){ return false; }
 	if( is_null($arg) ){ return false; }
 
-	if( is_array($arg) ){
-		echo "$title @ Line : $line =\n";
-		print_r( $arg );
-		echo "\n";
-		}
-		else {
-			echo "$title @ Line : $line = $arg\n";
+	$title = trim( $title );
+#
+#	Get the backtrace
+#
+	$dbg = debug_backtrace();
+#
+#	Start a loop
+#
+	foreach( $dbg as $k=>$v ){
+		$a = array_pop( $dbg );
+
+		foreach( $a as $k1=>$v1 ){
+			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
 			}
 
+		$func = $a['function'];
+		$line = $a['line'];
+		$file = $a['file'];
+		$class = $a['class'];
+		$obj = $a['object'];
+		$type = $a['type'];
+		$args = $a['args'];
+
+		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
+		foreach( $args as $k1=>$v1 ){
+			if( is_array($v1) ){
+				foreach( $v1 as $k2=>$v2 ){
+					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
+					}
+				}
+				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
+			}
+
+#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
+#			else { echo "ARG = $arg\n"; }
+		}
+
+	echo "<---Exiting DUMP\n\n";
 	$this->debug->out();
 	return true;
 }

@@ -1,9 +1,13 @@
 <?php
 #
+#	Defines
+#
+	if( !defined("[]") ){ define( "[]", "array[]" ); }
+#
 #	Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
 		});
 
 	date_default_timezone_set( "UTC" );
@@ -210,6 +214,35 @@ function init()
 	$this->debug->out();
 }
 ################################################################################
+#	make_gd(). Make a blank GD image.
+################################################################################
+function make_gd( $w=1024, $h=1024 )
+{
+	$gd = imagecreatetruecolor( $w, $h );
+	imagealphablending($gd, false);
+	imagesavealpha($gd, true);
+
+	return $gd;
+}
+################################################################################
+#	make_trans(). Make a color into a transparent color.
+#	NOTE : $TRANS is HOW transparent you want the color. Use 0%-100%
+################################################################################
+function make_trans( $color, $trans=100 )
+{
+	$a = floor( 127.0 * ($trans / 100.0) );
+	$r = ($color >> 16) & 0xff;
+	$g = ($color >> 8) & 0xff;
+	$b = $color & 0xff;
+
+	$color = ($a & 0xff) << 24;
+	$color |= ($r & 0xff) << 16;
+	$color |= ($g & 0xff) << 8;
+	$color |= ($b & 0xff);
+
+	return $color;
+}
+################################################################################
 #	set(). Set the GD for doing the rest of this stuff.
 ################################################################################
 function set( $gd=null )
@@ -229,7 +262,7 @@ function get(){ return $this->gd; }
 function destroy( $gd=null )
 {
 	if( !is_null($gd) ){ imagedestroy( $gd ); }
-		else if( !is_null($this->gd) ){ imagedestroy( $this->gd ); }
+		else if( is_null($this->gd) ){ imagedestroy( $this->gd ); }
 
 	return true;
 }
@@ -590,7 +623,7 @@ function find_image( $x=null, $y=null, $cnt=0 )
 	global $low_h, $low_s, $low_l;
 	global $high_h, $high_s, $high_l;
 
-#	$this->dump( "Entering---->", __LINE__, "X = $x, Y = $y, CNT = $cnt" );
+#	$this->dump( "Entering---->", "X = $x, Y = $y, CNT = $cnt" );
 #	echo "Memory Usage = " . $this->show_memory() . "\n";
 
 	$cr = $this->cr;
@@ -681,7 +714,7 @@ function find_image( $x=null, $y=null, $cnt=0 )
 		}
 
 #	echo "xLow = $xLow, xHigh = $xHigh, yLow = $yLow, yHigh = $yHigh\n";
-#	$this->dump( "Exiting<----", __LINE__, "X = $x, Y = $y, CNT = $cnt" );
+#	$this->dump( "Exiting<----", "X = $x, Y = $y, CNT = $cnt" );
 
 	$this->debug->out();
 }
@@ -935,7 +968,8 @@ function contrast( $gd=null, $percent=null )
 #
 #	NOTES	:	What this routine will do is to take the list of colors presented
 #				and darken them down by the given percentage. A negative amount means
-#				that you actually want to brighten up a color or colors.
+#				that you actually want to darken a color or colors. A positive
+#				number means you want to lighten that color.
 #				(i.e.: Darken is the reverse of brighten/brightness and works in
 #				a different way. This one will ONLY lighten/darken the colors you
 #				send over. Remember! It is NOT color[1]="rrggbb"; color[2]="rrggbb";
@@ -955,7 +989,7 @@ function darken( $old_gd=null, $percent=null, $old_colors=null, $del=true )
 		$this->died( "NO COLOR GIVEN" );
 		}
 #
-#	If there is only one color.
+#	If there is only one color make it into an array.
 #
 	$cr = $this->cr;
 	if( (count($old_colors) < 2) && !is_array($old_colors) ){
@@ -965,7 +999,7 @@ function darken( $old_gd=null, $percent=null, $old_colors=null, $del=true )
 		$old_colors[$a] = 1;
 		}
 
-	if( abs($percent) > 100.0 ){ $percent = ($percent / abs($percent)) * 100.0; }
+	if( abs($percent) > 100.0 ){ $percent = 100.0 * gmp_sign($percent); }
 
 	$w = imagesx( $old_gd );
 	$h = imagesy( $old_gd );
@@ -991,9 +1025,9 @@ function darken( $old_gd=null, $percent=null, $old_colors=null, $del=true )
 #				echo "Color BEFORE = $p_color\n";
 #
 				list( $a, $r, $g, $b ) = $cr->get_ARGB( $color );
-				$r = $r - ($r * $percent);
-				$g = $g - ($g * $percent);
-				$b = $b - ($b * $percent);
+				$r = $r + ($r * $percent);
+				$g = $g + ($g * $percent);
+				$b = $b + ($b * $percent);
 #
 #				$p_color = sprintf( "%08x", $color );
 #				echo "Color AFTER = $p_color\n";
@@ -1173,59 +1207,90 @@ function color_tol( $color1=null, $color2=null, $tolerance=35 )
 #			:	R = red, G = green, B = blue
 #			:	HUE can ONLY BE 0 thru 360
 ################################################################################
-function rgb2hsl( $r=null, $g=null, $b=null )
+#function rgb2hsl( $r=null, $g=null, $b=null )
+#{
+#	$this->debug->in();
+#
+#	if( is_null($r) ){ $this->died( "R is NULL" ); }
+#	if( is_null($g) ){ $this->died( "G is NULL" ); }
+#	if( is_null($b) ){ $this->died( "B is NULL" ); }
+#
+#	$oldR = $r;
+#	$oldG = $g;
+#	$oldB = $b;
+#
+#	$r /= 255.0;
+#	$g /= 255.0;
+#	$b /= 255.0;
+#
+#	$max = max( $r, $g, $b );
+#	$min = min( $r, $g, $b );
+#
+#	$h = 0.0;
+#	$s = 0.0;
+#	$l = ( $max + $min ) / 2.0;
+#	$d = $max - $min;
+#
+#   	if( $d == 0.0 ){
+#	   	$h = $s = 0.0; // achromatic
+#		}
+#		else {
+#			$s = $d / ( 1.0 - abs( 2.0 * $l - 1.0 ) );
+#
+#			switch( $max ){
+#				case $r:
+#					$h = 60.0 * fmod( ( ($g - $b) / $d ), 6.0 );
+#					if( $b > $g ){ $h += 360; }
+#					break;
+#
+#				case $g:
+#					$h = 60.0 * ( ($b - $r) / $d + 2.0 );
+#					break;
+#
+#				case $b:
+#					$h = 60.0 * ( ($r - $g) / $d + 4.0 );
+#					break;
+#				}
+#			}
+##
+##	Make sure Hue is between 0 and 360
+##
+#	$h = $h % 360;
+#
+#	$this->debug->out();
+#
+#	return array( $h, $s, $l );
+#}
+################################################################################
+function rgb2hsl( $r, $g, $b )
 {
-	$this->debug->in();
-
-	if( is_null($r) ){ $this->died( "R is NULL" ); }
-	if( is_null($g) ){ $this->died( "G is NULL" ); }
-	if( is_null($b) ){ $this->died( "B is NULL" ); }
-
-	$oldR = $r;
-	$oldG = $g;
-	$oldB = $b;
-
-	$r /= 255;
-	$g /= 255;
-	$b /= 255;
-
+	$r /= 255.0;
+	$g /= 255.0;
+	$b /= 255.0;
 	$max = max( $r, $g, $b );
 	$min = min( $r, $g, $b );
-
 	$h;
 	$s;
-	$l = ( $max + $min ) / 2;
+	$l = ( $max + $min ) / 2.0;
 	$d = $max - $min;
-
-   	if( $d == 0 ){
-	   	$h = $s = 0; // achromatic
-		}
-		else {
-			$s = $d / ( 1 - abs( 2 * $l - 1 ) );
-
+	if( $d == 0.0 ){ $h = $s = 0.0; }
+		else{
+			$s = $d / ( 1.0 - abs(2.0 * $l - 1.0) );
 			switch( $max ){
 				case $r:
-					$h = 60 * fmod( ( ($g - $b) / $d ), 6 );
-					if( $b > $g ){ $h += 360; }
+					$h = 60.0 * fmod( (($g - $b) / $d), 6.0 );
+					if( $b > $g ){ $h += 360.0; }
 					break;
-
 				case $g:
-					$h = 60 * ( ($b - $r) / $d + 2 );
+					$h = 60.0 * ( ($b - $r) / $d + 2.0 );
 					break;
-
 				case $b:
-					$h = 60 * ( ($r - $g) / $d + 4 );
+					$h = 60.0 * ( ($r - $g) / $d + 4.0 );
 					break;
 				}
-			}
-#
-#	Make sure Hue is between 0 and 360
-#
-	$h = $h % 360;
+		  }
 
-	$this->debug->out();
-
-	return array( $h, $s, $l );
+	return[round( $h, 0.0 ), round( $s * 100.0, 0 ), round( $l * 100.0, 0 )];
 }
 ################################################################################
 #	color2hsl(). Send a color to the function and return the HSL values.
@@ -1245,56 +1310,95 @@ function color2hsl( $color=null )
 #			:	H = Hue, S = saturation, and L = Luminosity
 #			:	R = red, G = green, B = blue
 ################################################################################
-function hsl2rgb( $h=null, $s=null, $l=null )
+#function hsl2rgb( $h=null, $s=null, $l=null )
+#{
+#	$this->debug->in();
+#
+#	if( is_null($h) ){ $this->died( "H is NULL" ); }
+#	if( is_null($s) ){ $this->died( "S is NULL" ); }
+#	if( is_null($l) ){ $this->died( "L is NULL" ); }
+#
+#	$c = ( 1.0 - abs(2 * $l - 1.0) ) * $s;
+#	$x = $c * ( 1.0 - abs(fmod(($h / 60.0), 2.0) - 1.0) );
+#	$m = $l - ( $c / 2.0 );
+#
+#	if( $h < 60.0 ){
+#		$r = $c;
+#		$g = $x;
+#		$b = 0;
+#		}
+#		else if( $h < 120.0 ){
+#			$r = $x;
+#			$g = $c;
+#			$b = 0;
+#			}
+#		else if( $h < 180.0 ){
+#			$r = 0;
+#			$g = $c;
+#			$b = $x;
+#			}
+#		else if( $h < 240.0 ){
+#			$r = 0;
+#			$g = $x;
+#			$b = $c;
+#			}
+#		else if( $h < 300.0 ){
+#			$r = $x;
+#			$g = 0;
+#			$b = $c;
+#			}
+#		else {
+#			$r = $c;
+#			$g = 0;
+#			$b = $x;
+#			}
+#
+#	$r = ( $r + $m ) * 255.0;
+#	$g = ( $g + $m ) * 255.0;
+#	$b = ( $b + $m ) * 255.0;
+#
+#	$this->debug->out();
+#
+#	return array( round($r), round($g), round($b) );
+#}
+################################################################################
+function hsl2rgb( $h, $s, $l )
 {
-	$this->debug->in();
-
-	if( is_null($h) ){ $this->died( "H is NULL" ); }
-	if( is_null($s) ){ $this->died( "S is NULL" ); }
-	if( is_null($l) ){ $this->died( "L is NULL" ); }
-
-	$c = ( 1.0 - abs(2 * $l - 1.0) ) * $s;
-	$x = $c * ( 1.0 - abs(fmod(($h / 60.0), 2.0) - 1.0) );
-	$m = $l - ( $c / 2.0 );
-
-	if( $h < 60.0 ){
+	$c = ( 1 - abs(2 * ( $l / 100) - 1) ) * $s / 100;
+	$x = $c * ( 1 - abs(fmod(($h / 60), 2) - 1) );
+	$m = ( $l / 100 ) - ( $c / 2 );
+	if( $h < 60 ){
 		$r = $c;
 		$g = $x;
 		$b = 0;
 		}
-		else if( $h < 120.0 ){
+		elseif( $h < 120 ){
 			$r = $x;
 			$g = $c;
 			$b = 0;
-			}
-		else if( $h < 180.0 ){
+		}
+		elseif( $h < 180 ){
 			$r = 0;
 			$g = $c;
 			$b = $x;
-			}
-		else if( $h < 240.0 ){
+		}
+		elseif( $h < 240 ){
 			$r = 0;
 			$g = $x;
 			$b = $c;
-			}
-		else if( $h < 300.0 ){
+		}
+		elseif( $h < 300 ){
 			$r = $x;
 			$g = 0;
 			$b = $c;
-			}
-		else {
+		}
+		else{
 			$r = $c;
 			$g = 0;
 			$b = $x;
 			}
 
-	$r = ( $r + $m ) * 255.0;
-	$g = ( $g + $m ) * 255.0;
-	$b = ( $b + $m ) * 255.0;
-
-	$this->debug->out();
-
-	return array( round($r), round($g), round($b) );
+	return[floor( ($r + $m) * 255 ), floor( ($g + $m) * 255 ), floor( ($b + $m) * 255 )];
 }
 ################################################################################
 #	hsb2rgb(). Convert between an HSB value and RGB colors. Returns R, G, and B.
@@ -1677,8 +1781,8 @@ function line( $gd=null, $color=null, $sx=null, $sy=null, $ex=null, $ey=null )
 	$this->old_color = $color;
 	$gd = imageline( $gd, $sx, $sy, $ex, $ey, $color );
 
-	$this->old_x = $x;
-	$this->old_y = $y;
+	$this->old_x = $ex;
+	$this->old_y = $ey;
 
 	$this->debug->out();
 
@@ -2101,6 +2205,278 @@ function set_color( $color=null )
 #--------------------------------------------------------------------------------
 function get_used_color(){ return $this->old_color; }
 ################################################################################
+#	cc(). Change the number of colors using a color club.
+#	NOTES:	GD = gd resource
+#			R = Factor to divide RED (256) by. (So 256 / 256 = 1)
+#			G = Factor to divide GREEN (256) by.
+#			B = Factor to divide BLUE (256) by.
+################################################################################
+function cc( $old_gd=null, $old_r=null, $old_g=null, $old_b=null, $opt=null )
+{
+	$this->debug->in();
+
+	if( is_null($old_gd) ){ die( "***** ERROR : GD is NULL" ); }
+	if( is_null($old_r) ){ die( "***** ERROR : R is NULL" ); }
+	if( is_null($old_g) ){ die( "***** ERROR : G is NULL" ); }
+	if( is_null($old_b) ){ die( "***** ERROR : B is NULL" ); }
+	if( is_null($opt) ){ $opt = false; }
+
+	$w = imagesx( $old_gd );
+	$h = imagesy( $old_gd );
+
+echo "In CC @ " . __LINE__ . " : R = $old_r, G = $old_g, B = $old_b\n";
+#
+#	Make a new image
+#
+	$new_gd = imagecreatetruecolor( $w, $h );
+	imagealphablending( $new_gd, false );
+	imagesavealpha( $new_gd, true );
+#
+#	Now transfer the old gd over to the new gd but make sure the new gd only
+#	has the new colors.
+#
+	for( $x=0; $x<$w; $x++ ){
+		for( $y=0; $y<$h; $y++ ){
+			$pixel = imagecolorat( $old_gd, $x, $y );
+#
+#	Split it up
+#
+			$a = ($pixel >> 24) & 0xff;
+			$r = ($pixel >> 16) & 0xff;
+			$g = ($pixel >> 8) & 0xff;
+			$b = ($pixel & 0xff);
+#
+#	Calculate new colors
+#
+echo "In CC @ " . __LINE__ . " : R = $r, G = $g, B = $b\n";
+			$r = floor( $r / $old_r ) * $old_r;
+			$g = floor( $g / $old_g ) * $old_g;
+			$b = floor( $b / $old_b ) * $old_b;
+echo "In CC @ " . __LINE__ . " : R = $r, G = $g, B = $b\n";
+#
+#	Make a new color
+#
+			$a = (($a & 0xff) << 24);
+			$r = (($r & 0xff) << 16);
+			$g = (($g & 0xff) << 8);
+			$b = ($b & 0xff);
+#
+#	Put it back together again. Using the OR bar (|).
+#
+			$rgb = $a | $r | $g | $b;
+echo "In CC @ " . __LINE__ . " : RGB = $rgb\n";
+#
+#	Now put it back
+#
+			imagesetpixel( $new_gd, $x, $y, $rgb );
+			}
+		}
+#
+#	Get rid of the old GD?
+#
+	if( $opt ){ imagedestroy( $old_gd ); }
+
+	$this->debug->out();
+	return $new_gd;
+}
+################################################################################
+#	remove_color(). Take all of a color out of an image and put
+#		it into a different image that can then be saved.
+################################################################################
+function remove_color( $gd=null, $cwd=null, $color=null, $trans=null )
+{
+	$this->debug->in();
+
+	if( is_null($gd) ){ die( "***** ERROR : GD is NULL" ); }
+	if( is_null($cwd) ){ die( "***** ERROR : CWD is NULL" ); }
+	if( is_null($color) ){ die( "***** ERROR : COLOR is NULL" ); }
+	if( is_null($trans) ){ die( "***** ERROR : TRANS is NULL" ); }
+
+	$cf = $this->cf;
+	$w = imagesx( $gd );
+	$h = imagesy( $gd );
+	$images = "$cwd/images";
+
+#echo "Color = $color\n";
+
+	$new_gd = $this->make_gd( $w, $h );
+#	$trans = imagecolorallocatealpha( $new_gd, 255, 255, 255, 127 );
+	imagefilledrectangle($new_gd, 0, 0, $w, $h, $trans );
+
+	for( $x=0; $x<$w; $x++ ){
+		for( $y=0; $y<$h; $y++ ){
+			$pixel = imagecolorat( $gd, $x, $y );
+#echo "X = $x, Y = $y, COLOR = $color, PIXEL = $pixel\n";
+			if( $color == $pixel ){
+				imagesetpixel( $new_gd, $x, $y, $color );
+				imagesetpixel( $gd, $x, $y, $trans );
+				}
+			}
+		}
+
+#	$name = "$images/image_$color" . "c.png";
+#	$cf->put_image( $gd, $name, false );
+#	$name = "$images/image_$color" . "d.png";
+#	$cf->put_image( $new_gd, $name, false );
+
+	$this->debug->out();
+	return array( $gd, $new_gd );
+}
+################################################################################
+#	hollow_out(). This function takes an image and removes all colors inside
+#		of an area thus making it hollowed out.
+################################################################################
+function hollow_out( $dir=null, $cwd=null, $infile=null, $outfile=null )
+{
+	$this->debug->in();
+
+	if( is_null($dir) ){ die( "***** ERROR : DIR is NULL" ); }
+	if( is_null($cwd) ){ die( "***** ERROR : cwd is NULL" ); }
+	if( is_null($infile) ){ die( "***** ERROR : INFILE is NULL" ); }
+	if( is_null($outfile) ){ die( "***** ERROR : OUTFILE is NULL" ); }
+
+	$cf = $this->cf;
+	$images = "$cwd/images";
+#
+#	Find the transparent color
+#
+	$trans = null;
+	$gd = $cf->get_image( "$dir/$infile" );
+	$new_gd = $cf->dup_image( $gd );
+
+	$w = imagesx( $gd );
+	$h = imagesy( $gd );
+
+	for( $x=0; $x<$w; $x++ ){
+		for( $y=0; $y<$h; $y++ ){
+			$color = imagecolorat( $gd, $x, $y );
+#
+#	Find the transparent color.
+#
+			$a = ($color >> 24) & 0xff;
+			$r = ($color >> 16) & 0xff;
+			$g = ($color >> 8) & 0xff;
+			$b = ($color & 0xff);
+#echo "A = $a, R = $r, G = $g, B = $b\n";
+
+			if( ($a > 0) && ($a < 128) ){
+				$trans = $color;
+				$x = $w;
+				$y = $h;
+
+				$non_trans = 0;
+				$non_trans |= (255 - $r & 0xff) << 16;
+				$non_trans |= (255 - $g & 0xff) << 8;
+				$non_trans |= (255 - $b & 0xff);
+#echo "Trans = $trans, non_trans = $non_trans\n";
+				}
+			}
+		}
+#
+#	Now go through and hollow things out
+#
+	for( $x=0; $x<$w; $x++ ){
+		for( $y=0; $y<$h; $y++ ){
+			$color = imagecolorat( $gd, $x, $y );
+#printf( "Color = %08x, TRANS = %08x\n", $color, $trans );
+			if( ($color == $trans) || ($color == $non_trans) ){ continue; }
+
+			$c = 0;
+			for( $i=-1; $i<2; $i++ ){
+				$nx = $x + $i;
+				if( ($nx < 0) || ($nx >= $w) ){ continue; }
+				for( $j=-1; $j<2; $j++ ){
+					if( abs($i) == abs($j) ){ continue; }
+					$ny = $y + $j;
+					if( ($ny < 0) || ($ny >= $h) ){ continue; }
+					$point = imagecolorat( $gd, $nx, $ny );
+					if( $point == $color ){ $c++; }
+					}
+				}
+
+			if( $c > 3 ){ imagesetpixel( $new_gd, $x, $y, $non_trans ); }
+			}
+		}
+
+	$cf->put_image( $new_gd, "$dir/$outfile" );
+	$this->debug->out();
+	return $gd;
+}
+################################################################################
+#	seal_holes(). Close up the holes in an image.
+################################################################################
+function seal_holes( $dir=null, $cwd=null, $infile=null, $outfile=null )
+{
+	$this->debug->in();
+
+	if( is_null($dir) ){ die( "***** ERROR : DIR is NULL" ); }
+	if( is_null($cwd) ){ die( "***** ERROR : cwd is NULL" ); }
+	if( is_null($infile) ){ die( "***** ERROR : INFILE is NULL" ); }
+	if( is_null($outfile) ){ die( "***** ERROR : OUTFILE is NULL" ); }
+
+	$cf = $this->cf;
+	$images = "$cwd/images";
+#
+#	Find the transparent color
+#
+	$trans = null;
+	$gd = $cf->get_image( "$dir/$infile" );
+	$new_gd = $cf->dup_image( $gd );
+
+	$w = imagesx( $gd );
+	$h = imagesy( $gd );
+
+	$trans = null;
+	$non_trans = null;
+	$cur_color = null;
+	for( $x=0; $x<$w; $x++ ){
+		for( $y=0; $y<$h; $y++ ){
+			$color = imagecolorat( $gd, $x, $y );
+#
+#	Find the transparent color and flip it. THAT color is
+#	what we look for.
+#
+			$a = ($color >> 24) & 0xff;
+			$r = ($color >> 16) & 0xff;
+			$g = ($color >> 8) & 0xff;
+			$b = ($color & 0xff);
+			if( ($a > 0) && ($a < 128) && is_null($trans) ){
+				$trans = $color;
+
+				$non_trans = 0;
+				$non_trans |= (255 - $r & 0xff) << 16;
+				$non_trans |= (255 - $g & 0xff) << 8;
+				$non_trans |= (255 - $b & 0xff);
+#echo "Trans = $trans, non_trans = $non_trans\n";
+				if( !is_null($cur_color) ){ $x = $w; $y = $h; }
+				}
+				else {
+					$cur_color = $color;
+					if( !is_null($trans) ){ $x = $w; $y = $h; }
+					}
+			}
+		}
+#
+#	Now go through and seal up holes
+#
+	for( $x=0; $x<$w; $x++ ){
+		for( $y=0; $y<$h; $y++ ){
+			$pixel = imagecolorat( $gd, $x, $y );
+#printf( "PIXEL = %08x, TRANS = %08x\n", $pixel, $trans );
+#
+#	Ok, we look for the NON Transparent color and then we just follow
+#	it.
+#
+			if( $pixel == $non_trans ){
+				}
+			}
+		}
+
+	$cf->put_image( $new_gd, "$dir/$outfile" );
+	$this->debug->out();
+	return $gd;
+}
+################################################################################
 #	died(). A simple function to print an error message and then die.
 ################################################################################
 function died( $string=null, $opt=FALSE )
@@ -2156,27 +2532,130 @@ function show_memory()
  }
 ################################################################################
 #	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", __LINE__, $num );
+#	Ex:	$this->dump( "NUM", $num );
 ################################################################################
-function dump( $title=null, $line=null, $arg=null )
+function dump( $title=null, $arg=null )
 {
 	$this->debug->in();
+	echo "--->Entering DUMP\n";
 
-	if( is_null($title) ){ $title = "DUMP: "; }
-	if( is_null($line) ){ $line = "unknown"; }
-	if( is_null($arg) ){ $arg = ""; }
+	if( is_null($title) ){ return false; }
+	if( is_null($arg) ){ return false; }
 
-	if( is_array($arg) ){
-		echo "$title @ Line = $line : \n";
-		print_r( $arg );
-		echo "\n";
-		}
-		else {
-			echo "$title @ Line = $line : $arg\n";
+	$title = trim( $title );
+#
+#	Get the backtrace
+#
+	$dbg = debug_backtrace();
+#
+#	Start a loop
+#
+	foreach( $dbg as $k=>$v ){
+		$a = array_pop( $dbg );
+
+		foreach( $a as $k1=>$v1 ){
+			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
 			}
 
+		$func = $a['function'];
+		$line = $a['line'];
+		$file = $a['file'];
+		$class = $a['class'];
+		$obj = $a['object'];
+		$type = $a['type'];
+		$args = $a['args'];
+
+		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
+		foreach( $args as $k1=>$v1 ){
+			if( is_array($v1) ){
+				foreach( $v1 as $k2=>$v2 ){
+					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
+					}
+				}
+				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
+			}
+
+#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
+#			else { echo "ARG = $arg\n"; }
+		}
+
+	echo "<---Exiting DUMP\n\n";
 	$this->debug->out();
 	return true;
+}
+################################################################################
+#	get_mask(). You supply where the masks are and this routine will get them.
+################################################################################
+function get_mask( $maskDir )
+{
+	$cf = $this->cf;
+#
+#	Now we are ready to get all of the masks.
+#
+	list( $mg, $mb ) = $cf->get_files( $maskDir );
+
+	$mask_dir_list = [];
+	foreach( $mg as $k=>$v ){
+		$a = explode( '-', $v );
+		$b = explode( '/', $a[0] );
+		$mask_dir_list[strtolower($b[count($b)-1])] = true;
+		}
+
+	$ary = array_keys( $mask_dir_list );
+	sort( $ary );
+
+	$end = true;
+	$picked_mask_colors = [];
+	while( $end ){
+		echo "\n\n";
+		echo "Which mask do you want to use?\n\n";
+		foreach( $ary as $k=>$v ){
+			echo "$k. $v\n";
+			}
+
+		echo "\nC. Continue on with program\n";
+		echo "Q. Quit the program\n";
+		echo "\n\n>";
+		$answer = trim( fgets(STDIN) );
+		if( strlen($answer) < 1 ){ $answer = "c"; }
+
+		echo "You selected $answer\n";
+
+		if( !preg_match("/(q|c)+/i", $answer) ){
+#		
+#			Get all of the mask filenames
+#		
+			list( $mg, $mb ) = $cf->get_files( $maskDir, ".png$" );
+#		
+#			Then go through them and keep only the ones we want
+#		
+			$files = [];
+			foreach( $mg as $k=>$v ){
+				if( preg_match("/$ary[$answer]/i", $v) ){ $files[] = $v; }
+				}
+#		
+#			Put all of the colors into a single array.
+#		
+			foreach( $files as $k=>$v ){
+				echo "Loading : $v\n";
+				$gd = $cf->get_image( $v );
+				$c = $cf->get_colors( $gd, false );
+				foreach( $c as $k1=>$v1 ){
+					$a1 = ($k1 >> 24) & 0xff;
+					$r1 = ($k1 >> 16) & 0xff;
+					$g1 = ($k1 >> 8) & 0xff;
+					$b1 = $k1 & 0xff;
+
+					if( $a1 > 0 ){ continue; }
+						else { $picked_mask_colors[$k1] = $v1; }
+					}
+				}
+			}
+			else if( preg_match("/q/i", $answer) ){ die( "Finished!\n" ); }
+			else { $end = false; }
+		}
+
+	return $picked_mask_colors;
 }
 ################################################################################
 #	__destruct(). Do the clean-up necessary.

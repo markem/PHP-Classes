@@ -1,9 +1,13 @@
 <?php
 #
+#	Defines
+#
+	if( !defined("[]") ){ define( "[]", "array[]" ); }
+#
 #	Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
 		});
 
 	date_default_timezone_set( "UTC" );
@@ -25,6 +29,8 @@
 		else if( !isset($GLOBALS['classes']['debug']) ){
 			die( __FILE__ . ": Can not load CLASS_DEBUG" );
 			}
+
+	include_once( "$lib/class_files.php" );
 
 ################################################################################
 #BEGIN DOC
@@ -75,6 +81,7 @@ class class_rgb
 	private $colors = null;
 	private $transparent = null;
 	private $gd = null;
+	private $cf = null;
 	private $new_gd = null;
 
 ################################################################################
@@ -99,6 +106,8 @@ function init()
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
 		}
+
+	$this->cf = new class_files();
 
 	$this->debug->out();
 	return true;
@@ -233,7 +242,7 @@ function is_trans( $gd=null )
 {
 	$this->debug->in();
 
-	if( is_null($gd) || !is_resource($gd) ){ return false; }
+	if( is_null($gd) || !is_resource($gd) ){ die("***** ERROR : GD is NULL!\n"); }
 
 	$w = imagesx( $gd );
 	$h = imagesy( $gd );
@@ -248,9 +257,22 @@ function is_trans( $gd=null )
 				}
 			}
 		}
+#
+#	We did not find a transparent color so now we need to create one.
+#
+	$trans = $this->cf->unique_color( $gd );
+	$a = 127;
+	$r = ($trans >> 16) & 0xff;
+	$g = ($trans >> 8) & 0xff;
+	$b = $trans & 0xff;
+
+	$trans = ($a & 0xff) << 24;
+	$trans |= ($r & 0xff) << 16;
+	$trans |= ($g & 0xff) << 8;
+	$trans |= ($b & 0xff);
 
 	$this->debug->out();
-	return false;
+	return $trans;
 }
 ################################################################################
 #	magic_wand(). A function to act like a magic wand.
@@ -644,26 +666,55 @@ function split( $gd )
 }
 ################################################################################
 #	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", __LINE__, $num );
+#	Ex:	$this->dump( "NUM", $num );
 ################################################################################
-function dump( $title=null, $line=null, $arg=null )
+function dump( $title=null, $arg=null )
 {
-	if( !is_null($this->debug) ){ $this->debug->in(); }
+	$this->debug->in();
+	echo "--->Entering DUMP\n";
 
 	if( is_null($title) ){ return false; }
-	if( is_null($line) ){ return false; }
 	if( is_null($arg) ){ return false; }
 
-	if( is_array($arg) ){
-		echo "$title @ Line : $line =\n";
-		print_r( $arg );
-		echo "\n";
-		}
-		else {
-			echo "$title @ Line : $line = $arg\n";
+	$title = trim( $title );
+#
+#	Get the backtrace
+#
+	$dbg = debug_backtrace();
+#
+#	Start a loop
+#
+	foreach( $dbg as $k=>$v ){
+		$a = array_pop( $dbg );
+
+		foreach( $a as $k1=>$v1 ){
+			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
 			}
 
-	if( !is_null($this->debug) ){ $this->debug->out(); }
+		$func = $a['function'];
+		$line = $a['line'];
+		$file = $a['file'];
+		$class = $a['class'];
+		$obj = $a['object'];
+		$type = $a['type'];
+		$args = $a['args'];
+
+		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
+		foreach( $args as $k1=>$v1 ){
+			if( is_array($v1) ){
+				foreach( $v1 as $k2=>$v2 ){
+					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
+					}
+				}
+				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
+			}
+
+#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
+#			else { echo "ARG = $arg\n"; }
+		}
+
+	echo "<---Exiting DUMP\n\n";
+	$this->debug->out();
 	return true;
 }
 

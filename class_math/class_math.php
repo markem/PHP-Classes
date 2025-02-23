@@ -1,9 +1,13 @@
 <?php
 #
+#	Defines
+#
+	if( !defined("[]") ){ define( "[]", "array[]" ); }
+#
 #	Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
 		});
 
 	date_default_timezone_set( "UTC" );
@@ -72,7 +76,70 @@
 class class_math
 {
 	public $debug = false;
-	private $pi = 3.14159265358979323846;
+	private $pi = null;
+#
+#	The following is taken from Wikipedia at
+#	https://en.wikipedia.org/wiki/Fine-structure_constant
+#
+#	e is the elementary charge (1.602176634×10−19 C[5]);
+#
+	private $elementary_charge = null;
+	private $e = null;
+#
+#	h is the Planck constant (6.62607015×10−34 J⋅Hz−1[6]);
+#
+	private $planck_constant = null;
+	private $h = null;
+#
+#	ħ is the reduced Planck constant, ħ = h/2π (1.054571817...×10−34 J⋅s[7])
+#
+	private $reduced_planck_constant = null;
+	private $rh = null;
+#
+#	c is the speed of light (299792458 m⋅s−1[8]);
+#
+	private $speed_of_light = null;
+#	private $c = null;
+#
+#	ε0 is the electric constant (8.8541878188(14)×10−12 F⋅m−1[9])
+#
+	private $electric_constant = null;
+	private $e0 = null;
+#
+#	The fine-structure constant, also known as the Sommerfeld constant.
+#	0.0072973525643 ~ (1 / 137.035999177), with a relative uncertainty of 1.6×10−10.[1]
+#
+	private $fine_structure_constant = null;
+	private $a = null;
+	private $sommerfeld_constant = null;
+#
+#	See the webpage for more details on the following.
+#	In the electrostatic CGS system, a = exp(2)/(hc) - where "h" is "h" with a line over it.
+#	In a nondimensionalised system, a = exp(2)/(4 * $pi).
+#	In the system of atomic units, a = 1/c;
+#
+#	The CODATA recommended value of α is
+#
+	private $codata_a = null;
+#
+#	This value for α gives µ0 = 4π × 0.99999999987(16)×10−7 H⋅m−1
+#
+	private $codata_mu = null;
+#
+#	The reciprocal of the fine-structure constant by CODATA is
+#
+	private $codata_reciprocal_constant = null;
+	private $codata_r = null;
+#
+#	The 2020 value with a relative accuracy of 8.1×10−11
+#
+	private $codata_2020_r = null;
+#
+#	History of Measurement. Latest at 2023
+#	Fan et al. (2023)
+#
+	private $codata_2023_a = null;
+	private $codata_2023_r = null;
 
 ################################################################################
 #	__construct(). Constructor.
@@ -96,6 +163,72 @@ function init()
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
 		}
+
+	$debug = false;
+	$pi = 3.14159265358979323846;
+#
+#	The following is taken from Wikipedia at
+#	https://en.wikipedia.org/wiki/Fine-structure_constant
+#
+#	e is the elementary charge (1.602176634×10−19 C[5]);
+#
+	$elementary_charge = 1.602176634 * (10 ** -19);
+	$e = $elementary_charge;
+#
+#	h is the Planck constant (6.62607015×10−34 J⋅Hz−1[6]);
+#
+	$planck_constant = 6.62607015 * (10 ** -34);
+	$h = $planck_constant;
+#
+#	ħ is the reduced Planck constant, ħ = h/2π (1.054571817...×10−34 J⋅s[7])
+#
+	$reduced_planck_constant = 1.054571817 * (10 ** -34);
+	$rh = $reduced_planck_constant;
+#
+#	c is the speed of light (299792458 m⋅s−1[8]);
+#
+	$speed_of_light = 299792458;	#	Meters per Second (ms)
+#	private $c = $speed_of_light;
+#
+#	ε0 is the electric constant (8.8541878188(14)×10−12 F⋅m−1[9])
+#
+	$electric_constant = 8.854187818814 * (10 ** -12);
+	$e0 = $electric_constant;
+#
+#	The fine-structure constant, also known as the Sommerfeld constant.
+#	0.0072973525643 ~ (1 / 137.035999177), with a relative uncertainty of 1.6×10−10.[1]
+#
+	$fine_structure_constant = 0.0072973525643;
+	$a = $fine_structure_constant;
+	$sommerfeld_constant = $fine_structure_constant;
+#
+#	See the webpage for more details on the following.
+#	In the electrostatic CGS system, a = exp(2)/(hc) - where "h" is "h" with a line over it.
+#	In a nondimensionalised system, a = exp(2)/(4 * $pi).
+#	In the system of atomic units, a = 1/c;
+#
+#	The CODATA recommended value of α is
+#
+	$codata_a = 0.0072973525643;
+#
+#	This value for α gives µ0 = 4π × 0.99999999987(16)×10−7 H⋅m−1
+#
+	$codata_mu = (4 * $pi) * (0.99999999987 * (10 ** -7));
+#
+#	The reciprocal of the fine-structure constant by CODATA is
+#
+	$codata_reciprocal_constant = 137.035999177;
+	$codata_r = $codata_reciprocal_constant;
+#
+#	The 2020 value with a relative accuracy of 8.1×10−11
+#
+	$codata_2020_r = 137.035999206;
+#
+#	History of Measurement. Latest at 2023
+#	Fan et al. (2023)
+#
+	$codata_2023_a = 0.0072973525649;
+	$codata_2023_r = 137.035999166;
 
 	$this->debug->out();
 }
@@ -964,25 +1097,54 @@ function marks_square( $x=null, $y=null, $n=null )
 }
 ################################################################################
 #	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", __LINE__, $num );
+#	Ex:	$this->dump( "NUM", $num );
 ################################################################################
-function dump( $title=null, $line=null, $arg=null )
+function dump( $title=null, $arg=null )
 {
 	$this->debug->in();
+	echo "--->Entering DUMP\n";
 
 	if( is_null($title) ){ return false; }
-	if( is_null($line) ){ return false; }
 	if( is_null($arg) ){ return false; }
 
-	if( is_array($arg) ){
-		echo "$title @ Line : $line =\n";
-		print_r( $arg );
-		echo "\n";
-		}
-		else {
-			echo "$title @ Line : $line = $arg\n";
+	$title = trim( $title );
+#
+#	Get the backtrace
+#
+	$dbg = debug_backtrace();
+#
+#	Start a loop
+#
+	foreach( $dbg as $k=>$v ){
+		$a = array_pop( $dbg );
+
+		foreach( $a as $k1=>$v1 ){
+			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
 			}
 
+		$func = $a['function'];
+		$line = $a['line'];
+		$file = $a['file'];
+		$class = $a['class'];
+		$obj = $a['object'];
+		$type = $a['type'];
+		$args = $a['args'];
+
+		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
+		foreach( $args as $k1=>$v1 ){
+			if( is_array($v1) ){
+				foreach( $v1 as $k2=>$v2 ){
+					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
+					}
+				}
+				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
+			}
+
+#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
+#			else { echo "ARG = $arg\n"; }
+		}
+
+	echo "<---Exiting DUMP\n\n";
 	$this->debug->out();
 	return true;
 }

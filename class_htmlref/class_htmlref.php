@@ -1,9 +1,13 @@
 <?php
 #
+#	Defines
+#
+	if( !defined("[]") ){ define( "[]", "array[]" ); }
+#
 #	Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
 		});
 
 	date_default_timezone_set( "UTC" );
@@ -130,8 +134,8 @@ function init()
 #		https://www.tutorialrepublic.com/html-reference/html5-tags.php
 #
 	$html_cmds = [
-#		[ "Tag", "Description", "Version", "True=USED/False=REMOVED", "true= <xxx/>, false=null" ]
-		[ "!--...--", "Describe a comment text in the source code", 1, true, false ],
+#		[ "Start Tag|End Tag", "Description", "Version", "True=USED/False=REMOVED", "true= <xxx/>, false=null" ]
+		[ "!--|--", "Describe a comment text in the source code", 1, true, false ],
 		[ "!doctype", "Defines a document type", 1, true, true ],
 		[ "a", "Specific a anchor (Hyperlink) Use for link in internal/external web documents.", 1, true, false ],
 		[ "abbr", "Describes an abbreviation (acronyms)", 1, true, true ],
@@ -464,7 +468,7 @@ function init()
 #	Taken from : https://www.tutorialrepublic.com/css-reference/css3-properties.php
 #
 	$css_cmds = [
-#		[ "Tag", "Explanation/Replacement", "Version created/removed", "True=USED/False=REMOVED", "Elements removed from" ]
+#		[ "Tag", "Descrition", "Version created/removed", "True=USED/False=REMOVED", "Elements removed from" ]
 		[ "Property", "Description", 1, true, "" ],
 		[ "align", "Text-align and vertical align style attributes", 4, false,
 			"CAPTION, IFRAME, OBJECT, HR, DIV, APPLET, IMG, INPUT, LEGEND, TABLE, H1H6, P" ],
@@ -958,7 +962,7 @@ function init()
 #	Taken from : https://www.tutorialrepublic.com/css-tutorial/css-units.php
 #
 	$css_units = [
-		[ "Unit", "Description", "Type:P)rint,W)eb" ],
+#		[ "Unit", "Description", "Type:P)rint,W)eb" ],
 		[ "em", "the current font-size", "pw" ],
 		[ "ex", "the x-height of the current font", "pw" ],
 		[ "in", "inches – 1in is equal to 2.54cm.", "pw" ],
@@ -1036,6 +1040,59 @@ function list()
 
 	$this->debug->out();
 	return $a;
+}
+################################################################################
+#	dump(). A simple function to dump some information.
+#	Ex:	$this->dump( "NUM", $num );
+################################################################################
+function dump( $title=null, $arg=null )
+{
+	$this->debug->in();
+	echo "--->Entering DUMP\n";
+
+	if( is_null($title) ){ return false; }
+	if( is_null($arg) ){ return false; }
+
+	$title = trim( $title );
+#
+#	Get the backtrace
+#
+	$dbg = debug_backtrace();
+#
+#	Start a loop
+#
+	foreach( $dbg as $k=>$v ){
+		$a = array_pop( $dbg );
+
+		foreach( $a as $k1=>$v1 ){
+			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
+			}
+
+		$func = $a['function'];
+		$line = $a['line'];
+		$file = $a['file'];
+		$class = $a['class'];
+		$obj = $a['object'];
+		$type = $a['type'];
+		$args = $a['args'];
+
+		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
+		foreach( $args as $k1=>$v1 ){
+			if( is_array($v1) ){
+				foreach( $v1 as $k2=>$v2 ){
+					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
+					}
+				}
+				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
+			}
+
+#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
+#			else { echo "ARG = $arg\n"; }
+		}
+
+	echo "<---Exiting DUMP\n\n";
+	$this->debug->out();
+	return true;
 }
 
 }

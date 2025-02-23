@@ -1,9 +1,13 @@
 <?php
 #
+#	Defines
+#
+	if( !defined("[]") ){ define( "[]", "array[]" ); }
+#
 #	Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
 		});
 
 	date_default_timezone_set( "UTC" );
@@ -275,6 +279,8 @@ public function msg()
 ################################################################################
 private function get_backtrace( $opt=false, $last=true )
 {
+	$opts = array( "function", "line", "file", "class", "object", "type", "args" );
+
 	$dbg = debug_backtrace();
 	if( $opt === false ){ $dbg = array_reverse( $dbg ); }
 #
@@ -283,10 +289,14 @@ private function get_backtrace( $opt=false, $last=true )
 	if( $last ){ array_pop( $dbg ); }
 
 	foreach( $dbg as $k=>$v ){
-		if( !isset($v['file']) || is_null($v['file']) ){ $dbg[$k]['file'] = "--NULL--"; }
-		if( !isset($v['class']) || is_null($v['class']) ){ $dbg[$k]['class'] = "--NULL--"; }
-		if( !isset($v['function']) || is_null($v['function']) ){ $dbg[$k]['function'] = "--NULL--"; }
-		if( !isset($v['line']) || is_null($v['line']) ){ $dbg[$k]['line'] = "--NULL--"; }
+		if( is_array($v) ){
+			foreach( $opts as $k1=>$v1 ){
+				if( !isset($v[$v1]) || is_null($v[$v1]) ){ $dbg[$k][$v1] = "--NULL--"; }
+				}
+			}
+			else {
+				if( is_null($dbg[$k]) ){ $dbg[$k] = "--NULL--"; }
+				}
 		}
 
 	return( $dbg );
@@ -333,56 +343,6 @@ private function getVariableName()
 			return $k;
 			}
 		}
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-################################################################################
-public function dump()
-{
-	$args = func_get_args();
-	if( is_array($args) && (count($args) < 2) ){ $args = $args[0]; }
-
-	if( is_null($args) ){ return false; }
-
-	$dbg = $this->get_backtrace( true, false );
-
-if( false ){
-#	foreach( $dbg as $k=>$v ){ echo "CLASS = " . $v['class'] . "\n"; }
-	while( isset($dbg[0]) && preg_match("/debug/i", $dbg[0]['class']) ){
-		echo "Getting rid of CLASS = " . $dbg[0]['class'] . "\n";
-		array_shift( $dbg );
-		}
-
-	array_shift( $dbg );
-}
-
-	foreach( $dbg as $k=>$v ){
-		echo $this->scmd( $v );
-		}
-
-	$line = $dbg[0]['line'];
-	$name = $this->getVariableName( $args );
-	if( strlen(trim($name)) < 1 ){ $name = "unknown"; }
-	if( is_array($args) ){
-		echo "$name @ Line : $line = ARRAY\n";
-		foreach( $args as $k=>$v ){
-			if( is_array($v) ){
-				$s = sprintf( "%5d : ", $k );
-				$o = "";
-				foreach( $v as $k1=>$v1 ){
-					if( is_string($v1) ){ $o .= wordwrap($v1, 75, "\n        " ); }
-						elseif( is_float($v1) ){ $o .= sprintf( "%5f", $v1 ); }
-						elseif( is_int($v1) ){ $o .= sprintf( "%5d", $v1 ); }
-						else { $o .= "-UNK-"; }
-
-					echo "$s$o\n";
-					}
-				}
-			}
-		}
-		else {
-			echo "$name @ Line : $line = $args\n";
-			}
 }
 ################################################################################
 #	die(). Death subroutine.
@@ -461,6 +421,59 @@ public function __destruct()
 		fclose( $this->fp );
 		$this->fp = null;
 		}
+}
+################################################################################
+#	dump(). A simple function to dump some information.
+#	Ex:	$this->dump( "NUM", $num );
+################################################################################
+function dump( $title=null, $arg=null )
+{
+	$this->debug->in();
+	echo "--->Entering DUMP\n";
+
+	if( is_null($title) ){ return false; }
+	if( is_null($arg) ){ return false; }
+
+	$title = trim( $title );
+#
+#	Get the backtrace
+#
+	$dbg = debug_backtrace();
+#
+#	Start a loop
+#
+	foreach( $dbg as $k=>$v ){
+		$a = array_pop( $dbg );
+
+		foreach( $a as $k1=>$v1 ){
+			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
+			}
+
+		$func = $a['function'];
+		$line = $a['line'];
+		$file = $a['file'];
+		$class = $a['class'];
+		$obj = $a['object'];
+		$type = $a['type'];
+		$args = $a['args'];
+
+		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
+		foreach( $args as $k1=>$v1 ){
+			if( is_array($v1) ){
+				foreach( $v1 as $k2=>$v2 ){
+					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
+					}
+				}
+				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
+			}
+
+#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
+#			else { echo "ARG = $arg\n"; }
+		}
+
+	echo "<---Exiting DUMP\n\n";
+	$this->debug->out();
+	return true;
 }
 
 }

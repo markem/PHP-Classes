@@ -1,9 +1,13 @@
 <?php
 #
+#	Defines
+#
+	if( !defined("[]") ){ define( "[]", "array[]" ); }
+#
 #	Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		echo "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n";
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
 		});
 
 	date_default_timezone_set( "UTC" );
@@ -25,6 +29,8 @@
 		else if( !isset($GLOBALS['classes']['debug']) ){
 			die( __FILE__ . ": Can not load CLASS_DEBUG" );
 			}
+
+	include_once( "$lib/class_rgb.php" );
 
 ################################################################################
 #BEGIN DOC
@@ -73,6 +79,7 @@ class class_color
 {
 	private $debug = null;
 	private	$color_table = array();
+	private	$crgb = null;
 
 ################################################################################
 #BEGIN DOC
@@ -1195,6 +1202,8 @@ function init()
 		'1067' => array( 'name' => 'yellowgreen', 'red' => '154', 'green' => '205', 'blue' => '50', 'hex' => '9ACD32' )
 		);
 
+	$this->crgb = new class_rgb();
+
 	$this->debug->out();
 }
 
@@ -1563,26 +1572,227 @@ function name2hex( $s )
 	$this->debug->out();
 }
 ################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", __LINE__, $num );
+#	Returns four $GDs one for each of the colors.
+#	OPT = delete/get rid of the cmyk array's GD areas.
 ################################################################################
-function dump( $title=null, $line=null, $arg=null )
+function rgb2cmyk( $gd=null, $opt=true )
+{
+	if( is_null($gd) ){
+		die("***** ERROR : " . __FILE__ . "@" . __FUNCTION__ . "GD is NULL\n" );
+		}
+#
+#	Get the width and height
+#
+	$w = imagesx( $gd );
+	$h = imagesy( $gd );
+#
+#	Get the transparent color
+#
+	$trans = $crgb->is_trans( $cmyk );
+#
+#	Make the image separation colors. 0=c, 1=m, 2=y, 3=k
+#
+	$cmyk = [];
+	for( $i=0; $i<4; $i++ ){
+		$cmyk[$i] = imagecreatetruecolor( $w, $h );
+
+		if (function_exists('imagecolorallocatealpha')) {
+			imagealphablending($cmyk[$i], false);
+			imagesavealpha($cmyk[$i], true);
+			imagefilledrectangle($cmyk[$i], 0, 0, $w, $h, $trans);
+			}
+		}
+
+	for( $x=0; $x<$w; $x++ ){
+		for( $y=0; $y<$h; $y++ ){
+			$color = imagecolorat( $gd, $x, $y );
+			if( $color === $trans ){
+				for( $i=0; $i<4; $i++ ){
+					imagesetpixel( $cymk[$i], $x, $y, $trans );
+					}
+				}
+#
+#	Code taken frorm Stack Overflow at:
+#
+#		https://stackoverflow.com/questions/9817595/php-convert-rgb-values-to-cmyk-percentages
+#		by Sushant Khurana
+#
+			$a = ($color >> 24) & 0xff;
+			$r = ($color >> 16) & 0xff;
+			$g = ($color >> 8) & 0xff;
+			$b = ($color & 0xff);
+
+			$cyan    = 255 - $r;
+			$magenta = 255 - $g;
+			$yellow  = 255 - $b;
+
+			$black   = min($cyan, $magenta, $yellow);
+			$cyan    = @(($cyan    - $black) / (255 - $black)) * 255;
+			$magenta = @(($magenta - $black) / (255 - $black)) * 255;
+			$yellow  = @(($yellow  - $black) / (255 - $black)) * 255;
+#
+#	Green & Blue => cyan
+#
+			$color = 0;
+			$color += ($cyan & 0xff) << 8;
+			$color += ($cyan & 0xff);
+
+			imagesetpixel( $cymk[0], $x, $y, $color );
+#
+#	Red & Blue => Magenta
+#
+			$color = 0;
+			$color += ($magenta & 0xff) << 16;
+			$color += ($magenta & 0xff);
+
+			imagesetpixel( $cymk[1], $x, $y, $color );
+#
+#	Red & Green => Yellow
+#
+			$color = 0;
+			$color += ($yellow & 0xff) << 16;
+			$color += ($yellow & 0xff) << 8;
+
+			imagesetpixel( $cymk[2], $x, $y, $color );
+#
+#	Black goes in all of the locations
+#
+			$color = 0;
+			$color += ($black & 0xff) << 16;
+			$color += ($black & 0xff) << 8;
+			$color += ($black & 0xff);
+
+			imagesetpixel( $cymk[3], $x, $y, $color );
+			}
+		}
+
+	if( $opt ){
+		imagedestroy( $gd );
+		$gd = null;
+		}
+
+	return $cmky;
+}
+################################################################################
+#	cmyk2rgb(). Convert from the cmyk files to a single rgb file
+#	NOTE : YOU must send an array broken up into four parts.
+#	OPT = delete/get rid of the cmyk array's GD areas.
+#
+#	Taken from : https://www.rapidtables.com/convert/color/cmyk-to-rgb.html
+################################################################################
+function cmyk2rgb( $cmyk=null, $opt=true )
+{
+	if( is_null($cmyk) ){
+		die("***** ERROR : " . __FILE__ . "@" . __FUNCTION__ . "CMYK is NULL\n" );
+		}
+#
+#	Get the width and height
+#
+	$w = imagesx( $cmyk );
+	$h = imagesy( $cmyk );
+#
+#	Get the transparent color
+#
+	$trans = $crgb->is_trans( $cmyk[0] );
+#
+#	Make the image separation colors. 0=c, 1=m, 2=y, 3=k
+#
+	$gd = imagecreatetruecolor( $w, $h );
+
+	if (function_exists('imagecolorallocatealpha')) {
+		imagealphablending($gd, false);
+		imagesavealpha($gd, true);
+		imagefilledrectangle($gd, 0, 0, $w, $h, $trans);
+		}
+
+	$colors = [];
+	for( $x=0; $x<$w; $x++ ){
+		for( $y=0; $y<$h; $y++ ){
+			$cyan = imagecolorat( $cmyk[0], $x, $y );
+			$magenta = imagecolorat( $cmyk[1], $x, $y );
+			$yellow = imagecolorat( $cmyk[2], $x, $y );
+			$black = imagecolorat( $cmyk[3], $x, $y );
+			if( $cyan === $trans ){ imagesetpixel( $gd, $x, $y, $trans ); continue; }
+
+			$cyan = $cyan & 0xff;
+			$magenta = $magenta & 0xff;
+			$yellow = ($yellow & 0xff) >> 8;
+			$black = ($black & 0xff);
+
+			$r = 255 * (255 - $cyan) * (255 - $black);
+			$g = 255 * (255 - $magenta) * (255 - $black);
+			$b = 255 * (255 - $yellow) * (255 - $black);
+
+			$color = 0;
+			$color += (($r & 0xff) << 16);
+			$color += (($g & 0xff) << 8);
+			$color += ($b & 0xff);
+
+			imagesetpixel( $gd, $x, $y, $color );
+			}
+		}
+#
+#	Should we get rid of the old cmyk gds?
+#
+	if( $opt ){
+		foreach( $cymk as $k=>$v ){
+			imagedestroy( $v );
+			$v = null;
+			}
+		}
+
+	return $gd;
+}
+################################################################################
+#	dump(). A simple function to dump some information.
+#	Ex:	$this->dump( "NUM", $num );
+################################################################################
+function dump( $title=null, $arg=null )
 {
 	$this->debug->in();
+	echo "--->Entering DUMP\n";
 
 	if( is_null($title) ){ return false; }
-	if( is_null($line) ){ return false; }
 	if( is_null($arg) ){ return false; }
 
-	if( is_array($arg) ){
-		echo "$title @ Line : $line =\n";
-		print_r( $arg );
-		echo "\n";
-		}
-		else {
-			echo "$title @ Line : $line = $arg\n";
+	$title = trim( $title );
+#
+#	Get the backtrace
+#
+	$dbg = debug_backtrace();
+#
+#	Start a loop
+#
+	foreach( $dbg as $k=>$v ){
+		$a = array_pop( $dbg );
+
+		foreach( $a as $k1=>$v1 ){
+			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
 			}
 
+		$func = $a['function'];
+		$line = $a['line'];
+		$file = $a['file'];
+		$class = $a['class'];
+		$obj = $a['object'];
+		$type = $a['type'];
+		$args = $a['args'];
+
+		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
+		foreach( $args as $k1=>$v1 ){
+			if( is_array($v1) ){
+				foreach( $v1 as $k2=>$v2 ){
+					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
+					}
+				}
+				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
+			}
+
+#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
+#			else { echo "ARG = $arg\n"; }
+		}
+
+	echo "<---Exiting DUMP\n\n";
 	$this->debug->out();
 	return true;
 }

@@ -1,9 +1,13 @@
 <?php
 #
+#	Defines
+#
+	if( !defined("[]") ){ define( "[]", "array[]" ); }
+#
 #	Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
+		die( "***** Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
 		});
 
 	date_default_timezone_set( "UTC" );
@@ -141,7 +145,7 @@
 #	---------------------------------------------------------------------------
 #	Please note that _MY_ Legal notice _HERE_ is as follows: (Example)
 #
-#		CLASS_FILES.PHP. A class to handle working with files.
+#		CLASS_ANSI.PHP. A class to handle working with ANSI terminal codes.
 #		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
 #		except for those given by the BSD License.
 #
@@ -176,6 +180,8 @@ class class_ansi
 	private $sgr_cmds = null;
 	private $bit34 = null;
 	private $ascii_codes = null;
+	private $xterm_cmds = null;
+	private $xterm_xt36 = null;
 
 	private $width = null;
 	private $max_width = null;
@@ -183,7 +189,7 @@ class class_ansi
 	private $who = null;
 	private $display_1 = null;
 
-	private $ansi_handle = null;
+#	private $ansi_handle = null;
 #
 ################################################################################
 #	__construct(). Constructor.
@@ -520,16 +526,16 @@ function init()
 		[ "255", "377", "FF", "11111111", "ÿ", "&amp;#255;", "&amp;yuml;", "Latin small letter y with diaeresis" ]
 		];
 
+	$c = 0;
 	$bell = chr( 7 );
 
-	$c = 0;
 	$this->ansi_cmds = [
 #
 #		array( <Return>, <Function Name>, <Beginning Text>, <Options>, <Ending Text>, <Info>, <Text>, <Return Type> )
 #
 #	Notes:
 #
-#		Thee functions are called as $<var>->f###.
+#		These functions are called as $<var>->f###(<arguments>).
 #
 #		<options> = TRUE/FALSE. True = there is something to print
 #
@@ -663,6 +669,630 @@ function init()
 		];
 
 #
+#	C1 (8-Bit) Control Characters
+#
+	$ind = "\eD";
+	$nel = "\eE";
+	$hts = "\eH";
+	$ri = "\eM";
+	$ss2 = "\eN";
+	$ss3 = "\eO";
+	$dcs = "\eP";
+	$spa = "\eV";
+	$epa = "\eW";
+	$sos = "\eX";
+	$decid = "\eZ";
+	$csi = "\e[";
+	$st = "\e\\";
+	$osc = "\e]";
+	$pm = "\e^";
+	$apc = "\e_";
+
+
+	$c = 1;
+	$xterm_036 = [
+			[ "VT320 provides these:", "", "", "", 1, 1 ] ,
+			[ "Send<br>This", "", "What is sent", "What it does", 1, 0 ] ,
+			[ $c++, "=>", "DCS 0 ! u % 5 ST", "DEC Supplemental Graphic", 0, 0 ] ,
+			[ $c++, "=>", "DCS 1 ! u A ST", "ISO Latin-1 supplemental", 0, 0 ] ,
+			[ "VT510&nbsp;adds&nbsp;these:", "", "", "", 1, 1 ] ,
+			[ $c++, "=>", 'DCS 0 ! u " ? ST', "DEC Greek", 0, 0 ] ,
+			[ $c++, "=>", 'DCS 0 ! u " 4 ST', "DEC Hebrew", 0, 0 ] ,
+			[ $c++, "=>", "DCS 0 ! u % 0 ST", "DEC Turkish", 0, 0 ] ,
+			[ $c++, "=>", "DCS 0 ! u & 4 ST", "DEC Cyrillic", 0, 0 ] ,
+			[ $c++, "=>", "DCS 1 ! u B ST", "ISO Latin-2 Supplemental", 0, 0 ] ,
+			[ $c++, "=>", "DCS 1 ! u F ST", "ISO Greek Supplemental", 0, 0 ] ,
+			[ $c++, "=>", "DCS 1 ! u H ST", "ISO Hebrew Supplemental", 0, 0 ] ,
+			[ $c++, "=>", "DCS 1 ! u M ST", "ISO Latin-5 Supplemental", 0, 0 ] ,
+			[ $c++, "=>", "DCS 1 ! u L ST", "ISO Latin-Cyrillic", 0, 0 ] ,
+			[ "VT520 accepts a few others (undocumented);<br>xterm adds these:", "", "", "", 1, 1 ] ,
+			[ $c++, "=>", "DCS 0 ! u B ST", "United States (USASCII).", 0, 0, ] ,
+			[ $c++, "=>", "DCS 0 ! u 0 ST", "DEC Special Character and Line Drawing", 0, 0 ] ,
+			[ "Set", "", "", "", 1, 1 ] ,
+			[ $c++, "=>", "DCS 0 ! u > ST", "DEC Technical.", 0, 0 ]
+		];
+
+	$xterm_xt36 = [
+		"",
+		"0!u%5",
+		"1!uA",
+		'0!u"?',
+		'0!u"4',
+		"0!u%0",
+		"0!u&4",
+		"1!uB",
+		"1!uF",
+		"1!uH",
+		"1!uM",
+		"1!uL",
+		"0!uB",
+		"0!u0",
+		"0!u>"
+		];
+
+	$xterm_table_36 = $this->inlineTable( $xterm_036 );
+
+	$c = 1;
+	$xterm_037 = [
+		[ $c++, 'm', "=>", "SGR", 0, 0 ],
+		[ $c++, '" p', "=>", "DECSCL", 0, 0 ],
+		[ $c++, ' q', "=>", "DECSCUSR", 0, 0 ],
+		[ $c++, '" q', "=>", "DECSCA", 0, 0 ],
+		[ $c++, 'r', "=>", "DECSTBM", 0, 0 ],
+		[ $c++, 's', "=>", "DECSLRM", 0, 0 ],
+		[ $c++, 't', "=>", "DECSLPP", 0, 0 ],
+		[ $c++, '$ |', "=>", "DECSCPP", 0, 0 ],
+		[ $c++, '$ }', "=>", "DECSASD", 0, 0 ],
+		[ $c++, '$ ~', "=>", "DECSSDT", 0, 0 ],
+		[ $c++, '* x', "=>", "DECSACE", 0, 0 ],
+		[ $c++, '* |', "=>", "DECSNLS", 0, 0 ],
+		[ $c++, ', |', "=>", "DECAC (VT525 only)", 0, 0 ],
+		[ $c++, ', }', "=>", "DECATC (VT525 only)", 0, 0 ],
+		[ $c++, '> %c[;%c...] m', "=>", "XTQMODKEYS (xterm)", 0, 0 ],
+		];
+
+	$xterm_xt37 = [
+		'm',
+		'"p',
+		' q',
+		'"q',
+		'r',
+		's',
+		't',
+		'$|',
+		'$}',
+		'$~',
+		'*x',
+		'*|',
+		',|',
+		',}',
+		'>%cm'
+		];
+
+	$xterm_table_37 = $this->inlineTable( $xterm_037 );
+
+	$c = 0;
+	$ba = "<a href='https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Definitions'>website</a>";
+	$this->xterm_cmds = [
+#
+#		array( <Return>, <Function Name>, <Beginning Text>, <Options>, <Ending Text>, <Info>, <Text>, <Return Type> )
+#
+#	Notes:
+#
+#		These functions are called as $<var>->xt###(<arguments>).
+#
+#		<options> = TRUE/FALSE. True = there is something to print
+#
+		[ false,  "xt" . $c++,  "\e ", null, "F", "xterm:",
+			"Tells the terminal to send C1 control characters as 7-bit sequences" ],
+		[ false,  "xt" . $c++,  "\e ", null, "G", "xterm:",
+			"Tells the terminal to send C1 control characters as 8-bit sequences" ],
+		[ false,  "xt" . $c++,  "\e ", null, "L", "xterm:", "Set ANSI conformance level 1, ECMA-43" ],
+		[ false,  "xt" . $c++,  "\e ", null, "M", "xterm:", "Set ANSI conformance level 2, ECMA-43" ],
+		[ false,  "xt" . $c++,  "\e ", null, "N", "xterm:", "Set ANSI conformance level 3, ECMA-43" ],
+		[ false,  "xt" . $c++,  "\e#", null, "3", "xterm:", "DEC double-height line, top half (DECDHL), VT100" ],
+		[ false,  "xt" . $c++,  "\e#", null, "4", "xterm:", "DEC double-height line, bottom half (DECDHL), VT100" ],
+		[ false,  "xt" . $c++,  "\e#", null, "5", "xterm:", "DEC single-width line (DECSWL), VT100" ],
+		[ false,  "xt" . $c++,  "\e#", null, "6", "xterm:", "DEC double-width line (DECSWL), VT100" ],
+		[ false,  "xt" . $c++,  "\e#", null, "8", "xterm:", "DEC Screen Alignment Test (DECALN), VT100" ],
+		[ false,  "xt" . $c++,  "\e%", null, "@", "xterm:",
+			"Select default character set. That is ISO 8859-1 (ISO 2022)" ],
+
+		[ false,  "xt" . $c++,  "\e%", null, "G", "xterm:", "Select UTF-8 character set, ISO 2022" ],
+		[ false,  "xt" . $c++,  "\e(", "%s", "A", "xterm:",
+			"Designate G0 Character Set, VT100, ISO 2022. " .
+			"Please check the XTerm $ba for each language." ],
+
+		[ false,  "xt" . $c++,  "\e)", "%s", "A", "xterm:", "Designate G1 Character Set, ISO 2022, VT100" ],
+		[ false,  "xt" . $c++,  "\e*", "%s", "A", "xterm:", "Designate G2 Character Set, ISO 2022, VT100" ],
+		[ false,  "xt" . $c++,  "\e+", "%s", "A", "xterm:", "Designate G3 Character Set, ISO 2022, VT100" ],
+		[ false,  "xt" . $c++,  "\e-", "%s", "A", "xterm:",
+			"Designate G3 Character Set, ISO 2022, VT220. " .
+			"Please check the XTerm $ba for each language." ],
+
+		[ false,  "xt" . $c++,  "\e.", "%s", "A", "xterm:", "Designate G2 Character Set, VT300" ],
+		[ false,  "xt" . $c++,  "\e/", "%s", "A", "xterm:", "Designate G3 Character Set, VT300" ],
+		[ false,  "xt" . $c++,  "\e", null, 6, "xterm:", "Back Index (DECBI), VT420 and up" ],
+		[ false,  "xt" . $c++,  "\e", null, 7, "xterm:", "Save Cursor (DECSC), VT100" ],
+		[ false,  "xt" . $c++,  "\e", null, 8, "xterm:", "Restore Cursor (DECRC), VT100" ],
+		[ false,  "xt" . $c++,  "\e", null, 9, "xterm:", "Forward Index (DECFI), VT420 and up" ],
+		[ false,  "xt" . $c++,  "\e", null, "=", "xterm:", "Application Keypad (DECKPAM)" ],
+		[ false,  "xt" . $c++,  "\e", null, ">", "xterm:", "Normal Keypad (DECKPNM), VT100" ],
+		[ false,  "xt" . $c++,  "\e", null, "F", "xterm:", "Cursor to lower left corner of screen" ],
+		[ false,  "xt" . $c++,  "\e", null, "c", "xterm:", "Full Reset (RIS), VT100" ],
+		[ false,  "xt" . $c++,  "\e", null, "l", "xterm:",
+			"Memory Lock (per HP terminals). Locks memory above the cursor." ],
+
+		[ false,  "xt" . $c++,  "\e", null, "m", "xterm:", "Memory Unlock (per HP terminals)" ],
+		[ false,  "xt" . $c++,  "\e", null, "n", "xterm:", "Invoke the G2 Character Set as GL (LS2)" ],
+		[ false,  "xt" . $c++,  "\e", null, "o", "xterm:", "Invoke the G3 Character Set as GL (LS3)" ],
+		[ false,  "xt" . $c++,  "\e", null, "|", "xterm:", "Invoke the G3 Character Set as GR (LS3R)" ],
+		[ false,  "xt" . $c++,  "\e", null, "}", "xterm:", "Invoke the G2 Character Set as GR (LS2R)" ],
+		[ false,  "xt" . $c++,  "\e", null, "~", "xterm:", "Invoke the G1 Character Set as GR (LS1R), VT100" ],
+		[ false,  "xt" . $c++,  $apc . "A", null, "ST", "xterm:",
+			"None.  xterm implements no APC functions; Pt is ignored. " .
+			"Pt need not be printable characters." ],
+
+		[ false,  "xt" . $c++,  $dcs, '"%s"; ["%s" | "%s/%s;..."]', "ST", "xterm:",
+			"User-Defined Keys (DECUDK), VT220 and up. ALWAYS check the $ba " .
+			"to see what you should send to this function." ],
+
+		[ false,  "xt" . $c++,  $dcs, "%d", "ST", "xterm:",
+			"Assigning User-Preferred Supplemental Sets (DECAUPSS), VT320, " .
+			"VT510.  ALWAYS check the $ba to see what you should send to this function.<p>" .
+			"You can use the following table to send what you need to the function:" .
+			$xterm_table_36
+			],
+
+		[ false,  "xt" . $c++,  $dcs . "", "%s", "ST", "xterm:",
+			"Request Status String (DECRQSS), VT420 and up." .
+			"Use the following table to send a command:" . $xterm_table_37, "Mixed"
+			],
+
+		[ false,  "xt" . $c++,  $dcs . "", "%s", "ST", "xterm:",
+			"Restore presentation status (DECRSPS), VT320 and up.  The " .
+			"control can be converted from a response from DECCIR or " .
+			'DECTABSR by changing the first "u" to a "t". As always, be sure to' .
+			"check the $ba to see what you should send."
+			],
+
+		[ false,  "xt" . $c++,  $dcs . "", "+Q%s[;%s...]", "ST", "xterm:",
+			"Request resource values (XTGETXRES), xterm.  The string " .
+			"following the 'Q' is a list of names encoded in hexadecimal (2 " .
+			"digits per character) separated by ; which correspond to xterm " .
+			"resource names.", "Mixed"
+			],
+
+		[ false,  "xt" . $c++,  $dcs . "", "+p%s", "ST", "xterm:",
+			"Set Termcap/Terminfo Data (XTSETTCAP), xterm.  The string " .
+			"following the 'p' is encoded in hexadecimal.  After decoding " .
+			"it, xterm will use the name to retrieve data from the terminal " .
+			"database.  If successful, that overrides the termName resource " .
+			"when handling the 'tcap' keyboard configuration's function- " .
+			"and special-keys, as well as by the Request Termcap/Terminfo " .
+			"String control. "
+			],
+
+		[ false,  "xt" . $c++,  $dcs . "", "+q%s", "ST", "xterm:",
+			"Request Termcap/Terminfo String (XTGETTCAP), xterm.  The " .
+			"string following the 'q' is a list of names encoded in " .
+			"hexadecimal (2 digits per character) separated by ; which " .
+			"correspond to termcap or terminfo key names. " .
+			"A few special features are also recognized, which are not key " .
+			"names. Be sure to check the $ba for more information.", "Mixed"
+			],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "@", "xterm:",
+			"Insert Ps (Blank) Character(s) (default = 1) (ICH)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", " @", "xterm:",
+			"Shift left Ps columns(s) (default = 1) (SL), ECMA-48." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "A", "xterm:",
+			"Cursor Up Ps Times (default = 1) (CUU)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", " A", "xterm:",
+			"Shift right Ps columns(s) (default = 1) (SR), ECMA-48." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "B", "xterm:",
+			"Cursor Down Ps Times (default = 1) (CUD)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "C", "xterm:",
+			"Cursor Forward Ps Times (default = 1) (CUF)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "D", "xterm:",
+			"Cursor Backward Ps Times (default = 1) (CUB)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "E", "xterm:",
+			"Cursor Next Line Ps Times (default = 1) (CNL)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "F", "xterm:",
+			"Cursor Preceding Line Ps Times (default = 1) (CPL)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "G", "xterm:",
+			"Cursor Character Absolute  [column] (default = [row,1]) (CHA)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d;%d", "H", "xterm:",
+			"Cursor Position [row;column] (default = [1,1]) (CUP)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "I", "xterm:",
+			"Cursor Forward Tabulation Ps tab stops (default = 1) (CHT)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "J", "xterm:",
+			"Erase in Display (ED), VT100." ],
+
+		[ false,  "xt" . $c++,  $csi, "?%d", "J", "xterm:",
+			"Erase in Display (DECSED), VT220." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "K", "xterm:",
+			"Erase in Line (EL), VT100." ],
+
+		[ false,  "xt" . $c++,  $csi, "?%d", "K", "xterm:",
+			"Erase in Line (DECSEL), VT220." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "L", "xterm:",
+			"Insert Ps Line(s) (default = 1) (IL)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "M", "xterm:",
+			"Delete Ps Line(s) (default = 1) (DL)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "P", "xterm:",
+			"Delete Ps Character(s) (default = 1) (DCH)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "P", "xterm:",
+			"Push current dynamic- and ANSI-palette colors onto stack " .
+			"(XTPUSHCOLORS), xterm.  Parameters (integers in the range 1 " .
+			"through 10, since the default 0 will push) may be used to " .
+			"store the palette into the stack without pushing. " ],
+
+		[ false,  "xt" . $c++,  $csi, "%c[;%c;]%d", "P", "xterm:",
+			"Push current dynamic- and ANSI-palette colors onto stack " .
+			"(XTPUSHCOLORS), xterm.  Parameters (integers in the range 1 " .
+			"through 10, since the default 0 will push) may be used to " .
+			"store the palette into the stack without pushing. " ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "Q", "xterm:",
+			"Pop stack to set dynamic- and ANSI-palette colors " .
+			"(XTPOPCOLORS), xterm.  Parameters (integers in the range 1 " .
+			"through 10, since the default 0 will pop) may be used to " .
+			"restore the palette from the stack without popping. " ],
+
+		[ false,  "xt" . $c++,  $csi, "%c[%c;...]%d", "Q", "xterm:",
+			"Pop stack to set dynamic- and ANSI-palette colors " .
+			"(XTPOPCOLORS), xterm.  Parameters (integers in the range 1 " .
+			"through 10, since the default 0 will pop) may be used to " .
+			"restore the palette from the stack without popping." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "R", "xterm:",
+			"Report the current entry on the palette stack, and the number " .
+			"of palettes stored on the stack, using the same form as " .
+			"XTPOPCOLOR (default = 0) (XTREPORTCOLORS), xterm." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "S", "xterm:",
+			"Scroll up Ps lines (default = 1) (SU), VT420, ECMA-48." ],
+
+		[ false,  "xt" . $c++,  $csi, "?%d;%d;%d[;%d]", "S", "xterm:",
+			"Set or request graphics attribute (XTSMGRAPHICS), xterm.  If " .
+			"configured to support either Sixel Graphics or ReGIS Graphics, " .
+			"xterm accepts a three-parameter control sequence, where Pi, Pa " .
+			"and Pv are the item, action and value. " .
+			"Be sure to check the $ba for more information." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s", "T", "xterm:",
+			"Scroll down Ps lines (default = 1) (SD), VT420." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s;%d;%d;%d;%d", "T", "xterm:",
+			"Initiate highlight mouse tracking (XTHIMOUSE), xterm. " .
+			"Parameters are [func;startx;starty;firstrow;lastrow].  See the " .
+			"section Mouse Tracking. " ],
+
+		[ false,  "xt" . $c++,  $csi . ">", "%d[;%d...]", "T", "xterm:",
+			"Reset title mode features to default value (XTRMTITLE), xterm. " .
+			"Normally, 'reset' disables the feature.  It is possible to " .
+			"disable the ability to reset features by compiling a different " .
+			"default for the title modes into xterm. " ],
+
+		[ false,  "xt" . $c++,  $csi . "?5", null, "W", "xterm:",
+			"Reset tab stops to start with column 9, every 8 columns (DECST8C), VT510." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "X", "xterm:",
+			"Erase Ps Character(s) (default = 1) (ECH)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "Z", "xterm:",
+			"Cursor Backward Tabulation Ps tab stops (default = 1) (CBT)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "^", "xterm:",
+			"Scroll down Ps lines (default = 1) (SD), ECMA-48. " .
+			"This was a publication error in the original ECMA-48 5th " .
+			"edition (1991) corrected in 2003. " ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "`", "xterm:",
+			"Character Position Absolute  [column] (default = [row,1]) (HPA)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "a", "xterm:",
+			"Character Position Relative  [columns] (default = [row,col+1]) (HPR)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "b", "xterm:",
+			"Repeat the preceding graphic character Ps times (REP)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "c", "xterm:",
+			"Send Device Attributes (Primary DA). " .
+			"Be sure to check the $ba for more information." ],
+
+		[ false,  "xt" . $c++,  $csi . "=", "%s[;%s...]", "c", "xterm:",
+			"Send Device Attributes (Tertiary DA)." ],
+
+		[ false,  "xt" . $c++,  $csi . ">", "%s[;%s...]", "c", "xterm:",
+			"Send Device Attributes (Secondary DA). " .
+			"Be sure to check the $ba for more information." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "d", "xterm:",
+			"Line Position Absolute  [row] (default = [1,column]) (VPA)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "e", "xterm:",
+			"Line Position Relative  [rows] (default = [row+1,column]) (VPR)." ],
+
+		[ false,  "xt" . $c++,  $csi, "[%s;...][;%s...]", "f", "xterm:",
+			"Horizontal and Vertical Position [row;column] (default = [1,1]) (HVP)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "g", "xterm:",
+			"Tab Clear (TBC).  ECMA-48 defines additional codes, but the " .
+			"VT100 user manual notes that it ignores other codes.  DEC's " .
+			"later terminals (and xterm) do the same, for compatibility. " ],
+
+		[ false,  "xt" . $c++,  $csi, "%d[;%d...]", "h", "xterm:", "Set Mode (SM)." ],
+
+		[ false,  "xt" . $c++,  $csi . "?", "%d[;%d...]", "h", "xterm:",
+			"DEC Private Mode Set (DECSET). " .
+			"Be sure to check the $ba for more information." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "i", "xterm:",
+			"Media Copy (MC)." ],
+
+		[ false,  "xt" . $c++,  $csi . "?", "%s[;%s...]", "i", "xterm:",
+			"Media Copy (MC), DEC-specific." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d[;%d...]", "l", "xterm:", 
+			"Reset Mode (RM)." ],
+
+		[ false,  "xt" . $c++,  $csi . "?", "%d[;%d...]", "l", "xterm:", 
+			"DEC Private Mode Reset (DECRST). " .
+			"Be sure to check the $ba for more information." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d[;%d...]", "m", "xterm:", 
+			"Character Attributes (SGR). " .
+			"Be sure to check the $ba for more information." ],
+
+		[ false,  "xt" . $c++,  $csi . ">", "[%d;...];[%d;...]", "m", "xterm:", 
+			"Set/reset key modifier options (XTMODKEYS), xterm.  Set or " .
+			"reset resource-values used by xterm to decide whether to " .
+			"construct escape sequences holding information about the " .
+			"modifiers pressed with a given key. " .
+			"Be sure to check the $ba for more information." ],
+
+		[ false,  "xt" . $c++,  $csi . ">", "[%d;...]", "m", "xterm:", 
+			"Set/reset key modifier options (XTMODKEYS), xterm.  Set or " .
+			"reset resource-values used by xterm to decide whether to " .
+			"construct escape sequences holding information about the " .
+			"modifiers pressed with a given key. " .
+			"Be sure to check the $ba for more information." ],
+
+		[ false,  "xt" . $c++,  $csi . "?", "[%d;...]", "m", "xterm:", 
+			"Query key modifier options (XTQMODKEYS), xterm." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "n", "xterm:", 
+			"Device Status Report (DSR)." ],
+
+		[ false,  "xt" . $c++,  $csi . ">", "%s[;%s...]", "n", "xterm:", 
+			"Disable key modifier options, xterm.  These modifiers may be " .
+			"enabled via the CSI > Pm m sequence.  This control sequence " .
+			"corresponds to a resource value of '-1', which cannot be set " .
+			"with the other sequence. " ],
+
+		[ false,  "xt" . $c++,  $csi . "?", "%s[;%s...]", "n", "xterm:", 
+			"Device Status Report (DSR, DEC-specific). " .
+			"Be sure to check the $ba for more information." ],
+
+		[ false,  "xt" . $c++,  $csi . ">", "%s[;%s...]", "p", "xterm:", 
+			"Set resource value pointerMode (XTSMPOINTER), xterm.  This is " .
+			"used by xterm to decide whether to hide the pointer cursor as " .
+			"the user types. " ],
+
+		[ false,  "xt" . $c++,  $csi . "!", null, "p", "xterm:", 
+			"Soft terminal reset (DECSTR), VT220 and up." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d%d;%d", '"p', "xterm:", 
+			"Set conformance level (DECSCL), VT220 and up." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "\$p", "xterm:", 
+			"Request ANSI mode (DECRQM)." ],
+
+		[ false,  "xt" . $c++,  $csi . "?", "%s[;%s...]", "\$p", "xterm:", 
+			"Request DEC private mode (DECRQM)." ],
+
+		[ false,  "xt" . $c++,  $csi . "#", null, 'p', "xterm:", 
+			"Push video attributes onto stack (XTPUSHSGR), xterm." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d%d;%d", '#p', "xterm:", 
+			"Push video attributes onto stack (XTPUSHSGR), xterm." ],
+
+		[ false,  "xt" . $c++,  $csi . ">0", null, 'q', "xterm:", 
+			"Ps = 0  ¿  Report xterm name and version (XTVERSION). " .
+			"The response is a DSR sequence identifying the version: " .
+			"DCS > | text ST " ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "q", "xterm:", 
+			"Load LEDs (DECLL), VT100." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", " q", "xterm:", 
+			"Set cursor style (DECSCUSR), VT520." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", '"q', "xterm:", 
+			"Select character protection attribute (DECSCA), VT220.  Valid " .
+			"values for the parameter: " ],
+
+		[ false,  "xt" . $c++,  $csi, null, '#q', "xterm:", 
+			"Pop video attributes from stack (XTPOPSGR), xterm.  This is an " .
+			"alias for CSI # } , used to work around language limitations " .
+			"of C# " ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "r", "xterm:", 
+			"Set Scrolling Region [top;bottom] (default = full size of " .
+			"window) (DECSTBM), VT100. " ],
+
+		[ false,  "xt" . $c++,  $csi . "?", "%d[;%d...]", "r", "xterm:", 
+			"Restore DEC Private Mode Values (XTRESTORE), xterm.  The value " .
+			"of Ps previously saved is restored.  Ps values are the same as " .
+			"for DECSET. " ],
+
+		[ false,  "xt" . $c++,  $csi, "%d;%d;%d;%d", "\$r", "xterm:", 
+			"Change Attributes in Rectangular Area (DECCARA), VT400 and up." ],
+
+		[ false,  "xt" . $c++,  $csi, null, "s", "xterm:", 
+			"Save cursor, available only when DECLRMM is disabled (SCOSC, " .
+			"also ANSI.SYS). " ],
+
+		[ false,  "xt" . $c++,  $csi, "%d;%d", "s", "xterm:", 
+			"Set left and right margins (DECSLRM), VT420 and up.  This is " .
+			"available only when DECLRMM is enabled. " ],
+
+		[ false,  "xt" . $c++,  $csi . ">", "%s[;%s...]", "s", "xterm:", 
+			"Set/reset shift-escape options (XTSHIFTESCAPE), xterm.  This " .
+			"corresponds to the shiftEscape resource. " ],
+
+		[ false,  "xt" . $c++,  $csi . "?", "%s[;%s...]", "s", "xterm:", 
+			"Save DEC Private Mode Values (XTSAVE), xterm.  Ps values are " .
+			"the same as for DECSET. " ],
+
+		[ false,  "xt" . $c++,  $csi, "[%s;%s...];%s[;%s...];%s[;%s...]", "t", "xterm:", 
+			"Window manipulation (XTWINOPS), dtterm, extended by xterm. " .
+			"These controls may be disabled using the allowWindowOps resource. " .
+			"Be sure to check the $ba for more information." ],
+
+		[ false,  "xt" . $c++,  $csi . ">", "%d[;%d...]", "t", "xterm:", 
+			"This xterm control sets one or more features of the title " .
+			"modes (XTSMTITLE), xterm.  Each parameter enables a single " .
+			"feature. " ],
+
+		[ false,  "xt" . $c++,  $csi, "%d[;%d...]", " t", "xterm:", 
+			"Set warning-bell volume (DECSWBV), VT520." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d;%d;%d;%d", "\$t", "xterm:", 
+			"Reverse Attributes in Rectangular Area (DECRARA), VT400 and up." ],
+
+		[ false,  "xt" . $c++,  $csi, null, "u", "xterm:", 
+			"Restore cursor (SCORC, also ANSI.SYS)." ],
+
+		[ false,  "xt" . $c++,  $csi, null, "&u", "xterm:", 
+			"User-Preferred Supplemental Set (DECRQUPSS), VT320, VT510. " .
+			"Response is DECAUPSS. " ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", " u", "xterm:", 
+			"Set margin-bell volume (DECSMBV), VT520." ],
+
+		[ false,  "xt" . $c++,  $csi, null, '"v', "xterm:", 
+			"Request Displayed Extent (DECRQDE), VT340, VT420." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d;%d;%d;%d;%d;%d;%d", "\$v", "xterm:", 
+			"Copy Rectangular Area (DECCRA), VT400 and up" ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "\$w", "xterm:", 
+			"Request presentation state report (DECRQPSR), VT320 and up." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d;%d;%d;%d", "'w", "xterm:", 
+			"Enable Filter Rectangle (DECEFR), VT420 and up." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "x", "xterm:", 
+			"Request Terminal Parameters (DECREQTPARM)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "*x", "xterm:", 
+			"Select Attribute Change Extent (DECSACE), VT420 and up." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d;%d;%d;%d;%d", "\$x", "xterm:", 
+			"Fill Rectangular Area (DECFRA), VT420 and up." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "#y", "xterm:", 
+			"Select checksum extension (XTCHECKSUM), xterm.  The bits of Ps " .
+			"modify the calculation of the checksum returned by DECRQCRA: " ],
+
+		[ false,  "xt" . $c++,  $csi, "%d;%d;%d;%d;%d;%d", "*x", "xterm:", 
+			"Request Checksum of Rectangular Area (DECRQCRA), VT420 and up." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d;%d", "'z", "xterm:", 
+			"Enable Locator Reporting (DECELR)." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d;%d;%d;%d", "\$z", "xterm:", 
+			"Erase Rectangular Area (DECERA), VT400 and up." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "'{", "xterm:", 
+			"Select Locator Events (DECSLE)." ],
+
+		[ false,  "xt" . $c++,  $csi, null, "#{", "xterm:", 
+			"Push video attributes onto stack (XTPUSHSGR), xterm.  The " .
+			"optional parameters correspond to the SGR encoding for video " .
+			"attributes, except for colors (which do not have a unique SGR " .
+			"code): " ],
+
+		[ false,  "xt" . $c++,  $csi, "%d", "#{", "xterm:", 
+			"Push video attributes onto stack (XTPUSHSGR), xterm.  The " .
+			"optional parameters correspond to the SGR encoding for video " .
+			"attributes, except for colors (which do not have a unique SGR code): " ],
+
+		[ false,  "xt" . $c++,  $csi, "%d;%d;%d;%d", "\${", "xterm:", 
+			"Selective Erase Rectangular Area (DECSERA), VT400 and up." ],
+
+		[ false,  "xt" . $c++,  $csi, "%d;%d;%d;%d", "#|", "xterm:", 
+			"Report selected graphic rendition (XTREPORTSGR), xterm." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "\$|", "xterm:", 
+			"Select columns per page (DECSCPP), VT340." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "'|", "xterm:", 
+			"Request Locator Position (DECRQLP). " .
+			"Be sure to check the $ba for more information." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "*|", "xterm:", 
+			"Select number of lines per screen (DECSNLS), VT420 and up." ],
+
+		[ false,  "xt" . $c++,  $csi, null, "#}", "xterm:", 
+			"Pop video attributes from stack (XTPOPSGR), xterm." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s;%d;%d", ",|", "xterm:", 
+			"Assign Color (DECAC), VT525 only." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s;%d;%d", ",}", "xterm:", 
+			"Alternate Text Color (DECATC), VT525 only." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "'}", "xterm:", 
+			"Insert Ps Column(s) (default = 1) (DECIC), VT420 and up." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "\$}", "xterm:", 
+			"Select active status display (DECSASD), VT320 and up." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "'~", "xterm:", 
+			"Delete Ps Column(s) (default = 1) (DECDC), VT420 and up." ],
+
+		[ false,  "xt" . $c++,  $csi, "%s[;%s...]", "\$~", "xterm:", 
+			"Select status line type (DECSSDT), VT320 and up." ],
+
+		[ false,  "xt" . $c++,  $osc, "%s;%s[;%s...]", $bell, "xterm:",
+			"Ring the bell" ],
+
+		[ false,  "xt" . $c++,  $osc, "%s;%s[;%s...]", $st, "xterm:",
+			"Set Text Parameters, xterm. " .
+			"Be sure to check the $ba for more information." ],
+
+		[ false,  "xt" . $c++,  $osc, "%s[;%s...]", $st, "xterm:",
+			"xterm implements no PM" ],
+
+		[ false,  "xt" . $c++,  $csi . "1;", null, "t", "xterm:", "De-iconify window" ],
+		[ false,  "xt" . $c++,  $csi . "2;", null, "t", "xterm:", "Iconify window" ],
+		[ false,  "xt" . $c++,  $csi . "3;", "%d;%d", "t", "xterm:", "Move window to [ x, y ]" ],
+		[ false,  "xt" . $c++,  $csi . "4;", "%d;%d", "t", "xterm:",
+			"Resize the xterm window to height and width in pixels" ],
+		];
+
+#
 #	SGR Commands
 #
 #	Code 	Effect 	Note
@@ -731,7 +1361,7 @@ function init()
 		[ 62, "ideogram overline or left side line", "" ],
 		[ 63, "ideogram double overline or double line on the left side", "" ],
 		[ 64, "ideogram stress marking", "" ],
-		[ 65, "ideogram attributes off", "reset the effects of all of 60&dash;64" ],
+		[ 65, "ideogram attributes off", "reset the effects of all of 60-64" ],
 		[ 73, "superscript", "mintty (not in standard)" ],
 		[ 74, "subscript", "" ],
 		[ 90, "	Set bright foreground color", "aixterm (not in standard)" ],
@@ -908,6 +1538,7 @@ function init()
 <font class='e3'>http://www.injosoft.se/kontakta.asp</font><br>
 <font class='e3'>Paul Flo Williams (paul-AT-frixxon.co.uk)</font><br>
 <font class='e3'>https://theasciicode.com.ar/extended-ascii-code/lowercase-letter-a-acute-accent-ascii-code-160.html</font></br>
+<font class='e3'>https://invisible-island.net/xterm/ctlseqs/ctlseqs.html</font></br>
 EOD;
 
 	$this->who = $who;
@@ -952,7 +1583,7 @@ EOD;
 #			<options>, <Ending text>, <info>, <text> )
 #
 ################################################################################
-function __call( $name, $arguments )
+function __call( $cmdline, $arguments )
 {
 #
 #	The NAME is the number from the ANSI_CMDS array or ANSI documentation.
@@ -965,11 +1596,23 @@ function __call( $name, $arguments )
 #	use just f41(6).
 #
 	$dq = '"';
-	$name = substr( $name, 1, strlen($name) );
-	$ansi_cmd = $this->ansi_cmds[$name];
-	$ansi_handle = $this->ansi_handle;
+	if( preg_match("/^f/i", $cmdline) ){
+		$name = substr( $cmdline, 0, 1 );					#	This gets the "F"
+		$number = substr( $cmdline, 1, strlen($cmdline) );	#	This gets the ID
+		}
+		else {
+			$name = substr( $cmdline, 0, 2 );					#	This get the "XT"
+			$number = substr( $cmdline, 2, strlen($cmdline) );	#	This gets the ID
+			}
 
-	if( !is_array($ansi_cmd) ){ return false; }
+	if( $name == "f" ){ $ansi_cmd = $this->ansi_cmds[$number]; }
+		else { $ansi_cmd = $this->xterm_cmds[$number]; }
+#
+#	Used to use POPEN for this
+#
+#	$ansi_handle = $this->ansi_handle;
+
+	if( !is_array($ansi_cmd) ){ die( "***** ERROR : Unknown command - $number" ); }
 
 	$b = $ansi_cmd[2];	//	Beginning of the string
 	$e = $ansi_cmd[4];	//	Ending of the string
@@ -982,18 +1625,30 @@ function __call( $name, $arguments )
 #	Move all options into INFO.
 #	This gets rid of everything - strings, numbers, etc...
 #
-	if( $ansi_cmd[3] ){
+	if( $ansi_cmd[3] && ($name == "f") ){
 #
 #	Certain of the DEC PRIVATE commands require specific ways of putting them
 #	together. For instance - the "\e[P" command requires TWO arguments and
 #	they have to be put together like this: "\e[Pn;PnR".
 #
-		if( preg_match("/f71/i", $name) ){ $info = "$arguments[0];$dq$arguments[1]$dq"; }
+		if( preg_match("/f71/i", $cmdline) ){ $info = "$arguments[0];$dq$arguments[1]$dq"; }
 			else { $info = implode( ";", $arguments ); }
 
 		$info = str_replace( ";;", ";", $info );	//	Remove duplicate semi_colons
 		$info = preg_replace( "/;$/", "", $info );	//	Remove trailing semi_colons
 		}
+		else if( $ansi_cmd[3] && ($name == "xt") ){
+			if( preg_match("/xt36/i", $cmdline) ){
+				$info = $this->xterm_xt36[$arguments[0]];	#	Add in the number from 1-14
+				}
+				else if( preg_match("/xt37/i", $cmdline) ){
+					$info = $this->xterm_xt37[$arguments[0]];	#	Add in the number from 1-14
+					}
+				else { $info = implode( ";", $arguments ); }
+
+			$info = str_replace( ";;", ";", $info );	//	Remove duplicate semi_colons
+			$info = preg_replace( "/;$/", "", $info );	//	Remove trailing semi_colons
+			}
 		else { $info = ""; }
 #
 #	Now create the command and do it
@@ -1069,6 +1724,8 @@ h2.font { font: 16pt normal serif; }
 h5.border {border-top: 1px solid black; border-bottom: 1px solid black; width: 800px; }
 ol.width { width: 800px; }
 table.w1 { width: 250; }
+table.w90 { width: 90%; }
+table.w1200 { width: 1200px; }
 hr.width { width: 800px; max-width: 800px; }
 hr.m0	{ margin: 0px; }
 td.l1 { text-align:left; }
@@ -1089,7 +1746,10 @@ td.m4 { font: normal 24pt monospace; }
 td.m5 { font: normal 36pt monospace; }
 td.bold { font-weight: bold; }
 td.serif { font: bold 12pt serif; }
-p.ml { margin-left: $space_20px; inline-size: 800px; overflow-wrap: break-word; }
+p.m1 { margin-left: $space_20px; inline-size: 800px; overflow-wrap: break-word; }
+p.m2 { margin-left: $space_20px; display: table; margin-right : auto; }
+p.l1 { text-align:left; }
+p.nobr { white-space: nowrap; }
 tr.odd { background-color: #f0f0f0; }
 tr.even { background-color: #ddddff; }
 td.nowrap { white-space: nowrap; }
@@ -1170,6 +1830,7 @@ EOD;
 	$doc .= $this->docs_ascii();
 	$doc .= $this->docs_display_1();
 	$doc .= $this->docs_vt100();
+	$doc .= $this->docs_xterm();
 
 	$doc .= <<<EOD
 </body>
@@ -1191,7 +1852,7 @@ private function docs_bit34()
 #
 	$doc =  <<<EOD
 <p style="page-break-before: always">
-<h1 class='border font'>BIT 34 Documenation</h1>
+<h1 class='border font'>BIT 34 Documentation</h1>
 
 $this->who
 <p>
@@ -1216,15 +1877,15 @@ private function docs_ansi()
 
 	$doc = <<<EOD
 <p style="page-break-before: always">
-<h1 class='border font'>ANSI Documenation</h1>
+<h1 class='border font'>ANSI Documentation</h1>
 
 $this->who
 
 <h2 class='font'>Instructions</h2>
 
-<p class='ml'>The way this program works is easy. Really - really easy.</p>
+<p class='m1'>The way this program works is easy. Really - really easy.</p>
 
-<p class='ml'>First - you declare a variable and it becomes a pointer
+<p class='m1'>First - you declare a variable and it becomes a pointer
 to the class. Like so:</p>
 
 <font class='e1'>\$var = new class_ansi();</font><p>
@@ -1245,22 +1906,22 @@ EOD;
 	$doc .= <<<EOD
 <p>
 
-<p class='ml'>Then you look up the funcion ID number in the ANSI
+<p class='m1'>Then you look up the funcion ID number in the ANSI
 table. (That is the column with the "f###" number in
 it. You then call THAT function. The reason I'm using the
 "f###" id numbers is because then you don't have to remember
 the hundreds of function names.</p><p>
 
-<p class='ml'>For example, let us say you want to move the cursor
+<p class='m1'>For example, let us say you want to move the cursor
 to position (5,5). You would do this with the f19
 function. Like so:<p>
 
 <font class='e1'>\$var->f19(5,5);</font><p>
 
-<p class='ml'>This would make the cursor move to the (5,5)
+<p class='m1'>This would make the cursor move to the (5,5)
 location.</p><p>
 
-<p class='ml'>Let us say you need to get a value back. This is
+<p class='m1'>Let us say you need to get a value back. This is
 extremely simple. All you do is to call the proper function
 (again - look at the list to find it) and then just call
 that function and give some place for the information to
@@ -1268,7 +1929,7 @@ go. Like this:</p><p>
 
 <font class='e1'>\$info = \$var->f70();</font><p>
 
-<p class='ml'>This returns where the cursor currenly is located. This
+<p class='m1'>This returns where the cursor currenly is located. This
 SPECIAL function already has the proper string to look for
 and so it does the fscanf() function on it to return an
 array with two entries in it. (In other words : (Y,X).) So
@@ -1276,7 +1937,7 @@ the above returns:</p><p>
 
 <font class='e1'>\$info[0] and \$info[1] which are X and Y.</font><p>
 
-<p class='ml'>If, instead, you wanted to use function f41 and send
+<p class='m1'>If, instead, you wanted to use function f41 and send
 over the correct string, THEN you would get just a string
 back. The same string found on f70. So:</p><p>
 
@@ -1290,7 +1951,7 @@ back. The same string found on f70. So:</p><p>
 
 <font class='e1'>\$info = \$var->f41("6");</font><p>
 
-<p class='ml'>Will only just return a string (%s) and you
+<p class='m1'>Will only just return a string (%s) and you
 would have to use fscanf to get the information out of
 the string. Now - you are probably going "Well, is the
 program smart enough to know that f41(6) is the same as
@@ -1308,19 +1969,19 @@ does. Period. Full Stop.<p>
 
 <h2 class='font'>Notes</h2>
 
-<p class='ml>All information being passed INTO these functions are
+<p class='m1>All information being passed INTO these functions are
 STRINGS. These 'strings' are either going to be a number
 (like '5') or a string-string (like 'Hi!'). IT IS UP TO
 YOU to figure out what you need to send. It is not hard. In
 other words - read the documentation.</p><p>
 
-<p class='ml'>Also note
+<p class='m1'>Also note
 that numeric strings can JUST BE PASSED IN AS
 NUMBERS. PHP will recognize the number 5 as a string
 also. (So it is both a 5 and a '5' in the function
 itself.)</p><p>
 
-<p class='ml'>Note that function f43() has three separate ways
+<p class='m1'>Note that function f43() has three separate ways
 to clear the screen.  Also remember these are for MY
 computer and should work the same on YOUR computer. Check
 the VT100 documentation on how it should operate. Here is
@@ -1331,7 +1992,7 @@ the top of the screen but the cursor does not move. Option
 2 moves the cursor to the top left corner (sometimes called
 the ORIGIN) and the entire screen is cleared.</p><p>
 
-<p class='ml'>YOU (and anyone else who uses this class) should update
+<p class='m1'>YOU (and anyone else who uses this class) should update
 the documentation in this program (changes, updates,
 corrections) as you can and then send it back to me at
 markem-AT-sim1.us. I am only human and know I make mistakes
@@ -1370,13 +2031,13 @@ private function docs_sgr()
 
 	$doc =  <<<EOD
 <p style="page-break-before: always">
-<h1 class='border font'>SGR Command Documenation</h1>
+<h1 class='border font'>SGR Command Documentation</h1>
 
 $this->who
 
 <h2 class='font'>Notes</h2>
 
-<p class='ml'>All information being shown are STRINGS.</p>
+<p class='m1'>All information being shown are STRINGS.</p>
 
 <p>
 EOD;
@@ -1404,11 +2065,11 @@ $this->who
 
 <h2 class='font'>Notes</h2>
 
-<p class='ml'>This part of the document comes directly from Injosoft
+<p class='m1'>This part of the document comes directly from Injosoft
 located at http://www.injosoft.se/kontakta.asp. This is
 an excellently laid out ASCII table.</p><p>
 
-<p class='ml'>ASCII, stands for American Standard Code for
+<p class='m1'>ASCII, stands for American Standard Code for
 Information Interchange. It's a 7-bit character code
 where every single bit represents a unique character. On
 this webpage you will find 8 bits, 256 characters,
@@ -1422,13 +2083,13 @@ From : Injosoft (Sweden) - Webbdesign & Systemveckling</p><p>
 
 <h3 class='font'>ASCII control characters (character code 0-31)</h3>
 
-<p class='ml'>The first 32 characters in the ASCII-table are
+<p class='m1'>The first 32 characters in the ASCII-table are
 unprintable control codes and are used to control
 peripherals such as printers.</p><p>
 
 <h3 class='font'>ASCII printable characters (character code 32-127)</h3>
 
-<p class='ml'>Codes 32-127 are common for all the different variations
+<p class='m1'>Codes 32-127 are common for all the different variations
 of the ASCII table, they are called printable characters,
 represent letters, digits, punctuation marks, and a few
 miscellaneous symbols. You will find almost every character
@@ -1436,7 +2097,7 @@ on your keyboard. Character 127 represents the command DEL.</p><p>
 
 <h3 class='font'>The extended ASCII codes (character code 128-255)</h3>
 
-<p class='ml'>There are several different variations of the 8-bit
+<p class='m1'>There are several different variations of the 8-bit
 ASCII table. The table below is according to Windows-1252
 (CP-1252) which is a superset of ISO 8859-1, also called
 ISO Latin-1, in terms of printable characters, but
@@ -1445,7 +2106,7 @@ characters rather than control characters in the 128 to
 159 range. Characters that differ from ISO-8859-1 is marked
 by light blue color.</p><p>
 
-<p class='ml'>PS : You may want to go visit their website
+<p class='m1'>PS : You may want to go visit their website
 to learn more</p><p>
 
 <p>
@@ -1474,10 +2135,10 @@ private function docs_display_1()
 $this->who
 <p>
 
-<p class='ml'>Use these commands to send the appropriate id number to a terminal
+<p class='m1'>Use these commands to send the appropriate id number to a terminal
 So you get all of the colors and blink letters and such. This is
 used with the ANSI Table "f61" command found above.</p>
-<p class='ml'>
+<p class='m1'>
 <table class='tbln' width='885px'><tbody><tr class='trn'>
 <td class='tdn pad10'>NOTE</td>
 <td class='tds'>&nbsp;</td>
@@ -1528,11 +2189,11 @@ EOD;
 
 <h4 class='font'>DECARM - Auto Repeat Mode (DEC Private)</h4>
 
-<p class='ml'>function requires you to look for HOW to
+<p class='m1'>function requires you to look for HOW to
 do these commands by going through the documentation and
 then figuring out how to use it.</p><p>
 
-<p class='ml'>The following listing defines the basic elements of
+<p class='m1'>The following listing defines the basic elements of
 the ANSI mode control sequences. A more complete listing
 appears in Appendix A. This document was produced by Paul
 Flo Williams (paul-AT-frixxon.co.uk) and is copyrighted
@@ -1542,26 +2203,26 @@ emulates.</p><p>
 
 <h3 class='font'>Control Sequence Introducer (CSI)</h3>
 
-<p class='ml'>An escape sequence that provides supplementary controls
+<p class='m1'>An escape sequence that provides supplementary controls
 and is itself a prefix affecting the interpretation of a
 limited number of contiguous characters. In the VT100 the
 CSI is ESC [.</p><p>
 
 <h4 class='font'>Parameter</h4>
 
-<p class='ml'>A string of zero or more decimal characters which represent
+<p class='m1'>A string of zero or more decimal characters which represent
 a single value. Leading zeroes are ignored. The decimal
 characters have a range of 0 (608) to 9 (718).</p><p>
 
-<p class='ml'>The value so represented.</p><p>
+<p class='m1'>The value so represented.</p><p>
 
 <h4 class='font'>Numeric Parameter</h4>
 
-<p class='ml'>A parameter that represents a number, designated by Pn.</p><p>
+<p class='m1'>A parameter that represents a number, designated by Pn.</p><p>
 
 <h4 class='font'>Selective Parameter</h4>
 
-<p class='ml'>A parameter that selects a subfunction from a specified
+<p class='m1'>A parameter that selects a subfunction from a specified
 list of subfunctions, designated by Ps. In general, a
 control sequence with more than one selective parameter
 causes the same effect as several control sequences,
@@ -1570,25 +2231,25 @@ Psc F is identical to CSI Psa F CSI Psb F CSI Psc F.</p><p>
 
 <h4 class='font'>Parameter String</h4>
 
-<p class='ml'>A string of parameters separated by a semicolon (738).</p><p>
+<p class='m1'>A string of parameters separated by a semicolon (738).</p><p>
 
 <h4 class='font'>Default</h4>
 
-<p class='ml'>A function-dependent value that is assumed when no explicit
+<p class='m1'>A function-dependent value that is assumed when no explicit
 value, or a value of 0, is specified.</p><p>
 
 <h4 class='font'>Final character</h4>
 
-<p class='ml'>A character whose bit combination terminates an escape or
+<p class='m1'>A character whose bit combination terminates an escape or
 control sequence.</p><p>
 
 <h4 class='font'>Examples:</h4>
 
-<p class='ml'>Control sequence for double-width line (DECDWL) ESC # 6</p><p>
+<p class='m1'>Control sequence for double-width line (DECDWL) ESC # 6</p><p>
 
 <h3 class='font'>Control Sequences</h3>
 
-<p class='ml'>All of the following escape and control sequences are
+<p class='m1'>All of the following escape and control sequences are
 transmitted from the host computer to the VT100 unless
 otherwise noted. All of the control sequences are a subset
 of those specified in ANSI X3.64-1977 and ANSI X3.41-1974.</p><p>
@@ -1597,24 +2258,24 @@ of those specified in ANSI X3.64-1977 and ANSI X3.41-1974.</p><p>
 
 <font class='e1'>ESC [ Pn ; Pn R 	default value: 1</font><p>
 
-<p class='ml'>The CPR sequence reports the active position by means of
+<p class='m1'>The CPR sequence reports the active position by means of
 the parameters. This sequence has two parameter values,
 the first specifying the line and the second specifying the
 column. The default condition with no parameters present,
 or parameters of 0, is equivalent to a cursor at home
 position.</p><p>
 
-<p class='ml'>The numbering of lines depends on the state of the Origin
+<p class='m1'>The numbering of lines depends on the state of the Origin
 Mode (DECOM).</p><p>
 
-<p class='ml'>This control sequence is solicited by a device status
+<p class='m1'>This control sequence is solicited by a device status
 report (DSR) sent from the host.</p><p>
 
 <h3 class='font'>CUB – Cursor Backward – Host to VT100 and VT100 to Host</h3>
 
 <font class='e1'>ESC [ Pn D 	default value: 1</font><p>
 
-<p class='ml'>The CUB sequence moves the active position to the left. The
+<p class='m1'>The CUB sequence moves the active position to the left. The
 distance moved is determined by the parameter. If the
 parameter value is zero or one, the active position is
 moved one position to the left. If the parameter value
@@ -1627,7 +2288,7 @@ margin. Editor Function</p><p>
 
 <font class='e1'>ESC [ Pn B 	default value: 1</font><p>
 
-<p class='ml'>The CUD sequence moves the active position downward without
+<p class='m1'>The CUD sequence moves the active position downward without
 altering the column position. The number of lines moved is
 determined by the parameter. If the parameter value is zero
 or one, the active position is moved one line downward. If
@@ -1640,7 +2301,7 @@ margin. Editor Function</p><p>
 
 <font class='e1'>ESC [ Pn C 	default value: 1</font><p>
 
-<p class='ml'>The CUF sequence moves the active position to the
+<p class='m1'>The CUF sequence moves the active position to the
 right. The distance moved is determined by the parameter. A
 parameter value of zero or one moves the active position
 one position to the right. A parameter value of n moves the
@@ -1652,7 +2313,7 @@ the cursor stops at the right margin. Editor Function</p><p>
 
 <font class='e1'>ESC [ Pn ; Pn H 	default value: 1</font><p>
 
-<p class='ml'>The CUP sequence moves the active position to the position
+<p class='m1'>The CUP sequence moves the active position to the position
 specified by the parameters. This sequence has two
 parameter values, the first specifying the line position
 and the second specifying the column position. A parameter
@@ -1663,11 +2324,11 @@ no parameters present is equivalent to a cursor to home
 action. In the VT100, this control behaves identically
 with its format effector counterpart, HVP. Editor Function</p><p>
 
-<p class='ml'>The numbering of lines depends on the state of the Origin
+<p class='m1'>The numbering of lines depends on the state of the Origin
 Mode (DECOM).  CUU – Cursor Up – Host to VT100 and VT100
 to Host ESC [ Pn A	default value: 1</p><p>
 
-<p class='ml'>Moves the active position upward without altering the
+<p class='m1'>Moves the active position upward without altering the
 column position. The number of lines moved is determined
 by the parameter. A parameter value of zero or one moves
 the active position one line upward. A parameter value of
@@ -1712,13 +2373,13 @@ EOD;
 
 <font class='e1'>ESC # 8</font><p>
 
-<p class='ml'>This command fills the entire screen area with uppercase
+<p class='m1'>This command fills the entire screen area with uppercase
 Es for screen focus and alignment. This command is used
 by DEC manufacturing and Field Service personnel.</p><p>
 
 <h3 class='font'>DECANM – ANSI/VT52 Mode (DEC Private)</h3>
 
-<p class='ml'>This is a private parameter applicable to set mode
+<p class='m1'>This is a private parameter applicable to set mode
 (SM) and reset mode (RM) control sequences. The reset
 state causes only VT52 compatible escape sequences to be
 interpreted and executed. The set state causes only ANSI
@@ -1727,14 +2388,14 @@ and executed.</p><p>
 
 <h3 class='font'>DECARM – Auto Repeat Mode (DEC Private)</h3>
 
-<p class='ml'>This is a private parameter applicable to set mode (SM)
+<p class='m1'>This is a private parameter applicable to set mode (SM)
 and reset mode (RM) control sequences. The reset state
 causes no keyboard keys to auto-repeat. The set state
 causes certain keyboard keys to auto-repeat.</p><p>
 
 <h3 class='font'>DECAWM – Autowrap Mode (DEC Private)</h3>
 
-<p class='ml'>This is a private parameter applicable to set mode (SM)
+<p class='m1'>This is a private parameter applicable to set mode (SM)
 and reset mode (RM) control sequences. The reset state
 causes any displayable characters received when the cursor
 is at the right margin to replace any previous characters
@@ -1744,7 +2405,7 @@ and permitted.</p><p>
 
 <h3 class='font'>DECCKM – Cursor Keys Mode (DEC Private)</h3>
 
-<p class='ml'>This is a private parameter applicable to set mode (SM)
+<p class='m1'>This is a private parameter applicable to set mode (SM)
 and reset mode (RM) control sequences. This mode is only
 effective when the terminal is in keypad application mode
 (see DECKPAM) and the ANSI/VT52 mode (DECANM) is set (see
@@ -1755,7 +2416,7 @@ four cursor function keys will send application functions.</p><p>
 
 <h3 class='font'>DECCOLM – Column Mode (DEC Private)</h3>
 
-<p class='ml'>This is a private parameter applicable to set mode (SM)
+<p class='m1'>This is a private parameter applicable to set mode (SM)
 and reset mode (RM) control sequences. The reset state
 causes a maximum of 80 columns on the screen. The set
 state causes a maximum of 132 columns on the screen.</p><p>
@@ -1766,7 +2427,7 @@ state causes a maximum of 132 columns on the screen.</p><p>
 
 <font class='e1'>Bottom Half: ESC # 4</font><p>
 
-<p class='ml'>These sequences cause the line containing the
+<p class='m1'>These sequences cause the line containing the
 active position to become the top or bottom half of a
 double-height double-width line. The sequences must be used
 in pairs on adjacent lines and the same character output
@@ -1788,7 +2449,7 @@ EOD;
 
 <font class='e1'>ESC # 6</font><p>
 
-<p class='ml'>This causes the line that contains the active position
+<p class='m1'>This causes the line that contains the active position
 to become double-width single-height. If the line was
 single-width single-height, all characters to the right
 of the screen are lost. The cursor remains over the
@@ -1808,14 +2469,14 @@ EOD;
 
 <font class='e1'>ESC Z</font><p>
 
-<p class='ml'>This sequence causes the same response as the ANSI device
+<p class='m1'>This sequence causes the same response as the ANSI device
 attributes (DA). This sequence will not be supported in
 future DEC terminals, therefore, DA should be used by any
 new software.</p><p>
 
 <h3 class='font'>DECINLM – Interlace Mode (DEC Private)</h3>
 
-<p class='ml'>This is a private parameter applicable to set mode (SM)
+<p class='m1'>This is a private parameter applicable to set mode (SM)
 and reset mode (RM) control sequences. The reset state
 (non-interlace) causes the video processor to display 240
 scan lines per frame. The set state (interlace) causes the
@@ -1826,21 +2487,21 @@ is no increase in character resolution.</p><p>
 
 <font class='e1'>ESC = 	 <p>
 
-<p class='ml'>The auxiliary keypad keys will transmit control sequences
+<p class='m1'>The auxiliary keypad keys will transmit control sequences
 as defined in Tables 3-7 and 3-8.</p><p>
 
 <h3 class='font'>DECKPNM – Keypad Numeric Mode (DEC Private)</h3>
 
 <font class='e1'>ESC ></font><p>
 
-<p class='ml'>The auxiliary keypad keys will send ASCII codes
+<p class='m1'>The auxiliary keypad keys will send ASCII codes
 corresponding to the characters engraved on the keys.</p><p>
 
 <h3 class='font'>DECLL – Load LEDS (DEC Private)</h3>
 
 <font class='e1'>ESC [ Ps q 	default value: 0</font><p>
 
-<p class='ml'>Load the four programmable LEDs on the keyboard according
+<p class='m1'>Load the four programmable LEDs on the keyboard according
 to the parameter(s).</p><p>
 
 EOD;
@@ -1864,7 +2525,7 @@ EOD;
 
 <h3 class='font'>DECOM – Origin Mode (DEC Private)</h3>
 
-<p class='ml'>This is a private parameter applicable to
+<p class='m1'>This is a private parameter applicable to
 set mode (SM) and reset mode (RM) control sequences. The
 reset state causes the origin to be at the upper-left
 character position on the screen. Line and column numbers
@@ -1873,23 +2534,23 @@ cursor may be positioned outside the margins with a cursor
 position (CUP) or horizontal and vertical position (HVP)
 control.</p><p>
 
-<p class='ml'>The set state causes the origin to be at the upper-left
+<p class='m1'>The set state causes the origin to be at the upper-left
 character position within the margins. Line and column
 numbers are therefore relative to the current margin
 settings. The cursor is not allowed to be positioned
 outside the margins.</p><p>
 
-<p class='ml'>The cursor is moved to the new home position when this
+<p class='m1'>The cursor is moved to the new home position when this
 mode is set or reset.</p><p>
 
-<p class='ml'>Lines and columns are numbered consecutively, with the
+<p class='m1'>Lines and columns are numbered consecutively, with the
 origin being line 1, column 1.</p><p>
 
 <h3 class='font'>DECRC – Restore Cursor (DEC Private)</h3>
 
 <font class='e1'>ESC 8</font><p>
 
-<p class='ml'>This sequence causes the previously saved cursor position,
+<p class='m1'>This sequence causes the previously saved cursor position,
 graphic rendition, and character set to be restored.</p><p>
 
 <h3 class='font'>DECREPTPARM – Report Terminal Parameters</h3>
@@ -1897,21 +2558,21 @@ graphic rendition, and character set to be restored.</p><p>
 <font class='e1'>ESC [ &lt;sol&gt;; &lt;par&gt;; &lt;nbits&gt;; &lt;xspeed&gt;; &lt;rspeed&gt;; &lt;clkmul&gt;;
 &lt;flags&gt; x</font><p>
 
-<p class='ml'>These sequence parameters are explained below in the
+<p class='m1'>These sequence parameters are explained below in the
 DECREQTPARM sequence.</p><p>
 
 <h3 class='font'>DECREQTPARM – Request Terminal Parameters</h3>
 
 <font class='e1'>ESC [ <sol> x</font><p>
 
-<p class='ml'>The sequence DECREPTPARM is sent by the terminal controller
+<p class='m1'>The sequence DECREPTPARM is sent by the terminal controller
 to notify the host of the status of selected terminal
 parameters. The status sequence may be sent when requested
 by the host or at the terminal’s discretion. DECREPTPARM is
 sent upon receipt of a DECREQTPARM. On power-up or reset,
 the VT100 is inhibited from sending unsolicited reports.</p><p>
 
-<p class='ml'>The meanings of the sequence parameters are:</p><p>
+<p class='m1'>The meanings of the sequence parameters are:</p><p>
 
 EOD;
 
@@ -1966,12 +2627,12 @@ EOD;
 
 <font class='e1'>ESC 7</font><p>
 
-<p class='ml'>This sequence causes the cursor position, graphic
+<p class='m1'>This sequence causes the cursor position, graphic
 rendition, and character set to be saved. (See DECRC).</p><p>
 
 <h3 class='font'>DECSCLM – Scrolling Mode (DEC Private)</h3>
 
-<p class='ml'>This is a private parameter applicable to set mode (SM)
+<p class='m1'>This is a private parameter applicable to set mode (SM)
 and reset mode (RM) control sequences. The reset state
 causes scrolls to "jump" instantaneously. The set state
 causes scrolls to be "smooth" at a maximum rate of six
@@ -1979,7 +2640,7 @@ lines per second.</p><p>
 
 <h3 class='font'>DECSCNM – Screen Mode (DEC Private)</h3>
 
-<p class='ml'>This is a private parameter applicable to set mode (SM) and
+<p class='m1'>This is a private parameter applicable to set mode (SM) and
 reset mode (RM) control sequences. The reset state causes
 the screen to be black with white characters. The set
 state causes the screen to be white with black characters.</p><p>
@@ -1988,7 +2649,7 @@ state causes the screen to be white with black characters.</p><p>
 
 <font class='e1'>ESC [ Pn; Pn r 	default values: see below</font><p>
 
-<p class='ml'>This sequence sets the top and bottom margins to define
+<p class='m1'>This sequence sets the top and bottom margins to define
 the scrolling region. The first parameter is the line
 number of the first line in the scrolling region; the
 second parameter is the line number of the bottom line
@@ -2002,7 +2663,7 @@ bottom margin. The cursor is placed in the home position
 
 <font class='e1'>ESC # 5</font><p>
 
-<p class='ml'>This causes the line which contains the active position to
+<p class='m1'>This causes the line which contains the active position to
 become single-width single-height. The cursor remains on
 the same character position. This is the default condition
 for all new lines on the screen.</p><p>
@@ -2011,7 +2672,7 @@ for all new lines on the screen.</p><p>
 
 <font class='e1'>ESC [ 2 ; Ps y</font><p>
 
-<p class='ml'>Ps is the parameter indicating the test to be done. Ps is
+<p class='m1'>Ps is the parameter indicating the test to be done. Ps is
 computed by taking the weight indicated for each desired
 test and adding them together. If Ps is 0, no test is
 performed but the VT100 is reset.</p><p>
@@ -2037,7 +2698,7 @@ EOD;
 
 <font class='e1'>ESC [ Ps n 	default value: 0</font><p>
 
-<p class='ml'>Requests and reports the general status of the VT100
+<p class='m1'>Requests and reports the general status of the VT100
 according to the following parameter(s).</p><p>
 
 EOD;
@@ -2045,10 +2706,10 @@ EOD;
 	$title = [ "Parameter" , "Parameter Meaning" ];
 
 	$table = [
-		[ 0, "Response from VT100 &dash;<br>Ready,No malfunctions detected (default)" ],
-		[ 3, "Response from VT100 &dash;<br>Malfunction &dash; retry" ],
-		[ 5, "Command from host &dash; Please report<br>status (using a DSR control sequence)" ],
-		[ 6, "Command from host &dash; Please report<br>active position (using a CPR control sequence)" ]
+		[ 0, "Response from VT100 - Ready,No malfunctions detected (default)" ],
+		[ 3, "Response from VT100 - Malfunction - retry" ],
+		[ 5, "Command from host - Please report<br>status (using a DSR control sequence)" ],
+		[ 6, "Command from host - Please report<br>active position (using a CPR control sequence)" ]
 		];
 
 	$doc .= $this->createTable( "DSR", $title, $table, 2 );
@@ -2056,14 +2717,14 @@ EOD;
 	$doc .= <<<EOD
 <p>
 
-<p class='ml'>DSR with a parameter value of 0 or 3 is always sent as a
+<p class='m1'>DSR with a parameter value of 0 or 3 is always sent as a
 response to a requesting DSR with a parameter value of 5.</p><p>
 
 <h3 class='font'>ED – Erase In Display</h3><p>
 
 <font class='e1'>ESC [ Ps J 	default value: 0</font><p>
 
-<p class='ml'>This sequence erases some or all of the characters in
+<p class='m1'>This sequence erases some or all of the characters in
 the display according to the parameter. Any complete line
 erased by this sequence will return that line to single
 width mode. Editor Function</p><p>
@@ -2075,7 +2736,7 @@ EOD;
 	$table = [
 		[ 0, "Erase from the active position to the end of the screen, inclusive (default)" ],
 		[ 1, "Erase from start of the screen to the active position, inclusive" ],
-		[ 2, "Erase all of the display &dash; all lines are erased,<br>" .
+		[ 2, "Erase all of the display - all lines are erased, " .
 			"changed to single-width, and the cursor does not move." ]
 		];
 
@@ -2088,7 +2749,7 @@ EOD;
 
 <font class='e1'>ESC [ Ps K 	default value: 0</font><p>
 
-<p class='ml'>Erases some or all characters in the active line according
+<p class='m1'>Erases some or all characters in the active line according
 to the parameter. Editor Function</p><p>
 
 EOD;
@@ -2110,14 +2771,14 @@ EOD;
 
 <font class='e1'>ESC H</font><p>
 
-<p class='ml'>Set one horizontal stop at the active position. Format
+<p class='m1'>Set one horizontal stop at the active position. Format
 Effector</p><p>
 
 <h3 class='font'>HVP – Horizontal and Vertical Position</h3>
 
 <font class='e1'>ESC [ Pn ; Pn f 	default value: 1</font><p>
 
-<p class='ml'>Moves the active position to the position specified by
+<p class='m1'>Moves the active position to the position specified by
 the parameters. This sequence has two parameter values,
 the first specifying the line position and the second
 specifying the column. A parameter value of either zero or
@@ -2133,14 +2794,14 @@ set state of the origin mode (DECOM). Format Effector</p><p>
 
 <font class='e1'>ESC D</font><p>
 
-<p class='ml'>This sequence causes the active position to move downward
+<p class='m1'>This sequence causes the active position to move downward
 one line without changing the column position. If the
 active position is at the bottom margin, a scroll up is
 performed. Format Effector</p><p>
 
 <h3 class='font'>LNM – Line Feed/New Line Mode</h3>
 
-<p class='ml'>This is a parameter applicable to set mode (SM) and reset
+<p class='m1'>This is a parameter applicable to set mode (SM) and reset
 mode (RM) control sequences. The reset state causes the
 interpretation of the line feed (LF), defined in ANSI
 Standard X3.4-1977, to imply only vertical movement
@@ -2150,14 +2811,14 @@ to imply movement to the first position of the following
 line and causes the RETURN key to send the two codes (CR,
 LF). This is the New Line (NL) option.</p><p>
 
-<p class='ml'>This mode does not affect the index (IND), or next line
+<p class='m1'>This mode does not affect the index (IND), or next line
 (NEL) format effectors.</p><p>
 
 <h3 class='font'>NEL – Next Line</h3>
 
 <font class='e1'>ESC E</font><p>
 
-<p class='ml'>This sequence causes the active position to move to
+<p class='m1'>This sequence causes the active position to move to
 the first position on the next line downward. If the
 active position is at the bottom margin, a scroll up is
 performed. Format Effector</p><p>
@@ -2166,7 +2827,7 @@ performed. Format Effector</p><p>
 
 <font class='e1'>ESC M</font><p>
 
-<p class='ml'>Move the active position to the same horizontal position
+<p class='m1'>Move the active position to the same horizontal position
 on the preceding line. If the active position is at the
 top margin, a scroll down is performed. Format Effector</p><p>
 
@@ -2174,7 +2835,7 @@ top margin, a scroll down is performed. Format Effector</p><p>
 
 <font class='e1'>ESC c</font><p>
 
-<p class='ml'>Reset the VT100 to its initial state, i.e., the state it
+<p class='m1'>Reset the VT100 to its initial state, i.e., the state it
 has after it is powered on. This also causes the execution
 of the power-up self-test and signal INIT H to be asserted
 briefly.</p><p>
@@ -2183,7 +2844,7 @@ briefly.</p><p>
 
 <font class='e1'>ESC [ Ps ; Ps ; . . . ; Ps l 	default value: none</font><p>
 
-<p class='ml'>Resets one or more VT100 modes as specified by each
+<p class='m1'>Resets one or more VT100 modes as specified by each
 selective parameter in the parameter string. Each mode
 to be reset is specified by a separate parameter. [See
 Set Mode (SM) control sequence]. (See Modes following
@@ -2191,7 +2852,7 @@ this section).</p><p>
 
 <h3 class='font'>SCS – Select Character Set</h3>
 
-<p class='ml'>The appropriate G0 and G1 character sets are designated
+<p class='m1'>The appropriate G0 and G1 character sets are designated
 from one of the five possible character sets. The G0 and
 G1 sets are invoked by the codes SI and SO (shift in and
 shift out) respectively.</p><p>
@@ -2213,7 +2874,7 @@ EOD;
 	$doc .= <<<EOD
 <p>
 
-<p class='ml'>The United Kingdom and ASCII sets conform to the "ISO
+<p class='m1'>The United Kingdom and ASCII sets conform to the "ISO
 international register of character sets to be used
 with escape sequences". The other sets are private
 character sets. Special graphics means that the graphic
@@ -2233,7 +2894,7 @@ EOD;
 
 <font class='e1'>ESC [ Ps ; . . . ; Ps m 	default value: 0</font><p>
 
-<p class='ml'>Invoke the graphic rendition specified by the
+<p class='m1'>Invoke the graphic rendition specified by the
 parameter(s). All following characters transmitted to
 the VT100 are rendered according to the parameter(s)
 until the next occurrence of SGR. Format Effector</p><p>
@@ -2255,9 +2916,9 @@ EOD;
 	$doc .= <<<EOD
 <p>
 
-<p class='ml'>All other parameter values are ignored.</p><p>
+<p class='m1'>All other parameter values are ignored.</p><p>
 
-<p class='ml'>With the Advanced Video Option, only one type of
+<p class='m1'>With the Advanced Video Option, only one type of
 character attribute is possible as determined by the cursor
 selection; in that case specifying either the underscore or
 the reverse attribute will activate the currently selected
@@ -2267,7 +2928,7 @@ attribute. (See cursor selection in Chapter 1).</p><p>
 
 <font class='e1'>ESC [ Ps ; . . . ; Ps h 	default value: none</font><p>
 
-<p class='ml'>Causes one or more modes to be set within
+<p class='m1'>Causes one or more modes to be set within
 the VT100 as specified by each selective parameter in the
 parameter string. Each mode to be set is specified by a
 separate parameter. A mode is considered set until it is
@@ -2291,10 +2952,10 @@ EOD;
 
 	$doc .= <<<EOD
 <p>
-<p class='ml'>Any other parameter values are ignored. Format Effector
+<p class='m1'>Any other parameter values are ignored. Format Effector
 Modes</p><p>
 
-<p class='ml'>The following is a list of VT100 modes which may be changed
+<p class='m1'>The following is a list of VT100 modes which may be changed
 with set mode (SM) and reset mode (RM) controls.</p>
 
 <h3 class='font'>ANSI Specified Modes</h3>
@@ -2316,7 +2977,7 @@ EOD;
 
 <h3 class='font'>DEC Private Modes</h3>
 
-<p class='ml'>If the first character in the parameter string is ? (778),
+<p class='m1'>If the first character in the parameter string is ? (778),
 the parameters are interpreted as DEC private parameters
 according to the following:</p><p>
 
@@ -2342,9 +3003,9 @@ EOD;
 	$doc .= <<<EOD
 <p>
 
-<p class='ml'>Any other parameter values are ignored.</p><p>
+<p class='m1'>Any other parameter values are ignored.</p><p>
 
-<p class='ml'>The following modes, which are specified
+<p class='m1'>The following modes, which are specified
 in the ANSI X3.64-1977 standard, may be considered to be
 permanently set, permanently reset, or not applicable,
 as noted. Refer to that standard for further information
@@ -2384,7 +3045,7 @@ EOD;
 
 <font class='e1'>ESC A 	.</font><p>
 
-<p class='ml'>Move the active position upward one position without
+<p class='m1'>Move the active position upward one position without
 altering the horizontal position. If an attempt is made
 to move the cursor above the top margin, the cursor stops
 at the top margin.</p><p>
@@ -2393,7 +3054,7 @@ at the top margin.</p><p>
 
 <font class='e1'>ESC B 	.</font><p>
 
-<p class='ml'>Move the active position downward one position without
+<p class='m1'>Move the active position downward one position without
 altering the horizontal position. If an attempt is made
 to move the cursor below the bottom margin, the cursor
 stops at the bottom margin.</p><p>
@@ -2402,7 +3063,7 @@ stops at the bottom margin.</p><p>
 
 <font class='e1'>ESC C 	.</font><p>
 
-<p class='ml'>Move the active position to the right. If an attempt is
+<p class='m1'>Move the active position to the right. If an attempt is
 made to move the cursor to the right of the right margin,
 the cursor stops at the right margin.</p><p>
 
@@ -2410,7 +3071,7 @@ the cursor stops at the right margin.</p><p>
 
 <font class='e1'>ESC D 	.</font><p>
 
-<p class='ml'>Move the active position one position to the left. If an
+<p class='m1'>Move the active position one position to the left. If an
 attempt is made to move the cursor to the left of the left
 margin, the cursor stops at the left margin.</p><p>
 
@@ -2418,7 +3079,7 @@ margin, the cursor stops at the left margin.</p><p>
 
 <font class='e1'>ESC F 	.</font><p>
 
-<p class='ml'>Causes the special graphics character set to be used.</p><p>
+<p class='m1'>Causes the special graphics character set to be used.</p><p>
 
 EOD;
 
@@ -2432,20 +3093,20 @@ EOD;
 
 <font class='e1'>ESC G 	.</font><p>
 
-<p class='ml'>This sequence causes the standard ASCII character set to
+<p class='m1'>This sequence causes the standard ASCII character set to
 be used.</p><p>
 
 <h4 class='font'>Cursor to Home</h4>
 
 <font class='e1'>ESC H 	.</font><p>
 
-<p class='ml'>Move the cursor to the home position.</p><p>
+<p class='m1'>Move the cursor to the home position.</p><p>
 
 <h4 class='font'>Reverse Line Feed</h4>
 
 <font class='e1'>ESC I 	.</font><p>
 
-<p class='ml'>Move the active position upward one position without
+<p class='m1'>Move the active position upward one position without
 altering the column position. If the active position is
 at the top margin, a scroll down is performed.</p><p>
 
@@ -2453,21 +3114,21 @@ at the top margin, a scroll down is performed.</p><p>
 
 <font class='e1'>ESC J 	.</font><p>
 
-<p class='ml'>Erase all characters from the active position to the end
+<p class='m1'>Erase all characters from the active position to the end
 of the screen. The active position is not changed.</p><p>
 
 <h4 class='font'>Erase to End of Line</h4>
 
 <font class='e1'>ESC K 	.</font><p>
 
-<p class='ml'>Erase all characters from the active position to the end
+<p class='m1'>Erase all characters from the active position to the end
 of the current line. The active position is not changed.</p><p>
 
 <h4 class='font'>Direct Cursor Address</h4>
 
 <font class='e1'>ESC Y line column.</font><p>
 
-<p class='ml'>Move the cursor to the specified line and column. The line
+<p class='m1'>Move the cursor to the specified line and column. The line
 and column numbers are sent as ASCII codes whose values are
 the number plus 0378; e.g., 0408 refers to the first line
 or column, 0508 refers to the eighth line or column, etc.</p><p>
@@ -2476,12 +3137,12 @@ or column, 0508 refers to the eighth line or column, etc.</p><p>
 
 <font class='e1'>ESC .</font><p>
 
-<p class='ml'>This sequence causes the terminal to send its identifier
+<p class='m1'>This sequence causes the terminal to send its identifier
 escape sequence to the host.<p>
 
 <font class='e1'>ESC / .</font><p>
 
-<p class='ml'>Used to end the identifier escape sequence.<p>
+<p class='m1'>Used to end the identifier escape sequence.<p>
 
 EOD;
 
@@ -2496,7 +3157,7 @@ EOD;
 
 <font class='e1'>ESC .</font><p>
 
-<p class='ml'>The optional auxiliary keypad keys will send unique
+<p class='m1'>The optional auxiliary keypad keys will send unique
 identifiable escape sequences for use by applications
 programs.</p><p>
 
@@ -2514,21 +3175,21 @@ EOD;
 
 <font class='e1'>ESC &gt.</font><p>
 
-<p class='ml'>The optional auxiliary keypad keys send the ASCII codes
+<p class='m1'>The optional auxiliary keypad keys send the ASCII codes
 for the functions or characters engraved on the key.</p><p>
 
 <h4 class='font'>Enter ANSI Mode</h4>
 
 <font class='e1'>ESC &lt.</font><p>
 
-<p class='ml'>All subsequent escape sequences will be interpreted
+<p class='m1'>All subsequent escape sequences will be interpreted
 according to ANSI Standards X3.64-1977 and X3.41-1974. The
 VT52 escape sequence designed in this section will not
 be recognized.</p><p>
 
 <h4 class='font'>Control Sequence Summary</h4>
 
-<p class='ml'>The following is a summary of the VT100 control sequences.</p><p>
+<p class='m1'>The following is a summary of the VT100 control sequences.</p><p>
 
 <h3 class='font'>ANSI Compatible Mode</h3>
 
@@ -2586,7 +3247,7 @@ EOD;
 
 <font class='e1'>ESC [ Ps;Ps;Ps;...;Ps m</font><p>
 
-<p class='ml'>Ps refers to a selective parameter. Multiple parameters are
+<p class='m1'>Ps refers to a selective parameter. Multiple parameters are
 separated by the semicolon character (0738). The parameters
 are executed in order and have the following meanings:</p><p>
 
@@ -2607,7 +3268,7 @@ EOD;
 	$doc .= <<<EOD
 <p>
 
-<p class='ml'>Any other parameter values are ignored.</p><p>
+<p class='m1'>Any other parameter values are ignored.</p><p>
 
 <h4>Erasing</h4><p>
 
@@ -2633,7 +3294,7 @@ EOD;
 
 <font class='e1'>ESC [ Ps;Ps;...Ps q</font><p>
 
-<p class='ml'>Ps are selective parameters separated by semicolons (0738)
+<p class='m1'>Ps are selective parameters separated by semicolons (0738)
 and executed in order, as follows:</p><p>
 
 EOD;
@@ -2653,11 +3314,11 @@ EOD;
 	$doc .= <<<EOD
 <p>
 
-<p class='ml'>Any other parameter values are ignored.</p><p>
+<p class='m1'>Any other parameter values are ignored.</p><p>
 
 <h4>Character Sets (G0 and G1 Designators)</h4><p>
 
-<p class='ml'>The G0 and G1 character sets are designated as follows:</p><p>
+<p class='m1'>The G0 and G1 character sets are designated as follows:</p><p>
 
 EOD;
 
@@ -2680,8 +3341,8 @@ EOD;
 
 <font class='e1'>ESC [ Pt ; Pb r</font><p>
 
-<p class='ml'>Pt is the number of the top line of the scrolling region;</p>
-<p class='ml'>Pb is the number of the bottom line of the scrolling region
+<p class='m1'>Pt is the number of the top line of the scrolling region;</p>
+<p class='m1'>Pb is the number of the bottom line of the scrolling region
 and must be greater than Pt.</p><p>
 
 <h4>Tab Stops</h4><p>
@@ -2787,7 +3448,7 @@ EOD;
 	$doc .= <<<EOD
 <p>
 
-<p class='ml'>Ps is the "option present" parameter with the following meaning:</p><p>
+<p class='m1'>Ps is the "option present" parameter with the following meaning:</p><p>
 
 EOD;
 
@@ -2809,12 +3470,12 @@ EOD;
 	$doc .= <<<EOD
 <p>
 
-<p class='ml'>Alternatively invoked by ESC Z (not recommended). Response
+<p class='m1'>Alternatively invoked by ESC Z (not recommended). Response
 is the same.</p><p>
 
 <h4>Reset</h4><p>
 
-<p class='ml>Reset causes the power-up reset routine to be executed.</p><p>
+<p class='m1>Reset causes the power-up reset routine to be executed.</p><p>
 
 <font class='e1'>ESC c</font><p>
 
@@ -2834,7 +3495,7 @@ EOD;
 	$doc .= <<<EOD
 <p>
 
-<p class='ml'>Ps is the parameter indicating the test to be done and is
+<p class='m1'>Ps is the parameter indicating the test to be done and is
 a decimal number computed by taking the "weight" indicated
 for each desired test and adding them together.</p><p>
 
@@ -2856,7 +3517,7 @@ EOD;
 
 <h4>VT52 Compatible Mode</h4><p>
 
-<p class='ml'>The following is a summary of the VT100 control sequences.</p><p>
+<p class='m1'>The following is a summary of the VT100 control sequences.</p><p>
 
 EOD;
 
@@ -2895,6 +3556,46 @@ EOD;
 
 	return $doc;
 }
+################################################################################
+#	docs_xterm(). Has all of the XTERM documentation taken from:
+#
+#		https://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+#
+#	Notes: I do NOT claim ANY ownership at all. This all came from 
+################################################################################
+private function docs_xterm()
+{
+	$width = $this->width;
+	$height = "20";
+	$max_width = $this->max_width;
+
+	$doc =  <<<EOD
+<p style="page-break-before: always">
+<h1 class='border font'>XTerm</h1>
+$this->who
+<h2 class='font'>Notice</h2>
+EOD;
+
+	$doc .= $this->createNote( null,
+		"Due to the very-very large amount of documentation on XTerm " .
+		"I have decided to just include the hyperlink to where the " .
+		"documentation resides on the internet. Please use that site's " .
+		"information on how to use the XTerm commands. ALL XTerm " .
+		"commands begin with 'xt'. So you can look at the table for " .
+		"of the XTerm commands but the explanations are on the website. " .
+		"<p>The Xterm website is at : <p style='text-indent:20px;'>" .
+		"https://invisible-island.net/xterm/ctlseqs/ctlseqs.html", 800 );
+
+	$title = [ "Return", "Function Name", "Beginning Text",
+		"Pass Something In?", "Ending Text", "Info", "Text", "Return Type" ];
+
+	$doc .= $this->createTable( "XTerm", $title, $this->xterm_cmds, 4, null, null, "w1200" );
+
+	$doc .= "<p>";
+
+	return $doc;
+}
+
 ################################################################################
 #	cvt_ascii(). Converts ascii character into their alpha representation.
 ################################################################################
@@ -3072,7 +3773,8 @@ function makePrintable( $string=null, $leftBracket=null, $rightBracket=null,
 #			You can ALSO send in a "<colspan=###>" which puts in a COLSPAN equal to ###.
 #			(Not - at this time - doing ROWSPAN)
 ################################################################################
-function createTable( $name=null, $title=null, $table=null, $size=null, $wrap=null )
+function createTable( $name=null, $title=null, $table=null, $size=null,
+	$wrap=null, $inline=null, $width=null )
 {
 	if( is_null($name) ){ return false; }
 	if( is_null($title) ){ return false; }
@@ -3086,11 +3788,11 @@ function createTable( $name=null, $title=null, $table=null, $size=null, $wrap=nu
 	$titles = count( $title );
 
 	$doc = <<<EOD
-<TABLE CELLPADDING="3" CELLSPACING="0" class='tblw'><tbody>
-<tr><td colspan=$titles class='c1 t$size bold'>$name Table</td></tr>
+<TABLE CELLPADDING="3" CELLSPACING="0" class='tblw $width'><tbody>
+<tr><td colspan=$titles class='c1 t$size bold nowrap'>$name Table</td></tr>
 EOD;
 
-	$cols = [];
+#	$cols = [];
 	if( !is_null($title[0]) ){
 		$colspan = 1;
 		$doc .= "<tr>\n";
@@ -3102,11 +3804,11 @@ EOD;
 				$colspan = $a[1];
 				}
 				else {
-					$bbox = imageftbbox( 12, 0, "C:/Windows/Fonts/times.ttf", $v );
+#					$bbox = imageftbbox( 12, 0, "C:/Windows/Fonts/times.ttf", $v );
 #					print_r( $bbox ); echo "\n";
-					$cols[$k] = $bbox[2] - $bbox[0];
+#					$cols[$k] = $bbox[2] - $bbox[0];
 
-					$doc .= "<td colspan=$colspan class='tdb c1 pad5 m1'>$v</td>\n";
+					$doc .= "<td colspan=$colspan class='tdb c1 pad5 m1 nowrap'>$v</td>\n";
 					}
 			}
 
@@ -3129,16 +3831,27 @@ EOD;
 				if( is_null($v1) || strlen($v1) < 1 ){ $flag = true; $v1 = "$na"; }
 
 				if( !preg_match("/<colspan=\d+>/i", $v1) ){
-					$v1 = wordwrap( $v1, 60, "<br>" );
-					$a = explode( "<br>", $v1 );
-					$bbox = imageftbbox( 12, 0, "c:/Windows/Fonts/times.ttf", $a[0] );
-#					print_r( $bbox ); echo "\n";
-					$len = $bbox[2] - $bbox[0];
+					$blen = 0;
+					$blen_1 = 0;
+					$blen_2 = 0;
+					$blen_3 = 0;
+#					if( preg_match("/\{/i", $v1) ){
+#						$b = explode( "{", $v1 );
+#	print_r( $b ); echo "\n";
+#						$c = explode( "}", $b[1] );
+#	print_r( $c ); echo "\n";
+#						$blen_1 = strlen( $b[0] );
+#						$blen_2 = strlen( $c[1] );
+#						$blen_3 = strlen( $b[2] );
+#						$blen = ($blen_1 + $blen_2 + $blen_3) % 80;
+#						}
 
-					if( !isset($cols[$k1]) ){ $cols[$k1] = 0; }
-					if( $len > $cols[$k1] ){ $cols[$k1] = $len; }
+					$v1 = str_replace( "{", "<", $v1 );
+					$v1 = str_replace( "}", "> ", $v1 );
+					$v1 = $this->htmlwrap( $v1 );
 
-					$doc .= "<td colspan=$colspan class='tdb c1 pad5 $wrap' $border>$v1</td>\n";
+					if( is_array($inline) ){ $v1 .= $this->inlineTable( $inline ); }
+					$doc .= "<td colspan=$colspan class='tdb c1 pad5 nowrap' $border>$v1</td>\n";
 					$colspan = 1;
 					}
 					else {
@@ -3166,14 +3879,16 @@ EOD;
 		for( $i=$k1+1; $i<$titles; $i++ ){
 			$flag = true;
 
-			$bbox = imageftbbox( 12, 0, "C:/Windows/Fonts/times.ttf", $na );
+#			$bbox = imageftbbox( 12, 0, "C:/Windows/Fonts/times.ttf", $na );
 #			print_r( $bbox ); echo "\n";
-			$len = $bbox[2] - $bbox[0];
+#			$len = $bbox[2] - $bbox[0];
 
-			if( !isset($cols[$i]) ){ $cols[$i] = 0; }
-			if( $len > $cols[$i] ){ $cols[$i] = $len; }
+#			if( !isset($cols[$i]) ){ $cols[$i] = 0; }
+#			if( $len > $cols[$i] ){ $cols[$i] = $len; }
 
-			$doc .= "<td class='tdb c1 pad5 $wrap' style='$border'>$na</td>\n";
+			$na = str_replace( "{", "<", $na );
+			$na = str_replace( "}", ">", $na );
+			$doc .= "<td class='tdb c1 pad5 nowrap' style='$border'>$na</td>\n";
 			$colspan = 1;
 			}
 
@@ -3265,6 +3980,193 @@ EOD;
 EOD;
 
 	return $doc;
+}
+################################################################################
+#	inlineTable(). Create an inline table. Mainly used within a table.
+#
+#	NOTES: Here is how this works:
+#		1.	Put all of your columns to display FIRST. (Example: 1,2,3,4...)
+#		2.	Make the row BOLD? 1/0 (True/False)
+#		3.	Combine COLUMNS? (1/0). (Almost always used with TITLES.)
+#
+################################################################################
+function inlineTable( $table )
+{
+#
+#	Start the table
+#
+	$evenodd = 0;
+	$doc = "<center><table class='tbln w90 nowrap'><tbody>";
+
+	foreach( $table as $k=>$v ){
+		$evenodd = ($evenodd + 1) % 2;
+		if( $evenodd > 0 ){ $opt = "even"; }
+			else { $opt = "odd"; }
+
+		$doc .= "<tr class='trn nowrap $opt'>";
+#
+#	Get how many columns there are
+#
+		$c = count( $v ) - 1;
+#
+#	Are we making this line BOLD?
+#
+		if( $v[$c-1] > 0 ){ $bs = "<b>"; $be = "</b>"; }
+			else { $bs = ""; $be = ""; }
+#
+#	If we want to combine the columns, it is ALWAYS the count minus two.
+#	Make a title. Titles are always centered.
+#
+		if( $v[$c] > 0 ){
+			$colspan = $c-1;
+			$doc .= "<td colspan=$colspan class='tdb c1 pad5 nowrap'>$bs$v[0]$be</td>";
+			}
+#
+#	Make a regular line. These are left justified.
+#
+			else {
+				for( $i=0; $i<($c-1); $i++ ){
+					$v[$i] = str_replace( " ", "&nbsp;", $v[$i] );
+					$doc .= "<td colspan=1 class='tdb pad5 c1 nowrap'>$bs$v[$i]$be</td>";
+					}
+				}
+
+		$doc .= "</tr>";
+		}
+
+	$doc .= "</tbody></table></center>";
+
+	return $doc;
+}
+################################################################################
+#	htmlwrap(). Does what word wrap does but excludes any HTML commands.
+################################################################################
+function htmlwrap( $string=null, $width=60, $break="<br>", $cut_long_words=false )
+{
+	if( is_null($string) ){ die( "***** ERROR : STRING is NULL\n" ); }
+#
+#	$oldchar is the former character we got. Used to test for "\<" kinds of things.
+#
+	$oldchar = "";
+#
+#	$newstr is our new string we will return.
+#
+	$newstr = "";
+#
+#	$tmpstr is our TEMPORARY string we are building to put into $newstr.
+#
+	$tmpstr = "";
+#
+#	$htmlflag is whether or not we are in an HTML command.
+#
+	$htmlflag = false;
+#
+#	$htmlstr is the current HTML string we are trying to exclude
+#
+	$htmlstr = "";
+#
+#	$strlen is how long the current string is.
+#
+	$strlen = strlen( $string );
+	for( $i=0; $i<$strlen; $i++ ){
+		$c1 = substr( $string, $i, 1 );
+		$c2 = substr( $string, $i, 2 );
+		$c3 = substr( $string, $i, 3 );
+#
+#	If $c1 is a backslash then the next character will actually be the character. So we
+#	just store the backslash into the $oldchar variable and go on to the next character.
+#	Also, backslashes are not included into length of the string BUT we do move the backslash
+#	over to the temp string ($tmpstr).
+#
+		if( $c1 == "\\" ){ $oldchar = $c1; $tmpstr .= $c1; continue; }
+#
+#	If the $oldchar has a backslash '\' in it we need to see if $c1 has either a '<' or a '>'
+#	in it. If it is then just store the character into $oldchar and add it to $tmpstr
+#	and go to the next character.
+#
+		if( $oldchar == "\\" ){
+			if( ($c1 == '<') || ($c1 == '>') ){ $oldchar = $c1; $tmpstr .= $c1; continue; }
+			}
+#
+#	Ok! So now - is $c1 an HTML angle bracket? (ie: '<' or '>') Then we turn on or off the
+#	$htmlflag.
+#
+#
+#	NEW : $htmlstr is the HTML string we are finding out about. This string has to be subtracted
+#		from the length of the temporary string. Also! $htmlstr is NOT cleared until we clear
+#		the $tmpstr.
+#
+		if( preg_match("/<\w/", $c2) ){
+			$htmlflag = true;
+			$oldchar = $c1;
+			$tmpstr .= $c1;
+			$htmlstr .= $c1;
+			$htmlflag = true;
+			continue;
+			}
+			else if( preg_match("/td>/i", $c3) ){
+				$tmpstr .= $c3;
+				$i += 2;
+				$c1 = substr( $string, $i, 1 );
+#				$newstr .= $tmpstr . " TD[" . strlen($tmpstr) . "," .
+#					strlen($htmlstr) . "," . $tmpstr . "]" . $break;
+				$newstr .= $tmpstr;
+				$oldchar = ">";
+				$tmpstr = "";
+				$htmlstr = $c2;
+				$htmlflag = false;
+				continue;
+				}
+			else if( preg_match("/\w>/", $c2) ){
+				$i++;
+				$c1 = substr( $string, $i, 1 );
+				$htmlflag = false;
+				$oldchar = "";
+				$tmpstr .= $c2;
+				$htmlstr .= $c2;
+				$htmlflag = false;
+				continue;
+				}
+#
+#	Now is $c1 a white space variable AND is the $htmlflag is set to FALSE?
+#
+		if( preg_match("/\s/", $c1) && ($htmlflag === false) ){
+#
+#	If the temporary string $tmpstr is greater than or equal to the width given on the
+#	call line then insert the break given on the call line.
+#
+#	NEW : Remember to subtract the $htmlstr's length from the $tmpstr length because
+#		this is what we are trying to keep track of.
+#
+			if( (strlen($tmpstr) - strlen($htmlstr)) >= $width ){
+#				$newstr .= $tmpstr . " REG-1[" . strlen($tmpstr) . "," .
+#					strlen($htmlstr) . "," . $tmpstr . "]" . $break;
+				$newstr .= $tmpstr . $break;
+				$oldchar = $c1;
+				$tmpstr = "";
+				$htmlstr = "";
+				$htmlflag = false;
+				continue;
+				}
+			}
+			else if( ($cut_long_words == true) && ($htmlflag === false) &&
+				((strlen($tmpstr) - strlen($htmlstr)) >= $width) && preg_match("/\s/", $c1) ){
+#				$newstr .= $tmpstr . " REG-2[" . strlen($tmpstr) . "," . strlen($htmlstr) . "]" . $break;
+				$newstr .= $tmpstr . $break;
+				$oldchar = $c1;
+				$tmpstr = "";
+				$htmlstr = "";
+				$htmlflag = false;
+				continue;
+				}
+
+		$tmpstr .= $c1;
+		$oldchar = $c1;
+		if( $htmlflag ){ $htmlstr .= $c1; }
+		}
+
+	$newstr .= $tmpstr;
+	return $newstr;
 }
 ################################################################################
 #	close(). Closes the proc created area we have been writing to.

@@ -10,6 +10,7 @@
 		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
 		});
 
+	ini_set( 'memory_limit', -1 );
 	date_default_timezone_set( "UTC" );
 #
 #	$lib is where my libraries are located.
@@ -30,16 +31,18 @@
 			die( __FILE__ . ": Can not load CLASS_DEBUG" );
 			}
 
+	include_once( "$lib/class_files.php" );
+
 ################################################################################
 #BEGIN DOC
 #
 #-Calling Sequence:
 #
-#	class_pdf();
+#	class_grbl();
 #
 #-Description:
 #
-#	A class to deal with PDF files
+#	A class to handle the pen plotter via GERBIL or GRBL.
 #
 #-Inputs:
 #
@@ -53,8 +56,14 @@
 #
 #	Name					Company					Date
 #	---------------------------------------------------------------------------
-#	Mark Manning			Simulacron I			Mon 08/05/2019 13:52:01.25 
+#	Mark Manning			Simulacron I			Tue 02/04/2025 20:51:19.98
 #		Original Program.
+#
+#	Mark Manning			Simulacron I			Sat 07/17/2021 14:56:52.53 
+#	---------------------------------------------------------------------------
+#		REMEMBER! We are now following the PHP code of NOT killing the program
+#		but instead always setting a DEBUG MESSAGE and returning FALSE. So I'm
+#		getting rid of all of the DIE() calls.
 #
 #	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
 #	---------------------------------------------------------------------------
@@ -65,7 +74,7 @@
 #	---------------------------------------------------------------------------
 #	Please note that _MY_ Legal notice _HERE_ is as follows:
 #
-#		CLASS_PDF.PHP. A class to handle working with PDFs.
+#		CLASS_FILES.PHP. A class to handle working with files.
 #		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
 #		except for those given by the BSD License.
 #
@@ -73,114 +82,34 @@
 #
 #END DOC
 ################################################################################
-class class_pdf
+function class_grbl()
 {
-	private $debug = null;
+	public $debug = null;
+	public $temp_path = null;
+
+	private $cf = null;
+
 ################################################################################
-#	__construct(). Constructor
+#	__construct(). Constructor.
 ################################################################################
 function __construct()
 {
 	$this->debug = $GLOBALS['classes']['debug'];
-	if( !isset($GLOBALS['class']['pdf']) ){
+	if( !isset($GLOBALS['class']['files']) ){
 		return $this->init( func_get_args() );
 		}
-		else { return $GLOBALS['class']['pdf']; }
+		else { return $GLOBALS['class']['files']; }
 }
 ################################################################################
-#	init(). A function to allow for re-initialization of this class.
+#	init(). Used instead of __construct() so you can re-init() if necessary.
 ################################################################################
 function init()
 {
 	$this->debug->in();
 
-	$args = func_get_args();
-	while( is_array($args) && (count($args) < 2) ){
-		$args = array_pop( $args );
-		}
-
 	$this->debug->out();
 }
-################################################################################
-#	pdf_info(). Calls on the program pdfinfo to get the information about a pdf
-#		file.
-################################################################################
-function pdf_info( $file=null )
-{
-#
-#	Get a file
-#
-	$dq = '"';
-	$cmd = "pdfinfo $dq$file$dq";
-#	echo "Command : $cmd\n";
-#
-#	Get the information
-#
-	$fp = popen( $cmd, "r" );
-#	echo gettype( $fp ) . "\n";
-	$out = fread( $fp, 2048 );
-	pclose( $fp );
 
-	$out = explode( "\n", $out );
-	array_pop( $out );
-
-	$b = [];
-	$b['title'] = null;
-	$b['subject'] = null;
-	$b['keywords'] = null;
-	$b['author'] = null;
-	$b['creator'] = null;
-	$b['producer'] = null;
-	$b['creationdate'] = null;
-	$b['moddate'] = null;
-	$b['tagged'] = null;
-	$b['form'] = null;
-	$b['pages'] = null;
-	$b['encrypted'] = null;
-	$b['Page size'] = null;
-	$b['file size'] = null;
-	$b['optimized'] = null;
-	$b['pdf version'] = null;
-	$b['w'] = null;
-	$b['h'] = null;
-
-	foreach( $out as $k=>$v ){
-#		echo "Line : $k = $v\n";
-#
-#	          1         2         3         4
-#	01234567890123456789012345678901234567890123456789
-#	Title:          City of Splendors: Waterdeep
-#	Subject:        Scanned by Rob
-#	Keywords:       
-#	Author:         Eric L. Boyd
-#	Creator:        CanoScan D660U
-#	Producer:       PDFScanLib v1.2.2 in Adobe Acrobat 7.0
-#	CreationDate:   Thu Oct  6 03:03:31 2005
-#	ModDate:        Sat May  6 10:49:50 2006
-#	Tagged:         no
-#	Form:           AcroForm
-#	Pages:          183
-#	Encrypted:      no
-#	Page size:      610.56 x 802.56 pts (rotated 0 degrees)
-#	File size:      18592769 bytes
-#	Optimized:      yes
-#	PDF version:    1.6
-#
-		$t = trim( substr($v, 0, 16) );
-		$t = strtolower( substr( $t, 0, -1 ) );
-		$d = strtolower( trim( substr( $v, 16, strlen($v) ) ) );
-		$b[$t] = $d;
-
-		if( preg_match("/^page size/i", $v) ){
-			$v = preg_replace( "/\s+/", " ", $v );
-			$a = explode( " ", $v );
-			$b['w'] = $a[2];
-			$b['h'] = $a[4];
-			}
-		}
-
-	return $b;
-}
 ################################################################################
 #	dump(). A simple function to dump some information.
 #	Ex:	$this->dump( "NUM", $num );
@@ -234,12 +163,53 @@ function dump( $title=null, $arg=null )
 	$this->debug->out();
 	return true;
 }
+################################################################################
+#	dump(). A short function to dump a file.
+################################################################################
+function dumpfile( $f=null, $l=null )
+{
+	$this->debug->in();
+
+	if( is_null($f) ){
+		$this->debug->msg( "DIE : No file given" );
+		return false;
+		}
+
+	if( is_null($l) ){ $l = 32; }
+
+	$fh = fopen($f, "r" );
+	$r = fread( $fh, 1024 );
+	fclose( $fh );
+
+	$this->debug->msg( "Dump File	: " );
+	for ($i = 0; $i < $l; $i++) {
+		$this->debug->msg( str_pad(dechex(ord($r[$i])), 2, '0', STR_PAD_LEFT) );
+		}
+
+	$this->debug->msg( "\nHeader  : " );
+	for ($i = 0; $i < 32; $i++) {
+		$s = ord( $r[$i] );
+		$s = ($s > 127) ? $s - 127 : $s;
+		$s = ($s < 32) ? ord(" ") : $s;
+		$this->debug->msg( chr( $s ) );
+		}
+
+	$this->debug->msg( "\n" );
+	$this->debug->out();
+
+	return true;
+}
 
 }
 
 	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['pdf']) ){
-		$GLOBALS['classes']['pdf'] = new class_pdf();
+	if( !isset($GLOBALS['classes']['files']) ){
+		$GLOBALS['classes']['files'] = new class_files();
 		}
+
+if( false ){
+$c = new class_files();
+$c->splitFile( "J:/Images/Backup-w5-2024-11-13-1346.TBI", "R:/2024-12-07", "100gb" );
+}
 
 ?>
