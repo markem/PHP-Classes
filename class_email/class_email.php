@@ -202,6 +202,12 @@ function sep( $num=null )
 #	Is this a command?
 #
 #		echo "K = $k, V = $v\n";
+		if( (!$body && preg_match("/^Message-Id:/i", $v)) ){
+			if( !isset($msg['From:']) ){ $msg['From:'] = []; }
+			$cmd = explode( ' ', $v );
+			$msg['From:'][] = $cmd[1];
+			}
+
 		if( !$body && preg_match("/^\w+(-\w+)*:\s*/", $v) ){
 			$cmd = preg_replace( "/^(\w+(-\w+)*:\s*)(.*$)/", "$1", $v );
 #			$this->dump( "CMD = ", $cmd );
@@ -294,6 +300,10 @@ function sep( $num=null )
 					else if( preg_match("/@/", $msg['In-Reply-To:'][0]) ){
 						$a = explode( ' ', $msg['In-Reply-To:'][0] );
 						}
+				}
+			else if( isset($msg['Message-Id:']) ){
+				echo "HERE\n";
+				$a = explode( ' ', $msg['Message-Id:'][0] );
 				}
 
 		$msg['Reply-To:'] = array( "Reply-To: <" . $a[count($a)-1] );
