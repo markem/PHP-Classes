@@ -123,7 +123,10 @@ function fget_csv($filename='', $isTitle=true, $delimiter=',')
 	$data = array();
 
 	$fh = fopen( $filename, "r" );
-	for($i=0; $data[]=fgetcsv( $fh, $delimiter ); ++$i){}
+	for($i=0; $a=fgetcsv( $fh, $delimiter ); $i++){
+		if( count($a) > 1 ){ $data[] = $a; }
+		}
+
 	fclose( $fh );
 #
 #	In most CSV files - the first line is the TITLE line.

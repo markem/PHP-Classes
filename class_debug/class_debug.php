@@ -2,7 +2,11 @@
 #
 #	Defines
 #
-	if( !defined("[]") ){ define( "[]", "array[]" ); }
+	$php_version = explode( '.', phpversion() );
+
+	if( $php_version[0] < 6 ){
+		if( !defined("[]") ){ define( "[]", "array[]" ); }
+		}
 #
 #	Standard error function
 #
@@ -210,7 +214,7 @@ function enter(){ $this->in( func_get_args() ); }
 #	Arguments:
 #		<Your Message>	:	This will be displayed also and/or saved.
 #
-#	exit(). Alternate function name.
+#	myExit(). Alternate function name.
 ################################################################################
 public function out()
 {
@@ -239,9 +243,9 @@ public function out()
 		}
 }
 ################################################################################
-#	exit(). Shows the arguments passed to it.
+#	myExit(). Shows the arguments passed to it.
 ################################################################################
-public function exit(){ $this->out( func_get_args() ); }
+public function myExit(){ $this->out( func_get_args() ); }
 ################################################################################
 #	msg(). Message (msg) out debug statements.
 #
@@ -345,10 +349,10 @@ private function getVariableName()
 		}
 }
 ################################################################################
-#	die(). Death subroutine.
+#	myDie(). Death subroutine.
 #	kill(). Alternate function name.
 ################################################################################
-public function die()
+public function myDie()
 {
 	$string= "\n\nProgram Terminated\n\n.";
 	$this->out( func_get_args() );

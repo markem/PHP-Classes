@@ -544,7 +544,7 @@ function trim_image( $gd=null, $color=null )
 ################################################################################
 #	copy_some(). Copies part of an image according to the parameters.
 ################################################################################
-function copy_some( $gd=null, $top=null, $left=null, $bot=null, $right=null )
+function copy( $gd=null, $top=null, $left=null, $bot=null, $right=null, $opt=false )
 {
 	$this->debug->in();
 
@@ -561,7 +561,8 @@ function copy_some( $gd=null, $top=null, $left=null, $bot=null, $right=null )
 	imagealphablending( $gd2, false );
 	imagesavealpha( $gd2, true );
 	imagecopyresampled( $gd2, $gd, 0, 0, $left, $top, $w, $h, $w, $h );
-	imagedestroy( $gd );
+
+	if( $opt ){ imagedestroy( $gd ); }
 
 	$this->debug->out();
 	return $gd2;

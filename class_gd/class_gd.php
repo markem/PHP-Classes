@@ -2477,6 +2477,85 @@ function seal_holes( $dir=null, $cwd=null, $infile=null, $outfile=null )
 	return $gd;
 }
 ################################################################################
+#	get_mask(). You supply where the masks are and this routine will get them.
+################################################################################
+function get_mask( $maskDir )
+{
+	$dq = '"';
+	$cf = $this->cf;
+#
+#	Now we are ready to get all of the masks.
+#
+	list( $mg, $mb ) = $cf->get_files( $maskDir );
+
+	$mask_dir_list = [];
+	foreach( $mg as $k=>$v ){
+		$a = explode( '-', $v );
+		$b = explode( '/', $a[0] );
+		$mask_dir_list[strtolower($b[count($b)-1])] = true;
+		}
+
+	$ary = array_keys( $mask_dir_list );
+	sort( $ary );
+
+	$end = true;
+	$picked_mask_colors = [];
+	while( $end ){
+		echo "\n\n";
+		echo "Which mask do you want to use?\n\n";
+		foreach( $ary as $k=>$v ){
+			echo "$k. $v\n";
+			}
+
+		echo "\nC. Continue on with program\n";
+		echo "Q. Quit the program\n";
+		echo "\n\n>";
+		$answer = trim( fgets(STDIN) );
+		if( strlen($answer) < 1 ){ $answer = "c"; }
+
+		echo "You selected $answer\n";
+
+		if( !preg_match("/(q|c)+/i", $answer) ){
+#		
+#			Get all of the mask filenames
+#		
+			list( $mg, $mb ) = $cf->get_files( $maskDir, ".png$" );
+#		
+#			Then go through them and keep only the ones we want
+#		
+			$files = [];
+			foreach( $mg as $k=>$v ){
+				if( preg_match("/$ary[$answer]/i", $v) ){ $files[] = $v; }
+				}
+#
+#			Remember to check for a bad ICCP in the files.
+#
+			$cf->rem_iccp( $files[0] );
+#
+#			Put all of the colors into a single array.
+#
+			foreach( $files as $k=>$v ){
+				echo "Loading : $v\n";
+				$gd = $cf->get_image( $v );
+				$c = $cf->get_colors( $gd, false );
+				foreach( $c as $k1=>$v1 ){
+					$a1 = ($k1 >> 24) & 0xff;
+					$r1 = ($k1 >> 16) & 0xff;
+					$g1 = ($k1 >> 8) & 0xff;
+					$b1 = $k1 & 0xff;
+
+					if( $a1 > 0 ){ continue; }
+						else { $picked_mask_colors[$k1] = $v1; }
+					}
+				}
+			}
+			else if( preg_match("/q/i", $answer) ){ die( "Finished!\n" ); }
+			else { $end = false; }
+		}
+
+	return $picked_mask_colors;
+}
+################################################################################
 #	died(). A simple function to print an error message and then die.
 ################################################################################
 function died( $string=null, $opt=FALSE )
@@ -2582,80 +2661,6 @@ function dump( $title=null, $arg=null )
 	echo "<---Exiting DUMP\n\n";
 	$this->debug->out();
 	return true;
-}
-################################################################################
-#	get_mask(). You supply where the masks are and this routine will get them.
-################################################################################
-function get_mask( $maskDir )
-{
-	$cf = $this->cf;
-#
-#	Now we are ready to get all of the masks.
-#
-	list( $mg, $mb ) = $cf->get_files( $maskDir );
-
-	$mask_dir_list = [];
-	foreach( $mg as $k=>$v ){
-		$a = explode( '-', $v );
-		$b = explode( '/', $a[0] );
-		$mask_dir_list[strtolower($b[count($b)-1])] = true;
-		}
-
-	$ary = array_keys( $mask_dir_list );
-	sort( $ary );
-
-	$end = true;
-	$picked_mask_colors = [];
-	while( $end ){
-		echo "\n\n";
-		echo "Which mask do you want to use?\n\n";
-		foreach( $ary as $k=>$v ){
-			echo "$k. $v\n";
-			}
-
-		echo "\nC. Continue on with program\n";
-		echo "Q. Quit the program\n";
-		echo "\n\n>";
-		$answer = trim( fgets(STDIN) );
-		if( strlen($answer) < 1 ){ $answer = "c"; }
-
-		echo "You selected $answer\n";
-
-		if( !preg_match("/(q|c)+/i", $answer) ){
-#		
-#			Get all of the mask filenames
-#		
-			list( $mg, $mb ) = $cf->get_files( $maskDir, ".png$" );
-#		
-#			Then go through them and keep only the ones we want
-#		
-			$files = [];
-			foreach( $mg as $k=>$v ){
-				if( preg_match("/$ary[$answer]/i", $v) ){ $files[] = $v; }
-				}
-#		
-#			Put all of the colors into a single array.
-#		
-			foreach( $files as $k=>$v ){
-				echo "Loading : $v\n";
-				$gd = $cf->get_image( $v );
-				$c = $cf->get_colors( $gd, false );
-				foreach( $c as $k1=>$v1 ){
-					$a1 = ($k1 >> 24) & 0xff;
-					$r1 = ($k1 >> 16) & 0xff;
-					$g1 = ($k1 >> 8) & 0xff;
-					$b1 = $k1 & 0xff;
-
-					if( $a1 > 0 ){ continue; }
-						else { $picked_mask_colors[$k1] = $v1; }
-					}
-				}
-			}
-			else if( preg_match("/q/i", $answer) ){ die( "Finished!\n" ); }
-			else { $end = false; }
-		}
-
-	return $picked_mask_colors;
 }
 ################################################################################
 #	__destruct(). Do the clean-up necessary.

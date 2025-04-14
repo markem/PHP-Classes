@@ -1,0 +1,1050 @@
+<?php
+#
+#	Defines
+#
+	if( !defined("[]") ){ define( "[]", "array[]" ); }
+#
+#	Standard error function
+#
+	set_error_handler(function($errno, $errstring, $errfile, $errline ){
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
+		});
+
+	ini_set( 'memory_limit', -1 );
+	date_default_timezone_set( "UTC" );
+#
+#	$lib is where my libraries are located.
+#	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
+#	because of my UNIX background. So I used the following to find them
+#	no matter where I was. I created an environment variable called "my_libs"
+#	and then it could find my classes. IF YOU SET THINGS UP DIFFERENTLY then
+#	you will have to modify the following.
+#
+	$lib = getenv( "my_libs" );
+	$lib = str_replace( "\\", "/", $lib );
+	if( !file_exists($lib) ){ $lib = ".."; }
+
+	if( file_exists("$lib/class_debug.php") ){
+		include_once( "$lib/class_debug.php" );
+		}
+		else if( !isset($GLOBALS['classes']['debug']) ){
+			die( __FILE__ . ": Can not load CLASS_DEBUG" );
+			}
+
+	include_once( "$lib/class_files.php" );
+	include_once( "$lib/class_pr.php" );
+
+################################################################################
+#BEGIN DOC
+#
+#-Calling Sequence:
+#
+#	class_serial();
+#
+#-Description:
+#
+#	A class to handle serial ports.
+#	
+#	Here is the output from doing a MODE COM4 command:
+#
+#	Status for device COM4:
+#	-----------------------
+#	    Baud:            19200
+#	    Parity:          None
+#	    Data Bits:       8
+#	    Stop Bits:       1
+#	    Timeout:         OFF
+#	    XON/XOFF:        OFF
+#	    CTS handshaking: OFF
+#	    DSR handshaking: OFF
+#	    DSR sensitivity: OFF
+#	    DTR circuit:     ON
+#	    RTS circuit:     ON
+#
+#-Inputs:
+#
+#	None.
+#
+#-Outputs:
+#
+#	None.
+#
+#-Revisions:
+#
+#	Name					Company					Date
+#	---------------------------------------------------------------------------
+#	Mark Manning			Simulacron I			Tue 02/04/2025 20:51:19.98
+#		Original Program.
+#
+#	Mark Manning			Simulacron I			Sat 07/17/2021 14:56:52.53 
+#	---------------------------------------------------------------------------
+#		REMEMBER! We are now following the PHP code of NOT killing the program
+#		but instead always setting a DEBUG MESSAGE and returning FALSE. So I'm
+#		getting rid of all of the DIE() calls.
+#
+#	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
+#	---------------------------------------------------------------------------
+#		This is now under the BSD Three Clauses Plus Patents License.
+#		See the BSD-3-Patent.txt file.
+#
+#	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
+#	---------------------------------------------------------------------------
+#	Please note that _MY_ Legal notice _HERE_ is as follows:
+#
+#		CLASS_SERIAL.PHP. A class to handle working with serial ports.
+#		Copyright (C) 2025-NOW.  Mark Manning. All rights reserved
+#		except for those given by the BSD License.
+#
+#	Please place _YOUR_ legal notices _HERE_. Thank you.
+#
+#END DOC
+################################################################################
+class class_serial
+{
+	private $cr = null;
+	private $pr = null;
+	private $bauds = null;
+	private $modes = null;
+	private $devices = null;
+	private $debug = null;
+	private $settings = null;
+	private $baud = null;
+	private $device = null;
+	private $process = null;
+	private $cmd = null;
+	private $circuit = null;
+	private $pipes = null;
+	private $dirFile = null;
+	private $env = null;
+	private $length = 256;
+	private $wait = 5;
+	private $count = 5;
+	private $file = null;
+	private $cwd = null;
+	private $bas = null;
+	private $exe = null;
+
+#	    Baud:            19200
+#	    Parity:          None
+#	    Data Bits:       8
+#	    Stop Bits:       1
+#	    Timeout:         OFF
+#	    XON/XOFF:        OFF
+#	    CTS handshaking: OFF
+#	    DSR handshaking: OFF
+#	    DSR sensitivity: OFF
+#	    DTR circuit:     ON
+#	    RTS circuit:     ON
+
+################################################################################
+#	__construct(). Constructor.
+################################################################################
+function __construct()
+{
+	$this->debug = $GLOBALS['classes']['debug'];
+	if( !isset($GLOBALS['class']['serial']) ){
+		return $this->init( func_get_args() );
+		}
+		else { return $GLOBALS['class']['serial']; }
+}
+################################################################################
+#	init(). Used instead of __construct() so you can re-init() if necessary.
+#	NOTES	:	This is what we are trying to do
+#
+#				com4:115200,n,8,1,cs0,cd0,ds0,rs
+#
+#--------------------------------------------------------------------------------
+#
+#	Taken from:
+#		https://www.ibm.com/docs/hr/aix/7.2?topic=parameters-parity-bits
+#
+#		N or NONE	=	No parity.
+#			Specifies that the local system must not create a
+#			parity bit for data characters being transmitted. It also
+#			indicates that the local system does not check for a parity
+#			bit in data received from a remote host.
+#
+#		E or EVEN	=	Even parity (all 1s must add up to an even value)
+#			Specifies that the total number of binary 1s, in a single
+#			character, adds up to an even number. If they do not, the
+#			parity bit must be a 1 to ensure that the total number of
+#			binary 1s is even.
+#
+#		O or ODD	=	Odd parity (All 1s must add up to an odd value)
+#			Operates under the same guidelines as even parity except
+#			that the total number of binary 1s must be an odd number.
+#
+#		S or SPACE	=	See below
+#			Specifies that the parity bit will always be a binary
+#			zero. Another term used for space parity is bit filling,
+#			which is derived from its use as a filler for seven-bit
+#			data being transmitted to a device which can only accept
+#			eight bit data. Such devices see the space parity bit as
+#			an additional data bit for the transmitted character.
+#
+#		M or MARK	=	See below
+#			Operates under the same guidelines as space parity except
+#			that the parity bit is always a binary 1. The mark parity
+#			bit acts only as a filler.
+#
+#	NOTES:	I trim the incoming information, then only take the first
+#		letter, and then convert it to lowercase. After all - there is
+#		no need to keep the entire word.
+#
+################################################################################
+function init()
+{
+	$this->debug->in();
+
+	$this->pr = $pr = new $GLOBALS['classes']['pr'];
+	$this->cf = $cf = new $GLOBALS['classes']['files'];
+
+	$bauds = [];
+	$bauds[] = 300;
+	$bauds[] = 600;
+	$bauds[] = 1200;
+	$bauds[] = 2400;
+	$bauds[] = 4800;
+	$bauds[] = 9600;
+	$bauds[] = 14400;
+	$bauds[] = 19200;
+	$bauds[] = 38400;
+	$bauds[] = 57600;
+	$bauds[] = 115200;
+	$bauds[] = 230400;
+	$bauds[] = 460800;
+	$this->bauds = $bauds;
+
+	$this->modes = [];
+#
+#	These are the default settings. Because each version of basic you
+#	have various items - it might seem to be a really long list. However,
+#	you ONLY need to modify the ones for YOUR version of basic. I'm talking
+#	about FreeBasic, FutureBasic, QB64, IWBasic, and so forth.
+#
+	$this->settings = [];
+#
+#	Entries that are in all of the different cases. If you want to change them
+#	then send the information as a KEY=>VALUE. Ex: array("stop bits"=>1).
+#	All keyword names ignore the case of the keyword.
+#
+	$this->settings['baud'] = 9600;
+	$this->settings['device'] = "com1:";
+	$this->settings['parity'] = 'n';
+	$this->settings['data-bits'] = 8;
+	$this->settings['stop-bits'] = 1;
+#
+#	From the IBM webpage about serial communication
+#		https://www.ibm.com/docs/hr/aix/7.2?topic=parameters-parity-bits
+#
+	$this->settings['timeout'] = null;
+	$this->settings['xon/xoff'] = null;
+	$this->settings['cts-handshaking'] = null;
+	$this->settings['dsr-handshaking'] = null;
+	$this->settings['dsr-sensitivity'] = null;
+	$this->settings['dtr-circuit'] = null;
+	$this->settings['rts-circuit'] = null;
+#
+#	Freebasic section
+#
+#	The '#' means you need to put a number in for this option
+#		open com "com1:9600,n,8,1,cs0,cd0,ds0,rs" as #hfile
+#
+	$this->settings['cs#'] = null;
+	$this->settings['ds#'] = null;
+	$this->settings['cd#'] = null;
+	$this->settings['op#'] = null;
+	$this->settings['tb#'] = null;
+	$this->settings['rb#'] = null;
+	$this->settings['ir#'] = null;
+#
+#	These are all TRUE/FALSE. True = PUT THE WORD IN, False = Leave it off
+#
+	$this->settings['rs'] = null;
+	$this->settings['lf'] = null;
+	$this->settings['asc'] = null;
+	$this->settings['bin'] = null;
+	$this->settings['pe'] = null;
+	$this->settings['dt'] = null;
+	$this->settings['fe'] = null;
+	$this->settings['me'] = null;
+#
+#	QB64 items used.
+#	NOTE :	Speed is BAUD - so use baud.
+#			For the RANDOM, BINARY, OUTPUT, and INPUT - simply pass in a TRUE or FALSE
+#
+#	OPEN "COMn: Speed, Parity, Bits, Stopbit, [Options]"
+#		[FOR {RANDOM|BINARY|OUTPUT|INPUT}] AS #P [LEN = byteSize]
+#
+	$this->settings['random'] = null;
+	$this->settings['binary'] = null;
+	$this->settings['output'] = null;
+	$this->settings['input'] = null;
+	$this->settings['len'] = null;
+	$this->settings['file-pointer'] = null;
+	$this->settings['wait'] = 5;
+	$this->settings['count'] = 5;
+	$this->settings['length'] = 256;
+#
+#	Set up the circuit so we can talk to the com.bas program.
+#
+	$this->cwd = getcwd();
+	$this->cwd = str_replace( "\\", "/", $this->cwd );
+	$this->bas = "com.bas";
+	$this->exe = "com.exe";
+
+	$this->circuit = array(
+		0 => array("pipe", "r"),  // stdin is a pipe that the child will read from
+		1 => array("pipe", "w"),  // stdout is a pipe that the child will write to
+		2 => array("file", "./stderr.txt", "w") // stderr is a file to write to
+		);
+
+	$this->debug->out();
+	return true;
+}
+################################################################################
+#	modes(). For WINDOWS ONLY - executes the MODE command and create the
+#		mode array.
+################################################################################
+function modes()
+{
+	$this->debug->in();
+#
+#	Use the MODE command to find all of the modes
+#
+	if( exec("mode", $out, $ret) === false ){
+		die( "***** ERROR : Could not execute the MODE command - aboring.\n" );
+		}
+#	
+#	Status for device COM4:
+#	-----------------------
+#	    Baud:            115200
+#	    Parity:          None
+#	    Data Bits:       8
+#	    Stop Bits:       1
+#	    Timeout:         OFF
+#	    XON/XOFF:        OFF
+#	    CTS handshaking: OFF
+#	    DSR handshaking: OFF
+#	    DSR sensitivity: OFF
+#	    DTR circuit:     OFF
+#	    RTS circuit:     OFF
+#	
+	$modes = [];
+	$devices = [];
+#
+#	Get rid of the first line - it is always blank.
+#
+	array_shift( $out );
+	foreach( $out as $k=>$v ){
+		if( strlen(trim($v)) > 0 ){
+#
+#	Is this just the dashed line? Skip it.
+#
+			if( preg_match("/\-+/", $v) ){ continue; }
+#
+#	Is this the "Status for device XXX:" line?
+#	Then get the device name. Remove the semicolon.
+#
+			if( preg_match("/status for device/i", $v) ){
+				$a = explode( ' ', $v );
+				$dev = array_pop( $a );
+				while( strlen(trim($dev)) < 1 ){ $dev = array_pop( $a ); }
+				$dev = strtolower( substr($dev, 0, -1) );
+				$modes[$dev] = [];
+				$devices[] = $dev;
+				continue;
+				}
+#
+#	Ok, we should be in the data information area. Get those.
+#
+			$a = explode( ' ', $v );
+			$info = array_pop( $a );
+			while( strlen(trim($info)) < 1 ){ $info = array_pop( $a ); }
+#
+#	Now get the title. Get rid of the semicolon
+#
+			$title = array_pop( $a );
+			while( strlen(trim($title)) < 1 ){ $title = array_pop( $a ); }
+			$title = substr( $title, 0, -1 );
+			$modes[$dev][strtolower($title)] = strtolower( $info );
+			}
+		}
+
+	$this->modes = $modes;
+	$this->devices = $devices;
+
+	$this->debug->out();
+	return $modes;
+}
+################################################################################
+#	get_modes(). Return all of the modes to the caller.
+################################################################################
+function get_modes()
+{
+	$this->debug->in();
+
+	$this->debug->out();
+	return $this->modes;
+}
+################################################################################
+#	set(). Sets the settings. You can send a single line:
+#
+#		ex: $v->set( "baud", 9600 );
+#
+#		or you can send an array:
+#
+#		ex: $v->set( array("baud", 9600) );
+#
+#	NOTE :	You can send nonsensical options like:
+#
+#		ex: $v-set( "My Baby Does the Hanki-panki", "Everyday" );
+#
+#		ALSO! Don't forget about the LENGTH setting. That is what you set
+#		for the incoming information. Default = 256 bytes
+#
+#		WAIT is for how long to wait while looking for information coming
+#		back from the pipe. (You can also call it wait-time but wait is the
+#		key word.)
+#
+#		COUNT how many times to wait for incoming information.
+#
+################################################################################
+function set( $ary=null, $opt=null )
+{
+#
+#	Change the incoming information into an array. But ONLY if the $OPT
+#	is not NULL. If the $ARY is an array then stick the $OPT onto the
+#	end of the array.
+#
+	if( !is_null($opt) ){
+		if( is_array($ary) ){ $ary[] = $opt; }
+			else { $ary = array( $ary, $opt ); }
+		}
+
+	foreach( $ary as $k=>$v ){
+		$k = strtolower( $k );
+		$this->settings[$k] = $v;
+		}
+}
+################################################################################
+#	get(). Gets the settings. You should call this one first and then
+#		set what you may need to change.
+################################################################################
+function get()
+{
+	$this->debug->in();
+
+	$this->debug->out();
+	return $this->settings;
+}
+################################################################################
+#	cwd(). Set the working directory and file where you are
+#	putting the basic program.
+################################################################################
+function cwd( $cwd )
+{
+#
+#	Because they might send the entire pathway AND where the basic program is
+#	OR where the executable might be - we have to take it apart and then put
+#	it back together again.
+#
+	$pathinfo = $this->cf->my_pathinfo( $cwd );
+	$this->cwd = $pathinfo['dirname'];
+#
+#	Ok, did they send us where the source code goes or where the executable
+#	goes?
+#
+	if( preg_match("/\.bas$/i", $pathinfo['basename']) ){
+		$this->bas = $pathinfo['basename'];
+		}
+		else if( preg_match("/\.exe$/i", $pathinfo['basename']) ){
+			$this->exe = $pathinfo['basename'];
+			}
+
+	return true;
+}
+################################################################################
+#	bas(). The name of the basic file
+################################################################################
+function bas( $bas )
+{
+	$this->bas = $bas;
+	return true;
+}
+################################################################################
+#	exe(). Set what the executable's name is
+################################################################################
+function exe( $exe )
+{
+	$this->exe = $exe;
+	return true;
+}
+################################################################################
+#	env(). Set the env command. These are environment variables in a key=>value
+#		array. Usually you can leave this null because the proc_open uses the
+#		environment variables which are already present.
+################################################################################
+function env( $env )
+{
+	$this->env = $env;
+	return true;
+}
+################################################################################
+#	open(). Open up the communications. REMEMBER! You MUST already have
+#		created the com.exe program from the com.bas program and called the
+#		cwd() function and called the exe() function to set up where the
+#		communication program (com.exe) is located.
+################################################################################
+function open()
+{
+	$cwd = $this->cwd;
+	$exe = $this->exe;
+
+	if( is_null($cwd/$exe) || !file_exists($cwd/$exe) ){
+		die( "***** ERROR : No such file ($cwd/$exe) or FILE is NULL\n" );
+		}
+
+	$this->cmd = "$dq$cwd/$exe$dq";
+
+	$this->process = proc_open($this->cmd, $this->circuit,
+		$this->pipes, $cwd, $this->env);
+
+	if( !is_resource($this->process) ){
+		die( "***** ERROR : Could not open a process via PROC_OPEN - aborting.\n" );
+		}
+
+	foreach( $this->settings as $k=>$v ){
+		if( preg_match("/^len/i", $k) ){ $this->length = $v; }
+		if( preg_match("/^wait/i", $k) ){ $this->wait = $v; }
+		}
+
+	return $this->process;
+}
+################################################################################
+#	input(). Get input from the serial port.
+#
+#	NOTES : Returns either the information from the pipe or FALSE.
+################################################################################
+function input()
+{
+	$cnt = 0;
+	while( true ){
+		$fstat = fstat($this->pipes[1]);
+		if( $fstat['size'] > 0 ){ break; }
+		if( $cnt++ > $this->count ){ return false; }
+		echo "Waiting...\n";
+		sleep( $this->wait );
+		}
+
+	return fread( $this->pipes[1], $this->length );
+}
+################################################################################
+#	myPrint(). Print something to the serial port.
+################################################################################
+function myPrint( $info )
+{
+	return fwrite( $this->pipes[0], $info );
+}
+################################################################################
+#	close(). Close the connection.
+################################################################################
+function close()
+{
+	fclose( $this->pipes[0] );
+	fclose( $this->pipes[1] );
+	fclose( $this->pipes[2] );
+
+	return proc_close( $this->process );
+}
+################################################################################
+#	freebasic(). Create the Freebasic program for use with this class.
+#
+#	NOTES :	Remember this ONLY generates the FreeBasic code THEN you have to
+#		compile it with FreeBasic and THEN you can use the program to talk to
+#		your serial device.
+#
+#	The following were taken from the FreeBasic Manual. Not my stuff but I need
+#	it.
+#
+#	Condition Default number of stop bits 
+#	baud rate <= 110 and data bits = 5 1.5 
+#	baud rate <= 110 and data bits >= 6 2 
+#	baud rate > 110 1 
+#	
+#	extended_options
+#	
+#	Miscellaneous options. (See table below)
+#	
+#	Option Action 
+#	'CSn' Set the CTS duration (in ms) (n>=0), 0 = turn off, default = 1000 
+#	'DSn' Set the DSR duration (in ms) (n>=0), 0 = turn off, default = 1000 
+#	'CDn' Set the Carrier Detect duration (in ms) (n>=0), 0 = turn off 
+#	'OPn' Set the 'Open Timeout' (in ms) (n>=0), 0 = turn off 
+#	'TBn' Set the 'Transmit Buffer' size (n>=0), 0 = default, depends on platform 
+#	'RBn' Set the 'Receive Buffer' size (n>=0), 0 = default, depends on platform 
+#	'RS' Suppress RTS detection 
+#	'LF' Communicate in ASCII mode (add LF to every CR) - Win32 doesn't support this one 
+#	'ASC' same as 'LF' 
+#	'BIN' The opposite of LF and it'll always work 
+#	'PE' Enable 'Parity' check 
+#	'DT' Keep DTR enabled after CLOSE 
+#	'FE' Discard invalid character on error 
+#	'ME' Ignore all errors 
+#	'IRn' IRQ number for COM (only supported (?) on DOS) 
+#
+################################################################################
+function freebasic()
+{
+	$file = "$this->cwd/$this->bas";
+echo "File = $file\n";
+	$settings = $this->settings;
+#
+#		open com "com1:9600,n,8,1,cs0,cd0,ds0,rs" as #hfile
+#
+	$baud = is_null($settings['baud']) ? "9600" : $settings['baud'];
+	$device = is_null($settings['device']) ? "com1" : $settings['device'];
+	$device = str_replace( ":", "", $device );
+
+	$parity = is_null($settings['parity']) ? ",n" : "," . $settings['parity'];
+	$data_bits = is_null($settings['data-bits']) ? ",8" : "," . $settings['data-bits'];
+	$stop_bits = is_null($settings['stop-bits']) ? ",1" : "," . $settings['stop-bits'];
+	$timeout = is_null($settings['timeout']) ? "" : "," . $settings['timeout'];
+
+	if( is_null($settings['cs#']) ){ $csn = ""; }
+		else if( is_numeric($settings['cs#']) ){ $csn = ",cs" . $settings['cs#']; }
+		else { $csn = ",cs0"; }
+
+	if( is_null($settings['ds#']) ){ $dsn = ""; }
+		else if( is_numeric($settings['ds#']) ){ $dsn = ",ds" . $settings['ds#']; }
+		else { $dsn = ",ds0"; }
+
+	if( is_null($settings['cd#']) ){ $cdn = ""; }
+		else if( is_numeric($settings['cd#']) ){ $cdn = ",cd" . $settings['cd#']; }
+		else { $cdn = ",cd0"; }
+
+	if( is_null($settings['op#']) ){ $opn = ""; }
+		else if( is_numeric($settings['op#']) ){ $opn = ",op" . $settings['op#']; }
+		else { $opn = ",op0"; }
+
+	if( is_null($settings['tb#']) ){ $tbn = ""; }
+		else if( is_numeric($settings['tb#']) ){ $tbn = ",tb" . $settings['tb#']; }
+		else { $tbn = ",tb0"; }
+
+	if( is_null($settings['rb#']) ){ $rbn = ""; }
+		else if( is_numeric($settings['rb#']) ){ $rbn = ",rb" . $settings['rb#']; }
+		else { $rbn = ",rb0"; }
+
+	if( is_null($settings['ir#']) ){ $irn = ""; }
+		else if( is_numeric($settings['ir#']) ){ $irn = ",ir" . $settings['ir#']; }
+		else { $irn = ",ir0"; }
+#
+#	These are all TRUE/FALSE. True = PUT THE WORD IN, False = Leave it off
+#
+	$rs = is_null($settings['rs']) ? "" : ",rs";
+	$lf = is_null($settings['lf']) ? "" : ",lf";
+	$asc = is_null($settings['asc']) ? "" : ",asc";
+	$bin = is_null($settings['bin']) ? "" : ",bin";
+	$pe = is_null($settings['pe']) ? "" : ",pe";
+	$dt = is_null($settings['dt']) ? "" : ",dt";
+	$fe = is_null($settings['fe']) ? "" : ",fe";
+	$me = is_null($settings['me']) ? "" : ",me";
+#
+#	Create the communication setting which will be used in the following
+#	basic program.
+#
+	$com = "$device:$baud$parity$data_bits$stop_bits$timeout" .
+			"$csn$cdn$dsn$opn$tbn$rbn$irn$rs$lf$asc$bin$pe$dt$fe$me";
+
+	$code = <<<EOD
+'
+'	COM.BAS is a simple Freebasic program that will
+'	open, read/write, close a communication port.
+'
+'	Set it up for whatever port you want it to talk to
+'	and THEN compile and run the program.
+'
+rem	+--------------------------------------------------------------------------------
+rem	|BEGIN DOC
+rem	|
+rem	|-Calling Sequence:
+rem	|
+rem	|	main()
+rem	|
+rem	|-Description:
+rem	|
+rem	|	A simple program to open, read/write, and close a communication port.
+rem	|	Please see the BSD-3-Patent.txt for more information.
+rem	|
+rem	|	I am using the following as an example
+rem	|
+rem	|	Status for device COM4:
+rem	|	-----------------------
+rem	|	    Baud:            115200
+rem	|	    Parity:          None
+rem	|	    Data Bits:       8
+rem	|	    Stop Bits:       1
+rem	|	    Timeout:         ON
+rem	|	    XON/XOFF:        OFF
+rem	|	    CTS handshaking: OFF
+rem	|	    DSR handshaking: OFF
+rem	|	    DSR sensitivity: OFF
+rem	|	    DTR circuit:     OFF
+rem	|	    RTS circuit:     OFF
+rem	|	
+rem	|-Inputs:
+rem	|
+rem	|	Options:
+rem	|
+rem	|-Outputs:
+rem	|
+rem	|	None.
+rem	|
+rem	|-Revisions:
+rem	|
+rem	|	Name					Company					Date
+rem	|	---------------------------------------------------------------------------
+rem	|	Mark Manning			Simulacron I			Fri 04/04/2025 16:33:01.02
+rem	|		Original Program.
+rem	|
+rem	|	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
+rem	|	---------------------------------------------------------------------------
+rem	|		This is now under the BSD Three Clauses Plus Patents License.
+rem	|		See the BSD-3-Patent.txt file.
+rem	|
+rem	|	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
+rem	|	---------------------------------------------------------------------------
+rem	|	Please note that _MY_ Legal notice _HERE_ is as follows:
+rem	|
+rem	|		COM.BAS. A program to handle working with serial ports.
+rem	|		Copyright (C) 2025-NOW.  Mark Manning. All rights reserved
+rem	|		except for those given by the above license.
+rem	|
+rem	|	Please place _YOUR_ legal notices _HERE_. Thank you.
+rem	|
+rem	|END DOC
+rem	+--------------------------------------------------------------------------------
+	dim a As string
+	dim s As string
+	dim c as string
+	dim scrn as long
+'
+'	First open the console
+'
+	scrn = screen( 20, 80 )
+	cls
+'
+'	Clear a, s, and c
+'
+	a = ""
+	s = ""
+	c = ""
+'
+'	Make the string we are going to use to open the communication port
+'
+'	Example:
+'
+'		open com "com1:9600,n,8,1,cs0,cd0,ds0,rs" as #hfile
+'
+'	The '?' returns the following from the VigoWriter Pen Plotter:
+'
+'	<Idle|MPos:0.000,0.000,0.000|Bf:15,126|FS:0,0|Ov:100,100,100|A:S>
+'
+'	G91 G0 X1
+'
+'	Taken from :
+'		https://github.com/winder/Universal-G-Code-Sender/issues/1279
+'
+'	Yes, for example send "M3 S50" for pen down and "M3 S500"
+'	for pen up (or M4).  The correct values for S you need to
+'	figure out.  If the servo needs some time for motion you
+'	may add the command "G4 P1" after pen down/up command for
+'	1 second delay
+'
+'	Original command I used to create this program :
+'
+'	s = "com4:115200,n,8,1,cs0,cd0,ds0,rs"
+'
+	s = "$com"
+
+'	print "Opening with : " & s
+	If Open Com (s For Binary As #1) <> 0 Then
+		Print "Unable to open the serial port"
+		End
+		End If
+'
+'	Use the INPUT command to give us a place to input the request
+'
+	c = "start"
+	while( c <> "q" )
+
+		input "Send: ", s
+'
+'	Save the command
+'
+		c = s
+'
+'	Send it to the com port
+'
+'		print "Sending : " & s
+		print #1, s
+'
+'	Now wait a few moments before we start checking for outgoing information
+'
+		sleep 2000,1
+'
+'	Clear the A)nswer and S)tring variables
+'
+		a = ""
+		s = ""
+'
+'	Now look for something coming back
+'
+		While( LOC(1) > 0 )
+			a = Input(LOC(1), 1)
+			s = s & a
+			Wend
+'
+'	Now send the string back
+'
+'		print "Output : >" & s & "<"
+'
+		print s
+		wend
+'
+'	Ok - NOW we close the port and end
+'
+	Close #1
+	end
+EOD;
+
+	return file_put_contents( $file, $code );
+}
+################################################################################
+#	qb64(). Create the QB64 code.
+#	NOTES :	Remember this ONLY generates the QB64 code THEN you have to
+#		compile it with QB64 and THEN you can use the program to talk to
+#		your serial device.
+################################################################################
+function qb64()
+{
+	$file = "$this->cwd/$this->bas";
+	$settings = $this->settings;
+#
+#		open com "com1:9600,n,8,1,cs0,cd0,ds0,rs" as #hfile
+#
+	$baud = is_null($settings['baud']) ? "9600" : $settings['baud'];
+	$device = is_null($settings['device']) ? "com1" : $settings['device'];
+	$device = str_replace( ":", "", $device );
+
+	$parity = is_null($settings['parity']) ? ",n" : "," .$settings['parity'];
+	$data_bits = is_null($settings['data-bits']) ? ",8" : "," .$settings['data-bits'];
+	$stop_bits = is_null($settings['stop-bits']) ? ",1" : "," .$settings['stop-bits'];
+	$timeout = is_null($settings['timeout']) ? "" : "," .$settings['timeout'];
+
+	if( is_null($settings['cs#']) ){ $csn = ""; }
+		else if( is_numeric($settings['cs#']) ){ $csn = ",cs" .$settings['cs#']; }
+		else { $csn = ",cs0"; }
+
+	if( is_null($settings['ds#']) ){ $dsn = ""; }
+		else if( is_numeric($settings['ds#']) ){ $dsn = ",ds" .$settings['ds#']; }
+		else { $dsn = ",ds0"; }
+
+	if( is_null($settings['cd#']) ){ $cdn = ""; }
+		else if( is_numeric($settings['cd#']) ){ $cdn = ",cd" .$settings['cd#']; }
+		else { $cdn = ",cd0"; }
+
+	if( is_null($settings['op#']) ){ $opn = ""; }
+		else if( is_numeric($settings['op#']) ){ $opn = ",op" .$settings['op#']; }
+		else { $opn = ",op0"; }
+
+	if( is_null($settings['tb#']) ){ $tbn = ""; }
+		else if( is_numeric($settings['tb#']) ){ $tbn = ",tb" .$settings['tb#']; }
+		else { $tbn = ",tb0"; }
+
+	if( is_null($settings['rb#']) ){ $rbn = ""; }
+		else if( is_numeric($settings['rb#']) ){ $rbn = ",rb" .$settings['rb#']; }
+		else { $rbn = ",rb0"; }
+
+	if( is_null($settings['ir#']) ){ $irn = ""; }
+		else if( is_numeric($settings['ir#']) ){ $irn = ",ir" .$settings['ir#']; }
+		else { $irn = ",ir0"; }
+#
+#	These are all TRUE/FALSE. True = PUT THE WORD IN, False = Leave it off
+#
+	$rs = is_null($setting['rs']) ? "" : ",rs";
+	$lf = is_null($settings['lf']) ? "" : ",lf";
+	$asc = is_null($settings['asc']) ? "" : ",asc";
+	$bin = is_null($settings['bin']) ? "" : ",bin";
+	$pe = is_null($settings['pe']) ? "" : ",pe";
+	$dt = is_null($settings['dt']) ? "" : ",dt";
+	$fe = is_null($settings['fe']) ? "" : ",fe";
+	$me = is_null($settings['me']) ? "" : ",me";
+#
+#	QB64 Info
+#
+#	This code originally had RB8192 at the end of it. I changed that
+#	to use the RS command. The RB8192 is how many BYTES are read/written
+#	to the port. RS says just send however many you have and that is all.
+#
+#	ser$ = COM4:115200,N,8,1,BIN,CD0,CS0,DS0,RS"
+#
+#	Let me WARN you - try to keep as close to the above as you can. I
+#	can not be held responsible if you blow up your device. So test
+#	each thing as you go.
+#
+
+#
+#	Create the communication setting which will be used in the following
+#	basic program.
+#
+	$com = "$device:$baud$parity$data_bits$stop_bits$timeout" .
+			"$csn$cdn$dsn$opn$tbn$rbn$irn$rs$lf$asc$bin$pe$dt$fe$me";
+
+	$code = <<<EOD
+
+rem Tab Settings are set to 4 (ts=4)
+rem	+--------------------------------------------------------------------------------
+rem	|BEGIN DOC
+rem	|
+rem	|-Calling Sequence:
+rem	|
+rem	|	com()
+rem	|
+rem	|-Description:
+rem	|
+rem	|	Taken from : https://qb64phoenix.com/forum/showthread.php?tid=342
+rem	|	User name : mdijkens 
+rem |
+rem	|	Although the program presented by mdijkens works - it needed to be
+rem	|	modified by me to work with the VigoTEC Pen Plotter. The first
+rem	|	addition was the small program at the front of this script (ie:
+rem	|	From the "rem $Debug" to the "end" statement. Secondly, I had to
+rem	|	figure out why the ErrorHandler simply refused to work. THIS problem
+rem	|	was caused by not having the main program mentioned above. Once the
+rem	|	"end" statement was inserted - the error message about the ErrorHandler
+rem	|	disappeared. Note that the one(1) second SLEEP command is VERY necessary
+rem	|	to allow the serial port to respond. Even though, IN MY CASE, it is
+rem	|	opened for 115200 speed - the Pen Plotter itself seems to go at 110 baud
+rem	|	in responding to commands. Last, I found out that the inclusion of a
+rem	|	carriage return (chr$(13)) REALLY had to be there or else some of the
+rem	|	VigoTEC commands just will not function properly. These (so far) are the
+rem	|	"$" and "$$" commands. Without the carriage return the VigoWriter (from
+rem	|	VigoTEC) simply ignores these commands. Also, the LINE INPUT command
+rem	|	does NOT return a carriage return at the end of the command. This is
+rem	|	gobbled up by the LINE INPUT COMMAND and all you get is just the letters
+rem	|	you typed in.
+rem	|
+rem	|	Because the original set of functions is not owned by me - this code can
+rem	|	be used however you want - unlike my FreeBasic code which is restricted
+rem	|	a little bit.
+rem	|
+rem	|-Inputs:
+rem	|
+rem	|	None.
+rem	|
+rem	|-Outputs:
+rem	|
+rem	|	None.
+rem	|-Revisions:
+rem	|
+rem	|	Name					Company					Date
+rem	|	---------------------------------------------------------------------------
+rem	|	Mark Manning			Simulacron I			Tue 04/08/2025 22:56:12.70
+rem	|		Original Program.
+rem	|
+rem	|	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
+rem	|	---------------------------------------------------------------------------
+rem	|		This is now under the BSD Three Clauses Plus Patents License.
+rem	|		See the BSD-3-Patent.txt file.
+rem	|
+rem	|	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
+rem	|	---------------------------------------------------------------------------
+rem	|	Please note that _MY_ Legal notice _HERE_ is as follows:
+rem	|
+rem	|		COM.BAS. A program to handle working with serial ports.
+rem	|		Copyright (C) 2025-NOW.  Mark Manning. All rights reserved
+rem	|		except for those given by the above license. Also, everything
+rem	|		from the ErrorHandler on down belongs to mdijkens and NOT me.
+rem	|
+rem	|	Please place _YOUR_ legal notices _HERE_. Thank you.
+rem	|
+rem	|END DOC
+rem	+--------------------------------------------------------------------------------
+function com()
+
+rem $Debug
+    print ser.open
+    inp$ = ""
+    while inp$ <> "q"
+        print "Send: ";
+        line input inp$
+        ser.send( inp$ )
+        sleep 1
+        print ser.read
+        wend
+    info$ = ser.close
+    end
+
+ErrorHandler:
+print errorNum
+close #88
+
+Function ser.open%() ' e.g. ser$="COM1:9600"
+	On Error GoTo ErrorHandler
+rem
+rem	ser$ = ser$ + ",N,8,1,BIN,CD0,CS0,DS0,RS" ' RS or RB8192
+rem
+	ser$ = "$com"
+	Open ser$ For RANDOM As #88
+	If errorNum = 0 Then serBytes$ = ser.read$
+	On Error GoTo 0
+	ser.open% = errorNum
+End Function
+
+Function ser.close$ ()
+	ser.close$ = ser.read$
+	Close #88
+End Function
+
+Sub ser.send (bytes$)
+	Dim b As String * 1
+	For i% = 1 To Len(bytes$)
+		b = Mid$(bytes$, i%, 1)
+		Put #88, , b
+		Next i%
+
+	byte$ = chr$(13)
+	put #88, , byte$
+	on error goto ErrorHandler
+End Sub
+
+Function ser.read$ ()
+	Dim b As String * 1: resp$ = ""
+	Do While Loc(88)
+		Get #88, , b: resp$ = resp$ + b
+		Loop
+
+	ser.read$ = resp$
+	on error goto ErrorHandler
+End Function
+
+EOD;
+
+	return file_put_contents( $file, $code );
+}
+################################################################################
+#	__destruct(). Be sure to close everything.
+################################################################################
+function __destruct()
+{
+}
+
+}
+
+	if( !isset($GLOBALS['classes']) ){ global $classes; }
+	if( !isset($GLOBALS['classes']['serial']) ){
+		$GLOBALS['classes']['serial'] = new class_serial();
+		}
+
+?>

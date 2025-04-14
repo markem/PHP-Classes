@@ -241,6 +241,18 @@ function get_files( $top_dir=null, $regexp=null, $opt=null, $print=false )
 			while( ($file = readdir($dh)) !== false ){
 				$curfile = "$dir/$file";
 				if( $print){ echo "Looking at : $curfile\n"; }
+
+				$a = explode( '/', $curfile );
+				$count = 0;
+				while( count($a) > 0 ){
+					$b = array_shift( $a );
+					if( preg_match("/application\s+data/i", $b) ){ $count++; }
+					}
+
+				if( $count > 1 ){
+					if( $print ){ echo "Double Application Data link...skipping\n"; }
+					continue;
+					}
 #
 #				$this->debug->msg( "FOUND : $file\n" );
 #				$this->dump( "regexp", $regexp );
@@ -598,6 +610,23 @@ function get_image( $file )
 	$this->debug->out();
 
 	return $gd2;
+}
+################################################################################
+#	rem_iccp(). Removes the ICCP information on bad files
+################################################################################
+function rem_iccp( $dir )
+{
+	if( !file_exists($dir) ){ die("***** ERROR : DIR does not exist"); }
+
+	$dq = '"';
+	if( is_file($dir) ){
+		$dir = dirname( $dir );
+#		$pathinfo = pathinfo( $dir );
+#		$dir = $pathinfo['dirname'];
+		}
+
+	system( "magick.exe mogrify $dq$dir/*.png$dq" );
+	return true;
 }
 ################################################################################
 #	put_image(). A function to save an image.
@@ -2443,16 +2472,41 @@ echo "File = $file\n";
 echo "Finished!\n";
 }
 ################################################################################
+#	my_pathinfo(). My WINDOWS version of pathinfo().
+################################################################################
+function my_pathinfo( $path=null, $opt=false )
+{
+   if( is_null($path) ){ return false; }
+   $pathinfo = pathinfo( $path );
+#
+#   Under Windows, the OS uses <filename>.<type> instead
+#   of how a Unix system which can contain just <filename>
+#   and no <type> or extension.
+#
+#   $OPT is used if you are using just <filename>.
+#   Set $OPT to TRUE to just get the normal $pathinfo
+#   information.
+#
+   if( (strpos($path,'.') === false) & ($opt === false) ){
+      $pathinfo['dirname'] = $path;
+      $pathinfo['basename'] = "";
+      $pathinfo['filename'] = "";
+      $pathinfo['extension'] = "";
+      }
+
+   return $pathinfo;
+}
+################################################################################
 #	dump(). A simple function to dump some information.
 #	Ex:	$this->dump( "NUM", $num );
 ################################################################################
-function dump( $title=null, $arg=null )
+function dump( $title=null, $arg=null, $opt=false )
 {
 	$this->debug->in();
 	echo "--->Entering DUMP\n";
 
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
+	if( is_null($title) ){ $title = __FUNCTION__; }
+	if( is_null($arg) ){ $arg = "[BLANK]"; }
 
 	$title = trim( $title );
 #
@@ -2492,6 +2546,8 @@ function dump( $title=null, $arg=null )
 		}
 
 	echo "<---Exiting DUMP\n\n";
+	if( $opt ){ die( "***** ERROR : Aborting.\n" ); }
+
 	$this->debug->out();
 	return true;
 }

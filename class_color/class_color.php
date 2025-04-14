@@ -1797,9 +1797,9 @@ function dump( $title=null, $arg=null )
 	return true;
 }
 ################################################################################
-#	die(). A simple function to print an error message and then die.
+#	myDie(). A simple function to print an error message and then die.
 ################################################################################
-function die( $string=null, $line=null )
+function myDie( $string=null, $line=null )
 {
 	$this->debug->in();
 
