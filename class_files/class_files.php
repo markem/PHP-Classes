@@ -31,8 +31,6 @@
 			die( __FILE__ . ": Can not load CLASS_DEBUG" );
 			}
 
-	include_once( "$lib/class_arcs.php" );
-
 ################################################################################
 #BEGIN DOC
 #
@@ -84,6 +82,7 @@
 ################################################################################
 class class_files
 {
+	private $php_uname = null;
 	private $all_exts = null;
 	private $exts = null;
 	private $algos = null;
@@ -95,8 +94,6 @@ class class_files
 	private $kb = null;
 	private $mb = null;
 	private $gb = null;
-
-	private $ca = null;
 
 ################################################################################
 #	__construct(). Constructor.
@@ -121,6 +118,8 @@ function init()
 		$args = array_pop( $args );
 		}
 
+	$this->php_uname = php_uname();
+
 	$this->exts = array();		#	File Extension RegExps
 	$this->exts['png'] = "png|pngp";
 	$this->exts['bmp'] = "bmp";
@@ -135,7 +134,6 @@ function init()
 		}
 
 	$this->algos = hash_algos();
-	$this->ca = $GLOBALS['classes']['arcs'];
 
 	$this->temp_path = "c:/temp/files";
 	if( !file_exists("c:/temp") ){ mkdir( "c:/temp" ); chmod( "c:/temp", 0777 ); }
@@ -621,7 +619,7 @@ function rem_iccp( $dir )
 	$dq = '"';
 	if( is_file($dir) ){
 		$dir = dirname( $dir );
-#		$pathinfo = pathinfo( $dir );
+#		$pathinfo = $this->pathinfo( $dir );
 #		$dir = $pathinfo['dirname'];
 		}
 
@@ -1949,7 +1947,7 @@ function get_hash( $file=null, $level=null, $ram=null )
 		return false;
 		}
 
-	$pathinfo = pathinfo( $file );
+	$pathinfo = $this->pathinfo( $file );
 
 	if( is_null($level) || (strlen(trim($level)) < 1) ){ $level = "sha512"; }
 	if( is_null($ram) ){ $path = $this->temp_path; }
@@ -2144,7 +2142,7 @@ function move_files_up( $dir )
 #
 #	Get information about the file.
 #
-					$pathinfo = pathinfo( $g[0] );
+					$pathinfo = $this->pathinfo( $g[0] );
 					$uniqid = uniqid( rand(), true );
 					$path = $pathinfo['dirname'];
 					$file = $pathinfo['basename'];
@@ -2198,7 +2196,7 @@ function remdir( $cur_dir=null, $opt=true )
 	$files = [];
 	$dir_list = [];
 
-	$pathinfo = pathinfo( $cur_dir );
+	$pathinfo = $this->pathinfo( $cur_dir );
 
 	$dirs[] = $cur_dir;
 	while( count($dirs) > 0 ){
@@ -2279,222 +2277,65 @@ function len_sort( $a, $b )
 	return ($b_len < $a_len) ? -1 : 1;
 }
 ################################################################################
-#	splitFile(). Takes a file and splits it into multiple files BUT it will
-#		also recognize where it stopped when trying to do this so it can pick
-#		up from that point instead of having to start completely over again.
-#
-#	Notes: The way we do this is to name the new addition to originally name
-#		the file <FILE>-###.zip. The "###" is calculated by dividing the file
-#		size by the size given on the call line.
-#
-#		$size is given by sending a string. Like "200gb" or "50MB".
+#	pathinfo(). My version of pathinfo().
 ################################################################################
-function splitFile( $inpFile=null, $outDir=null, $size=null )
+function pathinfo( $path=null, $fromString=null, $toString=null )
 {
-	$ca = $this->ca;
-	$class = __CLASS__;
-	$func = __FUNCTION__;
-
-	if( is_null($inpFile) ){
-		die( "$class->$func : Input filename is NULL\n" );
-		}
-
-	$inpFile = realpath( $inpFile );
-	$inpFile = str_replace( "\\", "/", $inpFile );
-
-	if( is_null($outDir) ){
-		$outDir = realpath( $inpFile );
-		$outDir = str_replace( "\\", "/", $outDir );
-		echo "$class->$func : Setting outDir to $outDir\n";
-		}
-
-	if( !file_exists($inpFile) ){
-		die( "$class->$func : Input Filename is NULL\n" );
-		}
-
-	if( ($fileSize = filesize($inpFile)) === false ){
-		die( "$class->$func : Could not get the file size of $inpFile\n" );
-		}
-
-echo "fileSize = $fileSize\n";
-
-	if( ($inpFP = fopen($inpFile, "rb")) === false ){
-		die( "$class->$func : Could not open $inpFile - aborting.\n" );
-		}
+	if( is_null($path) ){ return false; }
 #
-#	Because I have 64GB on my system, I am going to make the program
-#	read up to a gigabyte per read.
+#	If the user wants to convert the path string from one type to another
+#	you do it here. Like from UTF-8 to ISO-8859-1.
 #
-	if( preg_match("/kb/i", $size) ){
-		$actual_file_size = intval($size) * $this->kb;
-		$size_to_read = $actual_file_size;
-		}
-		else if( preg_match("/mb/i", $size) ){
-			$actual_file_size = intval($size) * $this->mb;
-			$size_to_read = $this->mb;
-			}
-		else if( preg_match("/gb/i", $size) ){
-			$actual_file_size = intval($size) * $this->gb;
-			$size_to_read = $this->gb;
-			}
-		else {
-			$actual_file_size = intval($size) * $this->bytes;
-			$size_to_read = $actual_file_size;
-			}
-#
-#	Check to see if there are files that were already created.  Now - we need to
-#	read the last filename so we can find out what the number was so we know how far to
-#	move through the file and start reading from there. AND YES, this DOES mean that
-#	you could have different sized .GZ files. But you really should not. If you decided
-#	to change the size of each file - then get rid of all of the files and start over.
-#
-#	Backup-w5-2024-11-13-1346-TBI-100gb-000.bin.gz
-#
-#	Get the list of files
-#
-	list( $g, $b ) = $this->get_files( $outDir, "/\.gz$/i" );
-	print_r( $g );
-
-	$file_number = -99999;
-	foreach( $g as $k=>$v ){
-		$a = explode( '.', $v );
-		foreach( $a as $k1=>$v1 ){
-			if( preg_match("/-\d+$/", $v1) ){
-				$b = explode( "-", $v1 );
-				$c = count( $b ) -1;
-				$string = $b[$c] + 0;
-				$dir_file_size = $b[$c-1];
-				if( $string > $file_number ){ $file_number = $string; }
-				}
+	if( !is_null($fromString) && !is_null($toString) ){
+		if( function_exists(mb_convert_encoding) ){
+			$path = mb_convert_encoding( $path, $toString, $fromString );
 			}
 		}
-
-	$file_number++;
-	echo "file_number = $file_number\n";
 #
-#	Are there any files?
+#	Check for an fix Windows old c:\a\b\c.dat to the new way of c:/a/b/c.dat
 #
-	if( $file_number > 0 ){
-#	
-#		Now convert that to where we should move to.
-#	
-#		Ok, so let's say this is the file name:
-#	
-#		Backup-w5-2024-11-13-1346-TBI-100gb-000.bin.gz
-#	
-#		This means each file is 100gb in size (before compression)
-#		and the 000 means it is the first one of these GZ files.
-#	
-#		So $dir_file_size = 100gb and $file_number is 000.
-#	
-#		Knowing this you can now do the calculations.
-#	
-		if( preg_match("/kb/i", $dir_file_size) ){
-			$e = (intval($dir_file_size) * $this->kb) * $file_number;
-			}
-			else if( preg_match("/mb/i", $dir_file_size) ){
-				$e = (intval($dir_file_size) * $this->mb) * $file_number;
-				}
-			else if( preg_match("/gb/i", $dir_file_size) ){
-				$e = (intval($dir_file_size) * $this->gb) * $file_number;
-				}
-			else { $e = (intval($dir_file_size) * $this->bytes) * $file_number; }
-
-		echo "E = $e\n";
-		fseek( $inpFP, $e );
-		}
-		else { $dir_file_size = 0; $e = 0; }
-
-echo "File_number = $file_number\n";
-echo "Size = $size\n";
-echo "Size_to_read = $size_to_read\n";
-echo "Actual_file_size = $actual_file_size\n";
-echo "E = $e\n";
-
-	$inpInfo = pathinfo( $inpFile );
-	$outInfo = pathinfo( $outDir );
-
-	$filename = $inpInfo['filename'];
-	$ext = $inpInfo['extension'];
-
-echo "Filename = $filename\n";
-#
-#	Start the loop. BUT FIRST determine how far we move each time.
-#	REMEMBER! We ONLY use INTEGERS - Not floating point values.
-#	REMEMBER ALSO! To add ONE(1) on to the number found.
-#
-	$steps_1 = intval($fileSize / $actual_file_size);
-	if( ($fileSize % $actual_file_size) > 0 ){ $steps_1++; }
-
-	$steps_2 = intval($actual_file_size / $size_to_read);
-	if( ($actual_file_size % $size_to_read) > 0 ){ $steps_2++; }
-
-	$steps_3 = $steps_2 / 100;
-	if( $steps_3 < 1 ){ $steps_3 = 1; }
-#
-#	Figure out the length of the size of the file. Don't forget to
-#	add one on to the length.
-#
-	$str = strval( $steps_1 );
-	$len = strlen( $str ) + 1;
-
-echo "steps_1 = $steps_1\n";
-echo "steps_2 = $steps_2\n";
-
-	$cnt = 0;
-	for( $i=$file_number; $i<$steps_1; $i++ ){
-		$cmd = "%s-%s-%s-%0" . $len . "d.bin";
-echo "CMD = $cmd\n";
-		$file = "$outDir/" . sprintf( "$cmd", $filename, $ext, $size, $i );
-echo "File = $file\n";
-
-		if( ($outFP = fopen($file, "wb")) === false ){
-			die( "$class->$func : Could not open the OUTPUT file $file\n" );
-			}
-
-		echo "Creating $file...please wait\n";
-		for( $j=0; $j<$steps_2; $j++ ){
-			$info = fread( $inpFP, $size_to_read );
-			fwrite( $outFP, $info, $size_to_read );
-			if( $cnt++ >= $steps_3 ){ $cnt = 0; echo "."; }
-			}
-
-		echo "\n";
-		fclose( $outFP );
-
-		echo "Creating ARCHIVE file...please wait\n";
-		$ca->gzip( $file );
-		echo "Deleting $file...please wait\n";
-#		unlink( $file );
+	if( preg_match("/\\\\/", $path) ){
+		$path = str_replace( "\\", "/", $path );
 		}
 
-	fclose( $inpFP );
-echo "Finished!\n";
-}
-################################################################################
-#	my_pathinfo(). My WINDOWS version of pathinfo().
-################################################################################
-function my_pathinfo( $path=null, $opt=false )
-{
-   if( is_null($path) ){ return false; }
-   $pathinfo = pathinfo( $path );
+	$pathinfo = pathinfo( $path );
 #
-#   Under Windows, the OS uses <filename>.<type> instead
-#   of how a Unix system which can contain just <filename>
-#   and no <type> or extension.
+#	If the given $path IS A DIRECTORY - then set $pathinfo to be just a
+#	directory. This fixes the problem with pathinfo and WINDOWs where
+#	the BASENAME, EXTENSION, and FILENAME would be incorrectly set if you
+#	just sent a directory to pathinfo. Example:
 #
-#   $OPT is used if you are using just <filename>.
-#   Set $OPT to TRUE to just get the normal $pathinfo
-#   information.
+#	c:/my/path/info
 #
-   if( (strpos($path,'.') === false) & ($opt === false) ){
-      $pathinfo['dirname'] = $path;
-      $pathinfo['basename'] = "";
-      $pathinfo['filename'] = "";
-      $pathinfo['extension'] = "";
-      }
+#	Would return 
+#
+#		$pathinfo['dirname'] = "c:/my/path";
+#		$pathinfo['basename'] = "info";
+#		$pathinfo['extension'] = "";
+#		$pathinfo['filename'] = "info";
+#
+#	Now it returns:
+#
+#		$pathinfo['dirname'] = "c:/my/path/info";
+#		$pathinfo['basename'] = "";
+#		$pathinfo['extension'] = "";
+#		$pathinfo['filename'] = "";
+#
+#	NOTE : If some idiot makes a directory like:
+#
+#	C:/my/path/info.txt
+#
+#	Or any other stupidly named directory - this function now handles it
+#	properly.
+#
+	if( is_dir($path) ){
+		$pathinfo['dirname'] = $path;
+		$pathinfo['basename'] = "";
+		$pathinfo['extension'] = "";
+		$pathinfo['filename'] = "";
+		}
 
-   return $pathinfo;
+	return $pathinfo;
 }
 ################################################################################
 #	dump(). A simple function to dump some information.
@@ -2594,10 +2435,5 @@ function dumpfile( $f=null, $l=null )
 	if( !isset($GLOBALS['classes']['files']) ){
 		$GLOBALS['classes']['files'] = new class_files();
 		}
-
-if( false ){
-$c = new class_files();
-$c->splitFile( "J:/Images/Backup-w5-2024-11-13-1346.TBI", "R:/2024-12-07", "100gb" );
-}
 
 ?>

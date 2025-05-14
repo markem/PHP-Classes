@@ -113,12 +113,12 @@ class class_serial
 	private $process = null;
 	private $cmd = null;
 	private $circuit = null;
-	private $pipes = null;
+	public $pipes = null;
 	private $dirFile = null;
 	private $env = null;
-	private $length = 256;
+	private $length = 8192;
 	private $wait = 5;
-	private $count = 5;
+	private $count = 1;
 	private $file = null;
 	private $cwd = null;
 	private $bas = null;
@@ -283,8 +283,8 @@ function init()
 	$this->settings['len'] = null;
 	$this->settings['file-pointer'] = null;
 	$this->settings['wait'] = 5;
-	$this->settings['count'] = 5;
-	$this->settings['length'] = 256;
+	$this->settings['count'] = 1;
+	$this->settings['length'] = 8192;
 #
 #	Set up the circuit so we can talk to the com.bas program.
 #
@@ -296,8 +296,17 @@ function init()
 	$this->circuit = array(
 		0 => array("pipe", "r"),  // stdin is a pipe that the child will read from
 		1 => array("pipe", "w"),  // stdout is a pipe that the child will write to
-		2 => array("file", "./stderr.txt", "w") // stderr is a file to write to
+		2 => array("pipe", "w"),  // stderr is a pipe that the child will write to
+#		2 => array("file", "c:/tmp/stderr.txt", "w"),  // stderr is a pipe that the child will write to
 		);
+
+	if( !file_exists("c:/tmp") ){ mkdir( "c:/tmp" ); }
+
+	if( !file_exists("c:/tmp/stderr.txt") ){
+		$fp = fopen( "c:/tmp/stderr.txt", "w" );
+		fwrite( $fp, "Standard Error File\n" );
+		fclose( $fp );
+		}
 
 	$this->debug->out();
 	return true;
@@ -309,12 +318,28 @@ function init()
 function modes()
 {
 	$this->debug->in();
+	$pr = $this->pr;
 #
 #	Use the MODE command to find all of the modes
 #
 	if( exec("mode", $out, $ret) === false ){
 		die( "***** ERROR : Could not execute the MODE command - aboring.\n" );
 		}
+#
+#	Status for device COM1:
+#	-----------------------
+#	    Baud:            9600
+#	    Parity:          None
+#	    Data Bits:       8
+#	    Stop Bits:       2
+#	    Timeout:         ON
+#	    XON/XOFF:        OFF
+#	    CTS handshaking: OFF
+#	    DSR handshaking: OFF
+#	    DSR sensitivity: OFF
+#	    DTR circuit:     ON
+#	    RTS circuit:     ON
+#	
 #	
 #	Status for device COM4:
 #	-----------------------
@@ -329,6 +354,15 @@ function modes()
 #	    DSR sensitivity: OFF
 #	    DTR circuit:     OFF
 #	    RTS circuit:     OFF
+#	
+#	
+#	Status for device CON:
+#	----------------------
+#	    Lines:          9001
+#	    Columns:        120
+#	    Keyboard rate:  31
+#	    Keyboard delay: 1
+#	    Code page:      437
 #	
 	$modes = [];
 	$devices = [];
@@ -353,6 +387,7 @@ function modes()
 				$dev = strtolower( substr($dev, 0, -1) );
 				$modes[$dev] = [];
 				$devices[] = $dev;
+				$modes[$dev]['device'] = $dev;
 				continue;
 				}
 #
@@ -370,7 +405,9 @@ function modes()
 			$modes[$dev][strtolower($title)] = strtolower( $info );
 			}
 		}
-
+#
+#	Now be sure to put the device name INTO the modes array.
+#
 	$this->modes = $modes;
 	$this->devices = $devices;
 
@@ -398,10 +435,10 @@ function get_modes()
 #
 #	NOTE :	You can send nonsensical options like:
 #
-#		ex: $v-set( "My Baby Does the Hanki-panki", "Everyday" );
+#		ex: $v-set( "My Baby Does the Hanki-Panki", "Everyday" );
 #
 #		ALSO! Don't forget about the LENGTH setting. That is what you set
-#		for the incoming information. Default = 256 bytes
+#		for the incoming information. Default = 8192 bytes
 #
 #		WAIT is for how long to wait while looking for information coming
 #		back from the pipe. (You can also call it wait-time but wait is the
@@ -409,9 +446,12 @@ function get_modes()
 #
 #		COUNT how many times to wait for incoming information.
 #
+#		Note also that ALL keys are set to lowercase.
+#
 ################################################################################
 function set( $ary=null, $opt=null )
 {
+	$pr = $this->pr;
 #
 #	Change the incoming information into an array. But ONLY if the $OPT
 #	is not NULL. If the $ARY is an array then stick the $OPT onto the
@@ -425,6 +465,8 @@ function set( $ary=null, $opt=null )
 	foreach( $ary as $k=>$v ){
 		$k = strtolower( $k );
 		$this->settings[$k] = $v;
+$pr->pr( $k, "K =" );
+$pr->pr( $v, "V =" );
 		}
 }
 ################################################################################
@@ -444,12 +486,16 @@ function get()
 ################################################################################
 function cwd( $cwd )
 {
+	$pr = $this->pr;
+	$cf = $this->cf;
 #
 #	Because they might send the entire pathway AND where the basic program is
 #	OR where the executable might be - we have to take it apart and then put
 #	it back together again.
 #
-	$pathinfo = $this->cf->my_pathinfo( $cwd );
+	$pathinfo = $cf->pathinfo( $cwd );
+$pr->pr( $pathinfo, "Pathinfo =" );
+
 	$this->cwd = $pathinfo['dirname'];
 #
 #	Ok, did they send us where the source code goes or where the executable
@@ -485,7 +531,7 @@ function exe( $exe )
 #		array. Usually you can leave this null because the proc_open uses the
 #		environment variables which are already present.
 ################################################################################
-function env( $env )
+function env( $env=null )
 {
 	$this->env = $env;
 	return true;
@@ -498,20 +544,35 @@ function env( $env )
 ################################################################################
 function open()
 {
+	$dq = '"';
+	$pr = $this->pr;
 	$cwd = $this->cwd;
 	$exe = $this->exe;
+	$circuit = $this->circuit;
+	$pipes = $this->pipes;
+#$pr->pr( $cwd, "CWD = " );
+#$pr->pr( $exe, "EXE = " );
 
-	if( is_null($cwd/$exe) || !file_exists($cwd/$exe) ){
-		die( "***** ERROR : No such file ($cwd/$exe) or FILE is NULL\n" );
+	$env = $this->env;
+
+	if( is_null("$cwd/$exe") || !file_exists("$cwd/$exe") ){
+		die( "***** ERROR : No such file ('$cwd/$exe') or FILE is NULL\n" );
 		}
 
-	$this->cmd = "$dq$cwd/$exe$dq";
+	$cmd = "$dq$cwd/$exe$dq";
+#	$cmd = "con";
+$pr->pr( $cmd, "CMD = " );
 
-	$this->process = proc_open($this->cmd, $this->circuit,
-		$this->pipes, $cwd, $this->env);
+	$this->process = proc_open( $cmd, $circuit, $pipes, $cwd, $env );
 
 	if( !is_resource($this->process) ){
 		die( "***** ERROR : Could not open a process via PROC_OPEN - aborting.\n" );
+		}
+
+	foreach( $pipes as $k=>$v ){
+		if( !is_resource($pipes[$k]) ){
+			die( "***** ERROR : Did not get the pipe #$k - aborting.\n" );
+			}
 		}
 
 	foreach( $this->settings as $k=>$v ){
@@ -519,46 +580,88 @@ function open()
 		if( preg_match("/^wait/i", $k) ){ $this->wait = $v; }
 		}
 
-	return $this->process;
+	$this->pipes = $pipes;
+	$this->circuit = $circuit;
+#$pr->pr( $pipes, "Pipes = " );
+
+	$this->write( "" );
+	$ret = $this->read();
+#$pr->pr( $ret, "ret = " );
+
+	return $ret;
 }
 ################################################################################
 #	input(). Get input from the serial port.
 #
 #	NOTES : Returns either the information from the pipe or FALSE.
 ################################################################################
-function input()
+function read( $pipe=1 )
 {
 	$cnt = 0;
 	while( true ){
-		$fstat = fstat($this->pipes[1]);
+		$fstat = fstat($this->pipes[$pipe]);
 		if( $fstat['size'] > 0 ){ break; }
 		if( $cnt++ > $this->count ){ return false; }
 		echo "Waiting...\n";
 		sleep( $this->wait );
 		}
 
-	return fread( $this->pipes[1], $this->length );
+	return fread( $this->pipes[$pipe], $this->length );
 }
 ################################################################################
-#	myPrint(). Print something to the serial port.
+#	output(). Print something to the serial port.
 ################################################################################
-function myPrint( $info )
+function write( $info="", $pipe=0 )
 {
-	return fwrite( $this->pipes[0], $info );
+	if( !is_resource($this->pipes[$pipe]) ){
+		die( "***** ERROR : Did not get the pipe #$pipe - aborting.\n" );
+		}
+
+	$info = trim( $info ) . "\r\n";
+	echo "Writing : $info";
+	return fwrite( $this->pipes[$pipe], $info );
 }
 ################################################################################
 #	close(). Close the connection.
 ################################################################################
 function close()
 {
-	fclose( $this->pipes[0] );
-	fclose( $this->pipes[1] );
-	fclose( $this->pipes[2] );
+	if( !is_array($this->pipes) ){
+		die( "Finished\n" );
+		}
 
-	return proc_close( $this->process );
+	if( is_resource($this->process) ){
+echo "Closing Processes\n";
+#		$ret = proc_close( $this->process );
+		$ret = proc_terminate( $this->process );
+#
+#	Under Windows - we have to physically kill the executable.
+#
+		if( preg_match("/win/i", PHP_OS) ){
+			system( "taskkill /IM $this->exe /F" );
+			}
+echo "Return value = $ret\n";
+		}
+
+	if( !is_null($this->pipes[0]) || is_resource($this->pipes[0]) ){
+		echo "Closing pipe #0\n";
+		@fclose( $this->pipes[0] );
+		}
+
+	if( !is_null($this->pipes[1]) || is_resource($this->pipes[1]) ){
+		echo "Closing pipe #1\n";
+		@fclose( $this->pipes[1] );
+		}
+
+	if( !is_null($this->pipes[2]) || isset($this->pipes[2]) && is_resource($this->pipes[2]) ){
+		echo "Closing pipe #2\n";
+		@fclose( $this->pipes[2] );
+		}
+
+	return $ret;
 }
 ################################################################################
-#	freebasic(). Create the Freebasic program for use with this class.
+#	make_freebasic(). Create the Freebasic program for use with this class.
 #
 #	NOTES :	Remember this ONLY generates the FreeBasic code THEN you have to
 #		compile it with FreeBasic and THEN you can use the program to talk to
@@ -594,10 +697,9 @@ function close()
 #	'IRn' IRQ number for COM (only supported (?) on DOS) 
 #
 ################################################################################
-function freebasic()
+function make_freebasic()
 {
-	$file = "$this->cwd/$this->bas";
-echo "File = $file\n";
+	$basFile = "$this->cwd/$this->bas";
 	$settings = $this->settings;
 #
 #		open com "com1:9600,n,8,1,cs0,cd0,ds0,rs" as #hfile
@@ -606,10 +708,13 @@ echo "File = $file\n";
 	$device = is_null($settings['device']) ? "com1" : $settings['device'];
 	$device = str_replace( ":", "", $device );
 
-	$parity = is_null($settings['parity']) ? ",n" : "," . $settings['parity'];
+	$parity = is_null($settings['parity']) ? ",n" : "," . substr($settings['parity'],0,1);
 	$data_bits = is_null($settings['data-bits']) ? ",8" : "," . $settings['data-bits'];
 	$stop_bits = is_null($settings['stop-bits']) ? ",1" : "," . $settings['stop-bits'];
-	$timeout = is_null($settings['timeout']) ? "" : "," . $settings['timeout'];
+	if( is_null($settings['timeout']) || preg_match("/off/i", $settings['timeout']) ){
+		$timeout = "";
+		}
+		else { $timeout = "," . $settings['timeout']; }
 
 	if( is_null($settings['cs#']) ){ $csn = ""; }
 		else if( is_numeric($settings['cs#']) ){ $csn = ",cs" . $settings['cs#']; }
@@ -653,8 +758,11 @@ echo "File = $file\n";
 #	Create the communication setting which will be used in the following
 #	basic program.
 #
-	$com = "$device:$baud$parity$data_bits$stop_bits$timeout" .
-			"$csn$cdn$dsn$opn$tbn$rbn$irn$rs$lf$asc$bin$pe$dt$fe$me";
+	if( preg_match("/con/i", $device) ){ $com = $device; return; }
+		else {
+			$com = "$device:$baud$parity$data_bits$stop_bits$timeout" .
+					"$csn$cdn$dsn$opn$tbn$rbn$irn$rs$lf$asc$bin$pe$dt$fe$me";
+			}
 
 	$code = <<<EOD
 '
@@ -818,17 +926,21 @@ rem	+---------------------------------------------------------------------------
 	end
 EOD;
 
-	return file_put_contents( $file, $code );
+	echo "Now that the file has been made you must compile it with FreeBasic.\n";
+	echo "You should wind up with something like 'serial.exe'\n";
+	echo "The output file is : $basFile\n";
+
+	return file_put_contents( $basFile, $code );
 }
 ################################################################################
-#	qb64(). Create the QB64 code.
+#	make_qb64(). Create the QB64 code.
 #	NOTES :	Remember this ONLY generates the QB64 code THEN you have to
 #		compile it with QB64 and THEN you can use the program to talk to
 #		your serial device.
 ################################################################################
-function qb64()
+function make_qb64()
 {
-	$file = "$this->cwd/$this->bas";
+	$basFile = "$this->cwd/$this->bas";
 	$settings = $this->settings;
 #
 #		open com "com1:9600,n,8,1,cs0,cd0,ds0,rs" as #hfile
@@ -898,8 +1010,11 @@ function qb64()
 #	Create the communication setting which will be used in the following
 #	basic program.
 #
-	$com = "$device:$baud$parity$data_bits$stop_bits$timeout" .
-			"$csn$cdn$dsn$opn$tbn$rbn$irn$rs$lf$asc$bin$pe$dt$fe$me";
+	if( preg_match("/con/i", $device) ){ $com = $device; return; }
+		else {
+			$com = "$device:$baud$parity$data_bits$stop_bits$timeout" .
+					"$csn$cdn$dsn$opn$tbn$rbn$irn$rs$lf$asc$bin$pe$dt$fe$me";
+			}
 
 	$code = <<<EOD
 
@@ -1031,13 +1146,18 @@ End Function
 
 EOD;
 
-	return file_put_contents( $file, $code );
+	echo "Now that the file has been made you must compile it with QB64.\n";
+	echo "You should wind up with something like 'serial.exe'\n";
+	echo "The output file is : $basFile\n";
+
+	return file_put_contents( $basFile, $code );
 }
 ################################################################################
 #	__destruct(). Be sure to close everything.
 ################################################################################
 function __destruct()
 {
+	$this->close();
 }
 
 }

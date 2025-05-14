@@ -669,6 +669,199 @@ EOD;
 	return $out;
 }
 ################################################################################
+#	splitFile(). Takes a file and splits it into multiple files BUT it will
+#		also recognize where it stopped when trying to do this so it can pick
+#		up from that point instead of having to start completely over again.
+#
+#	Notes: The way we do this is to add the number onto the original name of
+#		the file <FILE>-###.zip. The "###" is calculated by dividing the file
+#		size by the size given on the call line.
+#
+#		$size is given by sending a string. Like "200gb" or "50MB".
+################################################################################
+function splitFile( $inpFile=null, $outDir=null, $size=null )
+{
+	$class = __CLASS__;
+	$func = __FUNCTION__;
+
+	if( is_null($inpFile) ){
+		die( "$class->$func : Input filename is NULL\n" );
+		}
+
+	$inpFile = realpath( $inpFile );
+	$inpFile = str_replace( "\\", "/", $inpFile );
+
+	if( is_null($outDir) ){
+		$outDir = realpath( $inpFile );
+		$outDir = str_replace( "\\", "/", $outDir );
+		echo "$class->$func : Setting outDir to $outDir\n";
+		}
+
+	if( !file_exists($inpFile) ){
+		die( "$class->$func : Input Filename is NULL\n" );
+		}
+
+	if( ($fileSize = filesize($inpFile)) === false ){
+		die( "$class->$func : Could not get the file size of $inpFile\n" );
+		}
+
+echo "fileSize = $fileSize\n";
+
+	if( ($inpFP = fopen($inpFile, "rb")) === false ){
+		die( "$class->$func : Could not open $inpFile - aborting.\n" );
+		}
+#
+#	Because I have 64GB on my system, I am going to make the program
+#	read up to a gigabyte per read.
+#
+	if( preg_match("/kb/i", $size) ){
+		$actual_file_size = intval($size) * $this->kb;
+		$size_to_read = $actual_file_size;
+		}
+		else if( preg_match("/mb/i", $size) ){
+			$actual_file_size = intval($size) * $this->mb;
+			$size_to_read = $this->mb;
+			}
+		else if( preg_match("/gb/i", $size) ){
+			$actual_file_size = intval($size) * $this->gb;
+			$size_to_read = $this->gb;
+			}
+		else {
+			$actual_file_size = intval($size) * $this->bytes;
+			$size_to_read = $actual_file_size;
+			}
+#
+#	Check to see if there are files that were already created.  Now - we need to
+#	read the last filename so we can find out what the number was so we know how far to
+#	move through the file and start reading from there. AND YES, this DOES mean that
+#	you could have different sized .GZ files. But you really should not. If you decided
+#	to change the size of each file - then get rid of all of the files and start over.
+#
+#	Backup-w5-2024-11-13-1346-TBI-100gb-000.bin.gz
+#
+#	Get the list of files
+#
+	list( $g, $b ) = $this->get_files( $outDir, "/\.gz$/i" );
+	print_r( $g );
+
+	$file_number = -99999;
+	foreach( $g as $k=>$v ){
+		$a = explode( '.', $v );
+		foreach( $a as $k1=>$v1 ){
+			if( preg_match("/-\d+$/", $v1) ){
+				$b = explode( "-", $v1 );
+				$c = count( $b ) -1;
+				$string = $b[$c] + 0;
+				$dir_file_size = $b[$c-1];
+				if( $string > $file_number ){ $file_number = $string; }
+				}
+			}
+		}
+
+	$file_number++;
+	echo "file_number = $file_number\n";
+#
+#	Are there any files?
+#
+	if( $file_number > 0 ){
+#	
+#		Now convert that to where we should move to.
+#	
+#		Ok, so let's say this is the file name:
+#	
+#		Backup-w5-2024-11-13-1346-TBI-100gb-000.bin.gz
+#	
+#		This means each file is 100gb in size (before compression)
+#		and the 000 means it is the first one of these GZ files.
+#	
+#		So $dir_file_size = 100gb and $file_number is 000.
+#	
+#		Knowing this you can now do the calculations.
+#	
+		if( preg_match("/kb/i", $dir_file_size) ){
+			$e = (intval($dir_file_size) * $this->kb) * $file_number;
+			}
+			else if( preg_match("/mb/i", $dir_file_size) ){
+				$e = (intval($dir_file_size) * $this->mb) * $file_number;
+				}
+			else if( preg_match("/gb/i", $dir_file_size) ){
+				$e = (intval($dir_file_size) * $this->gb) * $file_number;
+				}
+			else { $e = (intval($dir_file_size) * $this->bytes) * $file_number; }
+
+		echo "E = $e\n";
+		fseek( $inpFP, $e );
+		}
+		else { $dir_file_size = 0; $e = 0; }
+
+echo "File_number = $file_number\n";
+echo "Size = $size\n";
+echo "Size_to_read = $size_to_read\n";
+echo "Actual_file_size = $actual_file_size\n";
+echo "E = $e\n";
+
+	$inpInfo = $this->pathinfo( $inpFile );
+	$outInfo = $this->pathinfo( $outDir );
+
+	$filename = $inpInfo['filename'];
+	$ext = $inpInfo['extension'];
+
+echo "Filename = $filename\n";
+#
+#	Start the loop. BUT FIRST determine how far we move each time.
+#	REMEMBER! We ONLY use INTEGERS - Not floating point values.
+#	REMEMBER ALSO! To add ONE(1) on to the number found.
+#
+	$steps_1 = intval($fileSize / $actual_file_size);
+	if( ($fileSize % $actual_file_size) > 0 ){ $steps_1++; }
+
+	$steps_2 = intval($actual_file_size / $size_to_read);
+	if( ($actual_file_size % $size_to_read) > 0 ){ $steps_2++; }
+
+	$steps_3 = $steps_2 / 100;
+	if( $steps_3 < 1 ){ $steps_3 = 1; }
+#
+#	Figure out the length of the size of the file. Don't forget to
+#	add one on to the length.
+#
+	$str = strval( $steps_1 );
+	$len = strlen( $str ) + 1;
+
+echo "steps_1 = $steps_1\n";
+echo "steps_2 = $steps_2\n";
+
+	$cnt = 0;
+	for( $i=$file_number; $i<$steps_1; $i++ ){
+		$cmd = "%s-%s-%s-%0" . $len . "d.bin";
+echo "CMD = $cmd\n";
+		$file = "$outDir/" . sprintf( "$cmd", $filename, $ext, $size, $i );
+echo "File = $file\n";
+
+		if( ($outFP = fopen($file, "wb")) === false ){
+			die( "$class->$func : Could not open the OUTPUT file $file\n" );
+			}
+
+		echo "Creating $file...please wait\n";
+		for( $j=0; $j<$steps_2; $j++ ){
+			$info = fread( $inpFP, $size_to_read );
+			fwrite( $outFP, $info, $size_to_read );
+			if( $cnt++ >= $steps_3 ){ $cnt = 0; echo "."; }
+			}
+
+		echo "\n";
+		fclose( $outFP );
+
+		echo "Creating ARCHIVE file...please wait\n";
+		$this->gzip( $file );
+		echo "Deleting $file...please wait\n";
+#		unlink( $file );
+		}
+
+	fclose( $inpFP );
+
+	echo "Finished!\n";
+}
+################################################################################
 #	__destruct(). Closes out the class.
 ################################################################################
 function __destruct()

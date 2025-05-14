@@ -31,8 +31,6 @@
 			die( __FILE__ . ": Can not load CLASS_DEBUG" );
 			}
 
-	include_once( "$lib/class_files.php" );
-
 ################################################################################
 #BEGIN DOC
 #
@@ -75,7 +73,7 @@
 #	---------------------------------------------------------------------------
 #	Please note that _MY_ Legal notice _HERE_ is as follows:
 #
-#		CLASS_FILES.PHP. A class to handle working with files.
+#		CLASS_PR.PHP. A class to handle printing out information.
 #		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
 #		except for those given by the BSD License.
 #
@@ -85,9 +83,11 @@
 ################################################################################
 class class_pr
 {
+	public $pipes = null;
 	private	$debug = null;
 	private	$files = null;
 	private $opts = null;
+	private $circuit = null;
 
 ################################################################################
 #	__construct(). Constructor.
@@ -102,31 +102,44 @@ function __construct()
 }
 ################################################################################
 #	init(). Used instead of __construct() so you can re-init() if necessary.
-#	NOTES	:	This is what we are trying to do
-#
-#				com4:115200,n,8,1,cs0,cd0,ds0,rs
-#
 ################################################################################
 function init()
 {
+	global $fp;
+
+	$this->cf = $GLOBALS['classes']['files'];
+	$this->debug = $GLOBALS['classes']['debug'];
+
 	$this->debug->in();
 
-	$this->debug = $GLOBALS['classes']['debug'];
-	$this->files = $GLOBALS['classes']['files'];
+	$fp = null;
 
 	$this->opts = [];
 	$this->opts['type'] = true;
 	$this->opts['title'] = true;
 	$this->opts['arylen'] = true;
 	$this->opts['strlen'] = true;
-	$this->opts['spaces'] = 4;
+	$this->opts['spaces'] = 1;
+
+	$this->cwd = getcwd();
+	$this->cwd = str_replace( "\\", "/", $this->cwd );
+	$this->bas = "inkey.bas";
+	$this->exe = "inkey.exe";
+	$this->dat = "inkey.dat";	#	Where we write the keys that were pressed
+
+	$this->circuit = array(
+		0 => array("pipe", "r"),  // stdin is a pipe that the child will read from
+		1 => array("pipe", "w"),  // stdout is a pipe that the child will write to
+#		2 => array("pipe", "w"),  // stderr is a pipe that the child will write to
+		2 => array("file", "$this->cwd/stderr.txt", "w"),  // stderr is a pipe that the child will write to
+		);
 
 	$this->debug->out();
 	return true;
 }
 #################################################################################
 #	set_opts(). Allows you to set various options.
-#	NOTES	:	The single variable is an associative array. Os you do "X"=>"Y"
+#	NOTES	:	The single variable is an associative array. So you do "X"=>"Y"
 #		entries in it.
 #
 #	TITLE	=	Boolean. Default is TRUE. Turns on/off titles.
@@ -144,7 +157,7 @@ function set_opts( $opts=null )
 #		VAR		=	The variable to print
 #		TITLE	=	The Title to give the print
 #################################################################################
-function pr( $var=null, $title=null )
+function pr( $var=null, $title=null, $ary=false )
 {
 	$this->debug->in();
 	static $tabs = 0;
@@ -167,57 +180,62 @@ function pr( $var=null, $title=null )
 #
 #	Get the line number. Taken from the DUMP() function
 #
-			$dbg = debug_backtrace();
+			$dbg = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT);
+			$count = count( $dbg ) - 1;
 
-			if( isset($dbg[0]['class']) ){
-				$count = count( $dbg ) - 1;
-				if( $count > 0 ){ $count--; }
+			if( isset($dbg[$count]['class']) ){ $class = $dbg[$count]['class']; }
+				else { $class = ""; }
+
+			if( isset($dbg[$count]['function']) ){ $function = $dbg[$count]['function']; }
+				else { $function = ""; }
+
+			if( $count > 0 ){
+				$line = "LINE(" . $dbg[$count-1]['line'] . ") @ ";
 				}
-				else { $count = 0; }
-
-			$class = $dbg[$count]['class'];
-			$function = $dbg[$count]['function'];
-			$line = "LINE(" . $dbg[$count]['line'] . ") @ ";
+				else {
+					$line = "LINE(" . $dbg[$count]['line'] . ") @ ";
+					}
 			}
 
 	if( strlen($title) < 1 ){ $title = ""; }
-		else { $title = " $title,"; }
+		else { $title = trim( $title ); }
 
 	if( is_array($var) ){
-		echo str_repeat( $spaces, $tabs) . $line . "<$class>[$function] -$title Array$arylen -> {\n";
+		echo str_repeat( $spaces, $tabs) . $line . "<$class>[$function] - $title Array$arylen->{\n";
 		$tabs += 2;
-		foreach( $var as $k=>$v ){ $this->pr( $v, "[$k]" ); }
+		foreach( $var as $k=>$v ){ $this->pr( $v, "[$k]", true ); }
 		echo str_repeat( $spaces, $tabs) . "}\n";
 		$tabs -= 2;
 		return;
 		}
 		else {
-			echo str_repeat( $spaces, $tabs) . $line . "<$class>[$function] -$title Value -> ";
+			echo str_repeat( $spaces, $tabs) . $line . "<$class>[$function] - ";
 			}
 #
 #	Check the title
 #
 	if( is_null($title) ){ $title = ""; }
+		else { $title = trim( $title ); }
 #
 #	Print out the variable
 #
 	$type = "";
-	echo str_repeat( $spaces, $tabs);
+	if( $ary === false ){ echo str_repeat( $spaces, $tabs); }
 	if( is_scalar($var) ){
 		if( is_bool($var) ){
 				$kind = "BOOL";
-				if( $this->opts['type'] == true ){ $type = "[$kind]   "; }
-				echo "$type$title" . ($var ? "TRUE" : "FALSE") . "\n";
+				if( $this->opts['type'] == true ){ $type = "[$kind]"; }
+				echo "$type$title " . ($var ? "TRUE" : "FALSE") . "\n";
 			}
 			else if( is_int($var) ){
 				$kind = "INT";
-				if( $this->opts['type'] == true ){ $type = "[$kind]    "; }
-				echo "$type$title$var\n";
+				if( $this->opts['type'] == true ){ $type = "[$kind] "; }
+				echo "$type$title $var\n";
 				}
 			else if( is_float($var) ){
 				$kind = "FLOAT";
-				if( $this->opts['type'] == true ){ $type = "[$kind]  "; }
-				echo "$type$title$var\n";
+				if( $this->opts['type'] == true ){ $type = "[$kind]"; }
+				echo "$type $title $var\n";
 				}
 			else if( is_string($var) ){
 				if( $this->opts['strlen'] == true ){
@@ -229,149 +247,142 @@ function pr( $var=null, $title=null )
 
 					$a[] = $s;
 					$title = implode( ' ', $a );
-					$strlen = "(" . strlen($var) . ") = ";
+					$strlen = "(" . strlen($var) . ") =";
 					}
 					else { $strlen = ""; }
 
 				$kind = "STRING";
-				if( $this->opts['type'] == true ){ $type = "[$kind] "; }
+				if( $this->opts['type'] == true ){ $type = "[$kind]"; }
 
-				echo "$line$type$title$strlen $var\n";
+				echo "$type$title$strlen $var\n";
 				}
 		}
 		else if( is_object($var) ){
 			$kind = "OBJECT";
-			if( $this->opts['type'] == true ){ $type = "[$kind] "; }
+			if( $this->opts['type'] == true ){ $type = "[$kind]"; }
 			echo "$type$title $kind\n";
 			}
 		else if( is_resource($var) ){
 			$kind = "RESOURCE";
-			if( $this->opts['type'] == true ){ $type = "[$kind] "; }
+			if( $this->opts['type'] == true ){ $type = "[$kind]"; }
 			echo "$type$title $kind\n";
 			}
 		else if( is_null($var) ){
 			$kind = "NULL";
-			if( $this->opts['type'] == true ){ $type = "[$kind] "; }
+			if( $this->opts['type'] == true ){ $type = "[$kind]"; }
 			echo "$type$title $kind\n";
 			}
 		else if( is_callable($var) ){
 			$kind = "CALLABLE";
-			if( $this->opts['type'] == true ){ $type = "[$kind] "; }
+			if( $this->opts['type'] == true ){ $type = "[$kind]"; }
 			echo "$type$title $kind\n";
 			}
 		else if( is_interface($var) ){
 			$kind = "INTERFACE";
-			if( $this->opts['type'] == true ){ $type = "[$kind] "; }
+			if( $this->opts['type'] == true ){ $type = "[$kind]"; }
 			echo "$type$title $kind\n";
 			}
 		else if( class_exists($var) ){
 			$kind = "CLASS";
-			if( $this->opts['type'] == true ){ $type = "[$kind] "; }
+			if( $this->opts['type'] == true ){ $type = "[$kind]"; }
 			echo "$type$title $kind\n";
 			}
 		else if( enum_exists($var) ){
 			$kind = "ENUM";
-			if( $this->opts['type'] == true ){ $type = "[$kind] "; }
+			if( $this->opts['type'] == true ){ $type = "[$kind]"; }
 			echo "$type$title $kind\n";
 			}
 
 	$this->debug->out();
 	return true;
 }
-#################################################################################
-#	dump(). Print a line
-#	Ex:	$pr->dump( <TITLE>, <OPT> );
-#		$pr->dump( "NUM", false );
-#
-#	NOTE :
-#
-#		<TITLE>	=	Title of the message
-#		<OPT>	=	Whether to abort the program or not.
-#################################################################################
-function dump( $msg, $opt=false )
+################################################################################
+#	ask(). Print out a statement and get an answer.
+#	NOTES :
+#		$prompt = The prompt to use to get the incoming information.
+#		$text = Array. Additional text that will be printed out BEFORE the
+#			prompt is displayed.
+################################################################################
+function ask( $prompt=null, $text=null )
 {
-	if( !is_array($msg) ){ $msg = trim( $msg ); }
-	$dbg = debug_backtrace();
-
-	if( isset($dbg[0]['class']) ){
-		$count = count( $dbg ) - 1;
-		if( $dbg[$count]['function'] == __FUNCTION__ ){ $count--; }
-		}
-		else { $count = 0; }
-
-	$function = $dbg[$count]['function'];
-	$line = $dbg[$count]['line'];
-
-	if( is_array($msg) ){ echo "[$function] @ LINE : $line =\n"; print_r($msg); echo "\n"; }
-		if( is_resource($msg) ){ echo "[$function] @ LINE : $line = IS RESOURCE\n"; }
-		if( is_object($msg) ){ echo "[$function] @ LINE : $line = IS OBJECT\n"; }
-		else { echo "[$function] @ LINE : $line = $msg\n"; }
-
-	if( $opt ){ die( "***** Exiting the program\n" ); }
-
-	return true;
+	if( !is_array($text) ){ $text = explode( "\n", $text ); }
+	foreach( $text as $k=>$v ){ echo "$v\n"; }
+	echo $prompt;
+	$input = rtrim( stream_get_line(STDIN, 1024, PHP_EOL) );
+#
+#	If this is a path, change the backslashes to forward slashes
+#
+	$input = str_replace( "\\", "/", $from );
+	return $input;
 }
 ################################################################################
-#	full_dump(). A function to dump information. Prints entire backtrace.
-#	Ex:	$this->full_dump( <TITLE>, <ARG>, <OPT> );
-#		$this->full_dump( "NUM", $num, true );
-#
-#	NOTE :
-#
-#		<TITLE>	=	Title of the message
-#		<ARG>	=	A variable (like number or string)
-#		<OPT>	=	Whether to abort the program or not.
+#	pathinfo(). My version of pathinfo().
 ################################################################################
-function full_dump( $title=null, $arg=null, $opt=false )
+function pathinfo( $path=null, $fromString=null, $toString=null )
 {
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ $title = __FUNCTION__; }
-	if( is_null($arg) ){ $arg = "[BLANK]"; }
-
-	$title = trim( $title );
+	if( is_null($path) ){ return false; }
 #
-#	Get the backtrace
+#	If the user wants to convert the path string from one type to another
+#	you do it here. Like from UTF-8 to ISO-8859-1.
 #
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
+	if( !is_null($fromString) && !is_null($toString) ){
+		if( function_exists(mb_convert_encoding) ){
+			$path = mb_convert_encoding( $path, $toString, $fromString );
 			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
 		}
+#
+#	Fix the Windows backslash problem
+#		ie: From c:\a\b\c.dat to c:/a/b/c.dat
+#
+#	Note : This might not work on Windows 98 or earlier. Please check to make
+#		sure it does work or just comment it out.
+#
+	$path = str_replace( "\\", "/", $path );
+#
+#	If the given $path IS A DIRECTORY - then set $pathinfo to be just a
+#	directory. This fixes the problem with pathinfo and WINDOWs where
+#	the BASENAME, EXTENSION, and FILENAME would be incorrectly set if you
+#	just sent a directory to pathinfo. Example:
+#
+#	c:/my/path/info
+#
+#	Would return 
+#
+#		$pathinfo['dirname'] = "c:/my/path";
+#		$pathinfo['basename'] = "info";
+#		$pathinfo['extension'] = "";
+#		$pathinfo['filename'] = "info";
+#
+#	Now it returns:
+#
+#		$pathinfo['dirname'] = "c:/my/path/info";
+#		$pathinfo['basename'] = "";
+#		$pathinfo['extension'] = "";
+#		$pathinfo['filename'] = "";
+#
+#	NOTE : If someone makes a directory like:
+#
+#	C:/my/path/info.txt
+#
+#	Or any other weirdly named directory - this function now handles it
+#	properly.
+#
+	if( is_dir($path) ){
+		$pathinfo = [];
+		$pathinfo['dirname'] = $path;
+		$pathinfo['basename'] = "";
+		$pathinfo['extension'] = "";
+		$pathinfo['filename'] = "";
+		}
+		else { $pathinfo = pathinfo( $path ); }
 
-	echo "<---Exiting DUMP\n\n";
-	if( $opt ){ die( "***** Exiting the program\n" ); }
-
-	$this->debug->out();
-	return true;
+	return $pathinfo;
+}
+################################################################################
+#	__destruct(). Be sure to close everything.
+################################################################################
+function __destruct()
+{
 }
 
 }
