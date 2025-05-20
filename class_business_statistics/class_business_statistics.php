@@ -23,13 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -84,7 +77,6 @@
 ################################################################################
 class class_business_statistics
 {
-	private $debug = null;			#	Debug information.
 	private $temp_path = null;		#	A temporary file path if needed.
 
 	private $Gdata = null;	#	If we need a global data area - here it is.
@@ -97,7 +89,6 @@ class class_business_statistics
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['business_statistics']) ){
 		return $this->init( func_get_args() );
 		}
@@ -108,8 +99,6 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -128,11 +117,9 @@ function init()
 		include_once( "$lib/class_files.php" );
 		}
 		else if( !isset($GLOBALS['classes']['files']) ){
-			$this->debug->msg( __FILE__ . ": Can not load CLASS_FILES" );
+			echo __FILE__ . ": Can not load CLASS_FILES\n";
 			return false;
 			}
-
-	$this->debug->out();
 }
 ################################################################################
 #	am(). Arithmetic mean. You can send multiple ams to be computed.
@@ -143,10 +130,6 @@ function am()
 {
 	$args = func_get_args();
 	$argv = func_num_args();
-	$this->debug->in();
-
-print_r( $args );
-print_r( $argv );
 
 	$ams = [];
 	for( $av=0; $av<$argv; $av++ ){
@@ -161,8 +144,6 @@ print_r( $argv );
 			$ams[] = $s / $c;
 			}
 		}
-
-	$this->debug->out();
 	return $ams;
 }
 ################################################################################
@@ -184,7 +165,6 @@ function wm()
 {
 	$args = func_get_args();
 	$argv = func_num_args();
-	$this->debug->in();
 
 	$wm = 0;
 	$all_w = 0;
@@ -210,8 +190,6 @@ function wm()
 			}
 		}
 
-	$this->debug->out();
-
 	return array( $weighted_mean_num, $weighted_mean_all );
 }
 ################################################################################
@@ -223,7 +201,6 @@ function gm()
 {
 	$args = func_get_args();
 	$argv = func_num_args();
-	$this->debug->in();
 
 	$gms = [];
 	$num = 0;
@@ -241,8 +218,6 @@ function gm()
 			}
 		}
 
-	$this->debug->out();
-
 	return $gms;
 }
 ################################################################################
@@ -255,7 +230,6 @@ function wgm()
 {
 	$args = func_get_args();
 	$argv = func_num_args();
-	$this->debug->in();
 
 	$ans = [];
 	for( $i=0; $i<$argv; $i+=2 ){
@@ -266,7 +240,7 @@ function wgm()
 			$sum = 0;
 			foreach( $d as $k=>$v ){
 				if( ($d[$k] <= 0) || ($w[$k] <= 0) ){
-					$this->debug->die( "Geometric Mean : Value is zero or less : D=$d[$k] - W=$w[$k]" );
+					die( "Geometric Mean : Value is zero or less : D=$d[$k] - W=$w[$k]\n" );
 					}
 
 				$sum = pow( $d[$k], $w[$k] );
@@ -276,7 +250,6 @@ function wgm()
 			}
 		}
 
-	$this->debug->out();
 	return $ans;
 }
 ################################################################################
@@ -291,7 +264,7 @@ function lgm()
 {
 	$args = func_get_args();
 	$argv = func_num_args();
-	$this->debug->in();
+
 
 	$ans = [];
 	for( $i=0; $i<$argv; $i+=2 ){
@@ -307,7 +280,6 @@ function lgm()
 			}
 		}
 
-	$this->debug->out();
 	return $ans;
 }
 ################################################################################
@@ -318,7 +290,6 @@ function index()
 {
 	$args = func_get_args();
 	$argv = func_num_args();
-	$this->debug->in();
 
 	$ans = [];
 	for( $i=0; $i<$argv; $i+=2 ){
@@ -335,7 +306,6 @@ function index()
 			}
 		}
 
-	$this->debug->out();
 	return $ans;
 }
 ################################################################################
@@ -356,7 +326,6 @@ function weighted_index()
 {
 	$args = func_get_args();
 	$argv = func_num_args();
-	$this->debug->in();
 #
 #	First, we need to go through and separate out the arrays.
 #	We just check to see if there is just an array (ie: A[])
@@ -425,7 +394,6 @@ function weighted_index()
 		}
 
 	return $ans;
-	$this->debug->out();
 }
 ################################################################################
 #	moving_average(). Takes an array, combines them into a second array by
@@ -442,8 +410,6 @@ function weighted_index()
 ################################################################################
 function moving_average( $ary=null, $len=null )
 {
-	$this->debug->in();
-
 	if( is_null($ary) || !is_array($ary) ){ return false; }
 	if( is_null($len) ){ return false; }
 
@@ -469,8 +435,6 @@ function moving_average( $ary=null, $len=null )
 		$b[$k] = $v / $len;
 		}
 
-	$this->debug->out();
-
 	return array( $b, $flag );
 }
 ################################################################################
@@ -482,8 +446,6 @@ function moving_average( $ary=null, $len=null )
 ################################################################################
 function mean_diviation( $ary=null )
 {
-	$this->debug->in();
-
 	if( is_null($ary) || !is_array($ary) ){ return false; }
 
 	$num = count( $ary );
@@ -495,8 +457,6 @@ function mean_diviation( $ary=null )
 		}
 
 	$a = $a / $num;
-	$this->debug->out();
-
 	return $a;
 }
 ################################################################################
@@ -504,8 +464,6 @@ function mean_diviation( $ary=null )
 ################################################################################
 function range( $ary=null )
 {
-	$this->debug->in();
-
 	if( is_null($ary) || !is_array($ary) ){ return false; }
 
 	$low = PHP_INT_MAX;
@@ -515,7 +473,6 @@ function range( $ary=null )
 		if( $v > $high ){ $high = $v; }
 		}
 
-	$this->debug->out();
 	return array( $low, $high );
 }
 ################################################################################
@@ -524,8 +481,6 @@ function range( $ary=null )
 ################################################################################
 function mnd( $ary=null )
 {
-	$this->debug->in();
-
 	if( is_null($ary) || !is_array($ary) ){ return false; }
 
 	$num = count( $ary );
@@ -542,7 +497,6 @@ function mnd( $ary=null )
 		$dev[$k] = $ary[$k] - $mean;
 		}
 
-	$this->debug->out();
 	return array( $mean, $dev );
 }
 ################################################################################
@@ -551,8 +505,6 @@ function mnd( $ary=null )
 ################################################################################
 function standard_deviation( $ary=null )
 {
-	$this->debug->in();
-
 	if( is_null($ary) || !is_array($ary) ){ return false; }
 #
 #	First - get the mean and deviation.
@@ -582,7 +534,6 @@ function standard_deviation( $ary=null )
 #
 	$sd = sqrt( $c );
 
-	$this->debug->out();
 	return $sd;
 }
 ################################################################################
@@ -591,8 +542,6 @@ function standard_deviation( $ary=null )
 ################################################################################
 function covariance( $a1=null, $a2=null )
 {
-	$this->debug->in();
-
 	if( is_null($a1) || !is_array($a1) ){ return false; }
 	if( is_null($a2) || !is_array($a2) ){ return false; }
 #
@@ -629,7 +578,6 @@ function covariance( $a1=null, $a2=null )
 
 	$sd = $sd / $c1;
 
-	$this->debug->out();
 	return $sd;
 }
 ################################################################################
@@ -637,8 +585,6 @@ function covariance( $a1=null, $a2=null )
 ################################################################################
 function eval_r( $a1=null, $a2=null )
 {
-	$this->debug->in();
-
 	if( is_null($a1) || !is_array($a1) ){ return false; }
 	if( is_null($a2) || !is_array($a2) ){ return false; }
 #
@@ -652,7 +598,6 @@ function eval_r( $a1=null, $a2=null )
 #
 	$r = ( $sxy / ($sx * $sy) );
 
-	$this->debug->out();
 	return $r;
 }
 ################################################################################
@@ -660,13 +605,10 @@ function eval_r( $a1=null, $a2=null )
 ################################################################################
 function reliability_r( $r=null )
 {
-	$this->debug->in();
-
 	if( is_null($r) || !is_array($r) ){ return false; }
 
 	$v = 0.5 * log( (1 + $r) / (1 - $r) );
 
-	$this->debug->out();
 	return $v;
 }
 ################################################################################
@@ -674,8 +616,6 @@ function reliability_r( $r=null )
 ################################################################################
 function rank_correlation( $a1=null, $a2=null )
 {
-	$this->debug->in();
-
 	if( is_null($a1) || !is_array($a1) ){ return false; }
 	if( is_null($a2) || !is_array($a2) ){ return false; }
 
@@ -702,7 +642,6 @@ function rank_correlation( $a1=null, $a2=null )
 
 	$r = 1 - ( (6 * $s) / (($c1 * $c1 * $c1) - $c1) );
 
-	$this->debug->out();
 	return $r;
 }
 ################################################################################
@@ -710,8 +649,6 @@ function rank_correlation( $a1=null, $a2=null )
 ################################################################################
 function regression_coefficient( $a1=null, $a2=null )
 {
-	$this->debug->in();
-
 	if( is_null($a1) || !is_array($a1) ){ return false; }
 	if( is_null($a2) || !is_array($a2) ){ return false; }
 #
@@ -723,7 +660,6 @@ function regression_coefficient( $a1=null, $a2=null )
 
 	$r = $sxy / ($sx * $sx);
 
-	$this->debug->out();
 	return $r;
 }
 ################################################################################
@@ -733,8 +669,6 @@ function regression_coefficient( $a1=null, $a2=null )
 ################################################################################
 function frequency()
 {
-	$this->debug->in();
-#
 #	First, we have to figure out if they sent a[], b[], c[] or a[3,3]
 #
 	$args = func_get_args();
@@ -753,7 +687,6 @@ function frequency()
 	if( is_null($a1) || !is_array($a1) ){ return false; }
 	if( is_null($a2) || !is_array($a2) ){ return false; }
 
-	$this->debug->out();
 	return $r;
 }
 ################################################################################
@@ -763,8 +696,6 @@ function frequency()
 ################################################################################
 function sd_ep( $x=null, $p=null )
 {
-	$this->debug->in();
-
 	if( is_null($x) || !is_array($x) ){ return false; }
 	if( is_null($p) ){ return false; }
 #
@@ -787,7 +718,6 @@ function sd_ep( $x=null, $p=null )
 
 	$Theta = sqrt( ($Theta / $num) );
 
-	$this->debug->out();
 	return $Theta;
 }
 ################################################################################
@@ -797,8 +727,6 @@ function sd_ep( $x=null, $p=null )
 ################################################################################
 function sd_dp( $x=null, $p=null )
 {
-	$this->debug->in();
-
 	if( is_null($x) || !is_array($x) ){ return false; }
 	if( is_null($p) || !is_array($p) ){ return false; }
 #
@@ -819,7 +747,6 @@ function sd_dp( $x=null, $p=null )
 
 	$Theta = sqrt( $Theta );
 
-	$this->debug->out();
 	return $Theta;
 }
 ################################################################################
@@ -828,8 +755,6 @@ function sd_dp( $x=null, $p=null )
 ################################################################################
 function us_sd( $x=null )
 {
-	$this->debug->in();
-
 	if( is_null($x) || !is_array($x) ){ return false; }
 #
 #	First - get the mean and deviation.
@@ -846,7 +771,6 @@ function us_sd( $x=null )
 
 	$sn = sqrt( ($sn / $num) );
 
-	$this->debug->out();
 	return $sn;
 }
 ################################################################################
@@ -855,8 +779,6 @@ function us_sd( $x=null )
 ################################################################################
 function cs_sd( $x=null )
 {
-	$this->debug->in();
-
 	if( is_null($x) || !is_array($x) ){ return false; }
 #
 #	First - get the mean and deviation.
@@ -873,11 +795,9 @@ function cs_sd( $x=null )
 
 	if( $num != 0 ){ $sn = sqrt( ($sn / $num) ); }
 		else {
-			$this->debug->out();
 			return false;
 			}
 
-	$this->debug->out();
 	return $sn;
 }
 ################################################################################
@@ -886,8 +806,6 @@ function cs_sd( $x=null )
 ################################################################################
 function ubs_sd( $x=null, $y2=null )
 {
-	$this->debug->in();
-
 	if( is_null($x) || !is_array($x) ){ return false; }
 	if( is_null($y2) ){ $y2 = 0; }
 #
@@ -905,11 +823,9 @@ function ubs_sd( $x=null, $y2=null )
 
 	if( $num != 0 ){ $sn = sqrt( ($sn / $num) ); }
 		else {
-			$this->debug->out();
 			return false;
 			}
 
-	$this->debug->out();
 	return $sn;
 }
 ################################################################################
@@ -918,8 +834,6 @@ function ubs_sd( $x=null, $y2=null )
 ################################################################################
 function fp_ep( $ary=null )
 {
-	$this->debug->in();
-
 	if( is_null($ary) || !is_array($ary) ){ return false; }
 
 	$a = 0;
@@ -939,7 +853,6 @@ function fp_ep( $ary=null )
 
 	$c = sqrt( $b - $a );
 
-	$this->debug->out();
 	return $c;
 }
 ################################################################################
@@ -948,8 +861,6 @@ function fp_ep( $ary=null )
 ################################################################################
 function permutation( $n=null, $r=null )
 {
-	$this->debug->in();
-
 	if( is_null($n) ){ return false; }
 	if( is_null($r) ){ return false; }
 
@@ -968,7 +879,6 @@ function permutation( $n=null, $r=null )
 		}
 		else { $ret = 1; }
 
-	$this->debug->out();
 	return $ret;
 }
 ################################################################################
@@ -977,8 +887,6 @@ function permutation( $n=null, $r=null )
 ################################################################################
 function combination( $n=null, $r=null )
 {
-	$this->debug->in();
-
 	if( is_null($n) ){ return false; }
 	if( is_null($r) ){ return false; }
 
@@ -1000,7 +908,6 @@ function combination( $n=null, $r=null )
 		}
 		else { $ret = 1; }
 
-	$this->debug->out();
 	return $ret;
 }
 ################################################################################
@@ -1009,8 +916,6 @@ function combination( $n=null, $r=null )
 ################################################################################
 function poisson_distribution( $Mu=null, $x=null )
 {
-	$this->debug->in();
-
 	if( is_null($Mu) ){ return false; }
 	if( is_null($x) ){ return false; }
 
@@ -1028,7 +933,6 @@ function poisson_distribution( $Mu=null, $x=null )
 		$p[] = $mu_e * ($pow_mu / $n);
 		}
 
-	$this->debug->out();
 	return $p;
 }
 ################################################################################
@@ -1039,8 +943,6 @@ function poisson_distribution( $Mu=null, $x=null )
 ################################################################################
 function correlation_coefficient( $x=null, $y=null, $opt=false )
 {
-	$this->debug->in();
-
 	if( is_null($x) ){ return false; }
 	if( is_null($y) ){ return false; }
 
@@ -1116,7 +1018,6 @@ function correlation_coefficient( $x=null, $y=null, $opt=false )
 
 	$r = $sxy / ($sx * $sy);
 
-	$this->debug->out();
 	if( $opt ){
 		$ret = [];
 		$ret['nx'] = $nx;
@@ -1145,66 +1046,7 @@ function correlation_coefficient( $x=null, $y=null, $opt=false )
 #	pd(). Easy function call to the Poisson Distribution function.
 ################################################################################
 function pd( $Mu=null, $x=null ){ $this->poisson_distrubution( $Mu, $x ); }
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
-	return true;
 }
-################################################################################
-#	End of the class
-################################################################################
-}
-################################################################################
-#	Add the class to the GLOBALS['classes'] variable so everyone can use it.
-################################################################################
 
 	if( !isset($GLOBALS['classes']) ){ global $classes; }
 	if( !isset($GLOBALS['classes']['business_statistics']) ){

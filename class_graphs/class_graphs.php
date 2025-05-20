@@ -23,13 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -94,7 +87,6 @@ class class_graphs
 {
 	private	$gd = null;
 	private $gd_cnt = null;
-	private $debug = null;
 	private $width = null;		#	Width of graph
 	private $height = null;		#	Height of graph
 	private $data = null;		#	All of the data for the graph
@@ -115,7 +107,6 @@ class class_graphs
 ################################################################################
 public function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['graphs']) ){
 		return $this->init( func_get_args() );
 		}
@@ -132,7 +123,6 @@ public function __construct()
 public function init( $min_x=null, $max_x=null, $min_y=null, $max_y=null,
 	$scale_x=null, $scale_y=null, $div_x=null, $div_y=null )
 {
-	$this->debug->in();
 #
 #	Default items
 #
@@ -162,8 +152,6 @@ public function init( $min_x=null, $max_x=null, $min_y=null, $max_y=null,
 	$this->scale_y = $scale_y;
 	$this->div_x = $div_x;
 	$this->div_y = $div_y;
-
-	$this->debug->out();
 }
 ################################################################################
 #	data(). Data MUST BE AN ARRAY. Data used to plot graph. If you leave the
@@ -178,9 +166,7 @@ public function init( $min_x=null, $max_x=null, $min_y=null, $max_y=null,
 ################################################################################
 public function data( $data=null, $titles=null )
 {
-	$this->debug->in();
-
-	if( is_null($data) ){ $this->debug->die( "No data given" ); }
+	if( is_null($data) ){ die( "No data given" ); }
 	if( is_null($titles) ){
 		$yc = count( $data );		#	How many DOWN titles
 		$xc = count( $data[0] );	#	How many ACROSS titles
@@ -209,15 +195,12 @@ public function data( $data=null, $titles=null )
 					}
 				}
 			}
-
-	$this->debug->out();
 }
 ################################################################################
 #	start().
 ################################################################################
 public function start()
 {
-	$this->debug->in();
 #
 #	It is important that we increment gd_cnt as that is how we tell where we are.
 #
@@ -283,8 +266,6 @@ public function start()
 #
 		else { $this->gd = null; }
 
-	$this->debug->out();
-
 	return $this->title[$this->gd_cnt];
 }
 ################################################################################
@@ -298,8 +279,6 @@ public function start()
 ################################################################################
 public function add()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -362,8 +341,6 @@ public function add()
 		}
 print_r( $this->data ); echo "\n";exit;
 
-	$this->debug->out();
-
 	return true;
 }
 ################################################################################
@@ -378,7 +355,6 @@ print_r( $this->data ); echo "\n";exit;
 ################################################################################
 function title( $title=null, $loc=null, $dir=null )
 {
-	$this->debug->in();
 	if( is_null($loc) ){ $loc = 't'; }
 	if( is_null($dir) ){ $dir = 'b'; }
 
@@ -386,8 +362,6 @@ function title( $title=null, $loc=null, $dir=null )
 	$this->title['label'] = $title;
 	$this->title['loc'] = substr( $loc, 0, 1 );
 	$this->title['dir'] = substr( $dir, 0, 1 );
-
-	$this->debug->out();
 
 	return true;
 }
@@ -409,8 +383,6 @@ function title( $title=null, $loc=null, $dir=null )
 ################################################################################
 function subtitles( $labels=null, $dirs=null )
 {
-	$this->debug->in();
-
 	$flag = false;
 	$this->labels = [];
 
@@ -440,8 +412,6 @@ function subtitles( $labels=null, $dirs=null )
 
 	if( is_null($labels) ){ $this->labels['l_t'] = ""; }
 	if( is_null($dirs) ){ $this->labels['d_t'] = 'u'; }
-
-	$this->debug->out();
 
 	return $flag;
 }
@@ -582,59 +552,6 @@ private function get_minmax( $name=null )
 		}
 
 	return array( $min, $max );
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
-	return true;
 }
 ################################################################################
 #	__destruct(). ALWAYS get rid of everything!

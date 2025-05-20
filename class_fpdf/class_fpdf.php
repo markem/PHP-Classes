@@ -23,13 +23,6 @@
 	$lib = getenv( "my_libs" );
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
-
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
 #
 #	Have to include the fpdf class file
 #
@@ -87,14 +80,12 @@ class class_fpdf
 	private $file = null;
 	private	$fpdf = null;
 	private $funcs = null;
-	private	$debug = null;
 
 ################################################################################
 #	__construct(). Constructor.
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['fpdf']) ){
 		return $this->init( func_get_args() );
 		}
@@ -105,8 +96,6 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -115,7 +104,6 @@ function init()
 	$this->get_html();
 	$this->fpdf = new FPDF();
 	$this->make_pdf( $args );
-	$this->debug->out();
 }
 ################################################################################
 #	get_html(). Get all of the HTML commands possible.
@@ -128,8 +116,6 @@ function init()
 ################################################################################
 private function get_html()
 {
-	$this->debug->in();
-
 	$this->htm = [];	#	List of HTML commands
 	$this->html = [];
 	$this->funcs = [];	#	Functions to call.
@@ -273,8 +259,6 @@ EOD;
 		$this->htm[] = $b[0];
 		$this->funcs[] = "do_$b[0]";
 		}
-
-	$this->debug->out();
 }
 ################################################################################
 #	do_doctype(). Handle the DOCTYPE comand.
@@ -290,8 +274,6 @@ EOD;
 ################################################################################
 private function do_doctype( $info )
 {
-	$this->debug->in();
-
 #
 #	We have to move "A" to "B" because we are taking things out of "A".
 #
@@ -328,27 +310,20 @@ private function do_doctype( $info )
 				$this->html['version'] = preg_replace( "/\s+xhtml\s+(\d+\.\d+)/i", "$1", $v );
 				}
 		}
-
-	$this->debug->out();
 }
 ################################################################################
 #	do_html(). Handle the HTML command
 ################################################################################
 private function do_html( $info )
 {
-	$this->debug->in();
-
 	$info = trim( $info );
 	$this->html['html'] = str_replace( "<", "", $info );
-
-	$this->debug->out();
 }
 ################################################################################
 #	make_pdf(). Changes an HTML file to a PDF file.
 ################################################################################
 function make_pdf( $html )
 {
-	$this->debug->in();
 #
 #	Separate lines based on all HTML commands are inside of "<" and ">".
 #
@@ -383,9 +358,6 @@ function make_pdf( $html )
 			$this->funcs[$b[0]]( $v );
 			}
 		}
-
-	$this->debug->log( $this->html );
-	$this->debug->out();
 }
 ################################################################################
 #	px2mm().  Conversion pixel -> millimeter at 72 dpi
@@ -400,94 +372,7 @@ function make_pdf( $html )
 ################################################################################
 function px2mm($px)
 {
-	$this->debug->in();
 	return number_format( $px * 25.4 / 72, 2 );
-	$this->debug->out();
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
-	return true;
-}
-################################################################################
-#	dumpfile(). A short function to dump a file.
-################################################################################
-function dumpfile( $f=null, $l=null )
-{
-	$this->debug->in();
-
-	if( is_null($f) ){ $this->debug->msg( "DIE : No file given", true ); }
-	if( is_null($l) ){ $l = 32; }
-
-	$fh = fopen($f, "r" );
-	$r = fread( $fh, 1024 );
-	fclose( $fh );
-
-	$this->debug->msg( "Dump	: " );
-	for ($i = 0; $i < $l; $i++) {
-		$this->debug->msg( str_pad(dechex(ord($r[$i])), 2, '0', STR_PAD_LEFT) );
-		}
-
-	$this->debug->msg( "\nHeader  : " );
-	for ($i = 0; $i < 32; $i++) {
-		$s = ord( $r[$i] );
-		$s = ($s > 127) ? $s - 127 : $s;
-		$s = ($s < 32) ? ord(" ") : $s;
-		$this->debug->msg( chr( $s ) );
-		}
-
-	$this->debug->msg( "\n" );
-	$this->debug->out();
-
-	return true;
 }
 
 }

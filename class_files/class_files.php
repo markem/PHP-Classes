@@ -24,13 +24,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -87,7 +80,6 @@ class class_files
 	private $exts = null;
 	private $algos = null;
 
-	public $debug = null;
 	public $temp_path = null;
 
 	private $bytes = null;
@@ -100,7 +92,6 @@ class class_files
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['files']) ){
 		return $this->init( func_get_args() );
 		}
@@ -111,8 +102,6 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -147,7 +136,6 @@ function init()
 	$this->gb = 1073741824;
 
 	$this->all_exts = substr( $this->all_exts, 0, -1 );
-	$this->debug->out();
 }
 
 ################################################################################
@@ -156,7 +144,6 @@ function init()
 ################################################################################
 function get_files( $top_dir=null, $regexp=null, $opt=null, $print=false )
 {
-	$this->debug->in();
 #	$this->dump( "Top_dir", $top_dir );
 
 	if( is_null($top_dir) ){ $top_dir = "./"; }
@@ -164,14 +151,11 @@ function get_files( $top_dir=null, $regexp=null, $opt=null, $print=false )
 	if( is_null($opt) ){ $opt = true; }
 	if( !preg_match(";/;", $regexp) ){ $regexp = "/" . $regexp . "/"; }
 
-	$this->debug->msg( "Here : " . __LINE__ . "\n" );
+	echo "Here : " . __LINE__ . "\n";
 	$dirs[] = $top_dir;
 	$bad = array();
 	$files = array();
-	$this->debug->log( "Line " . __LINE__ . " : TOP_DIR = $top_dir\n" );
-#	$this->dump( "Top_dir", $top_dir );
 	while( count($dirs) > 0 ){
-#		$this->dump( "DIRS", $dirs );
 		$dir = array_pop( $dirs );
 #		print_r( $dir ); echo "\n";
 #		$this->dump( "DIR", $dir );
@@ -195,8 +179,8 @@ function get_files( $top_dir=null, $regexp=null, $opt=null, $print=false )
 #		$this->dump( "Perms #2", $perms );
 
 		if( $perms === false ){ continue; }
-		if( !is_array($perms) ){ $this->debug->die( "PERMS is not an array!" ); }
-		if( count($perms) < 1 ){ $this->debug->msg( $perms ); $this->debug->die( "PERMS is blank!"); }
+		if( !is_array($perms) ){ die( "PERMS is not an array!\n" ); }
+		if( count($perms) < 1 ){ echo "$perms\n"; die( "PERMS is blank!\n" ); }
 		if( !$perms[0] === 'd' ){ continue; }
 		if( (count($perms) > 0) && (($perms[1] === '-') || ($perms[2] === '-')) ){ continue; }
 		if( (count($perms) > 0) && (($perms[4] === '-') || ($perms[5] === '-')) ){ continue; }
@@ -251,18 +235,14 @@ function get_files( $top_dir=null, $regexp=null, $opt=null, $print=false )
 					if( $print ){ echo "Double Application Data link...skipping\n"; }
 					continue;
 					}
-#
-#				$this->debug->msg( "FOUND : $file\n" );
-#				$this->dump( "regexp", $regexp );
-#				$this->dump( "file", $file );
-#
+
 				if( $file != "." && $file != ".." ){
 					if( is_dir("$dir/$file") && $opt == true){ $dirs[] = "$dir/$file"; }
 						else if( is_link($file) ){ continue; }
 						else if( preg_match($regexp, $file) ){ $files[] = "$dir/$file"; }
 						else { $bad[] = "$dir/$file"; }
 					}
-					else { $this->debug->msg( "Discarding '.' or '..'\n" ); }
+					else { echo "Discarding '.' or '..'\n"; }
 				}
 
 			closedir( $dh );
@@ -294,8 +274,6 @@ function get_files( $top_dir=null, $regexp=null, $opt=null, $print=false )
 
 	$bad = array_reverse( array_reverse($bad) );
 
-	$this->debug->out();
-
 	return array( $files, $bad );
 }
 ################################################################################
@@ -305,8 +283,6 @@ function get_files( $top_dir=null, $regexp=null, $opt=null, $print=false )
 ################################################################################
 function get_dirs( $top_dir=null, $regexp=null, $opt=null )
 {
-	$this->debug->in();
-
 	if( is_null($top_dir) ){ $top_dir = "./"; }
 	if( is_null($regexp) ){ $regexp = "/.*/"; }
 	if( is_null($opt) ){ $opt = true; }
@@ -328,7 +304,7 @@ function get_dirs( $top_dir=null, $regexp=null, $opt=null )
 			while( ($file = readdir($dh)) !== false ){
 #				echo "Looking at : $file\n";
 				$cur_dir = "$dir/$file";
-				$this->debug->msg( "FOUND : $file\n" );
+				echo "FOUND : $file\n";
 				if( $file != "." && $file != ".." ){
 					if( preg_match($regexp, $cur_dir) ){
 						if( is_dir($cur_dir) && $opt == true){
@@ -360,8 +336,6 @@ function get_dirs( $top_dir=null, $regexp=null, $opt=null )
 		$files[$l] = $v;
 		}
 
-	$this->debug->out();
-
 	return $files;
 }
 ################################################################################
@@ -373,16 +347,14 @@ function get_dirs( $top_dir=null, $regexp=null, $opt=null )
 function get_perms( $file )
 {
 	if( !file_exists($file) ){
-		$this->debug->msg( "Line " . __LINE__ . " : No such file : $file\n" );
-		$this->dump( "ERROR", "No such file : $file" );
+		echo "Line " . __LINE__ . " : No such file : $file\n";
 		return false;
 		}
 
 #	$this->dump( "FILE", $file );
 
 	if( ($perms = fileperms($file)) === false ){
-		$this->debug->msg( "Line " . __LINE__ . " : Fileperms returned an ERROR : $perms\n" );
-		$this->dump( "Fileperms", "Returned an ERROR : $perms" );
+		echo "Line " . __LINE__ . " : Fileperms returned an ERROR : $perms\n";
 		return false;
 		}
 
@@ -440,16 +412,11 @@ function get_perms( $file )
 	$info .= (($perms & 0x0001) ?
 		(($perms & 0x0200) ? 't,' : 'x,' ) :
 		(($perms & 0x0200) ? 'T,' : '-,'));
-
-#	$this->dump( "Info", $info );
 #
 #	Remove the last comma
 #
 	$info = substr( $info, 0, -1 );
 
-#	$this->dump( "Info", $info );
-
-	$this->debug->out();
 	return $info;
 }
 ################################################################################
@@ -506,70 +473,66 @@ function get_stats( $file=null, $opt=null, $print=false )
 ################################################################################
 function get_image( $file )
 {
-	$this->debug->in();
-
 	$c = 0;
 
 	try {
 		if( preg_match("/gif$/i", $file) ){
-			$this->debug->msg( "Loading GIF file : $file\n" );
-			$gd = imagecreatefromgif($file);
+			echo "Loading GIF file : $file\n";
+			$gd = imagecreatefromgif( $file );
 			}
 			else if( preg_match("/gd$/i", $file) ){
-				$this->debug->msg( "Loading GD file : $file\n" );
-				$gd = imagecreatefromgd($file);
+				echo "Loading GD file : $file\n";
+				$gd = imagecreatefromgd( $file );
 				}
 			else if( preg_match("/gd2$/i", $file) ){
-				$this->debug->msg( "Loading GD2 file : $file\n" );
-				$gd = imagecreatefromgd2($file);
+				echo "Loading GD2 file : $file\n";
+				$gd = imagecreatefromgd2( $file );
 				}
 			else if( preg_match("/(jpg|jpeg|exif|jfif|jfi)$/i", $file) ){
-				$this->debug->msg( "Loading JPG file : $file\n" );
-				$gd = imagecreatefromjpeg($file);
+				echo "Loading JPG file : $file\n";
+				$gd = imagecreatefromjpeg( $file );
 				}
 			else if( preg_match("/wbmp$/i", $file) ){
-				$this->debug->msg( "Loading WBMP file : $file\n" );
-				$gd = imagecreatefromwbmp($file);
+				echo "Loading WBMP file : $file\n";
+				$gd = imagecreatefromwbmp( $file );
 				}
 			else if( preg_match("/bmp$/i", $file) ){
-				$this->debug->msg( "Loading BMP file : $file\n" );
-				$gd = imagecreatefrombmp($file);
+				echo "Loading BMP file : $file\n";
+				$gd = imagecreatefrombmp( $file );
 				}
 			else if( preg_match("/xbm$/i", $file) ){
-				$this->debug->msg( "Loading XBM file : $file\n" );
-				$gd = imagecreatefromxbm($file);
+				echo "Loading XBM file : $file\n";
+				$gd = imagecreatefromxbm( $file );
 				}
 			else if( preg_match("/xpm$/i", $file) ){
-				$this->debug->msg( "Loading XPM file : $file\n" );
-				$gd = imagecreatefromxpm($file);
+				echo "Loading XPM file : $file\n";
+				$gd = imagecreatefromxpm( $file );
 				}
 			else if( preg_match("/png$/i", $file) ){
-				$this->debug->msg( "Loading PNG file : $file\n" );
+				echo "Loading PNG file : $file\n";
 				$gd = @imagecreatefrompng( $file );
 				}
 			else if( preg_match("/(web|webp)$/i", $file) ){
-				$this->debug->msg( "Loading WEBP file : $file\n" );
-				$gd = imagecreatefromwebp($file);
+				echo "Loading WEBP file : $file\n";
+				$gd = imagecreatefromwebp( $file );
 				}
 			else if( preg_match("/(tif|tiff)$/i", $file) ){
-				$this->debug->msg( "DIE : GD does not do TIF : $file\n" );
+				echo "DIE : GD does not do TIF : $file\n";
 				return false;
 				}
 			else {
-				$this->debug->msg( "DIE : Unknown file format : $file\n" );
+				echo "DIE : Unknown file format : $file\n";
 				return false;
 				}
 		}
 		catch( exception $e ){
-			$this->debug->msg( $e->getMessage(), true );
+			echo $e->getMessage() . "\n";
 			}
 
 	if( !is_resource($gd) ){
-		$this->debug->msg( "DIE : GD is NOT a resource" );
+		echo "DIE : GD is NOT a resource\n";
 		return false;
 		}
-
-#	if( $this->debug_flag ){ imagepng( $gd, "./" . __FUNCTION__ . "-image-$c.png" ); $c++; }
 
 	$w = imagesx( $gd );
 	$h = imagesy( $gd );
@@ -600,12 +563,8 @@ function get_image( $file )
 
 		imagecopyresampled( $gd2, $gd, 0, 0, 0, 0, $w, $h, $w, $h );
 
-#		if( $this->debug_flag ){ imagepng( $gd, "./" . __FUNCTION__ . "-image-$c.png" ); $c++; }
 		imagedestroy( $gd );
-#		if( $this->debug_flag ){ imagepng( $gd2, "./" . __FUNCTION__ . "-image-$c.png" ); $c++; }
 		}
-
-	$this->debug->out();
 
 	return $gd2;
 }
@@ -637,8 +596,6 @@ function rem_iccp( $dir )
 #################################################################################
 function put_image( $gd, $file, $del=true )
 {
-	$this->debug->in();
-
 	$ret = null;
 	$file = trim( $file );
 
@@ -662,12 +619,10 @@ function put_image( $gd, $file, $del=true )
 		else if( preg_match("/xbm$/i", $file) ){ $ret = imagexbm($gd, $file); }
 		else if( preg_match("/(web|webp)$/i", $file) ){ $ret = imagewebp($gd, $file); }
 		else if( preg_match("/png$/i", $file) ){ $ret = imagepng($gd, $file); }
-		else { $this->debug->msg( "Unknown file format....aborting", true ); }
+		else { echo "Unknown file format....aborting\n"; }
 
 	if( $flag ){ rename( $file, $old_file ); }
 	if( $del ){ imagedestroy( $gd ); }
-
-	$this->debug->out();
 
 	return $ret;
 }
@@ -676,10 +631,8 @@ function put_image( $gd, $file, $del=true )
 ################################################################################
 function dup_image( $gd=null, $opt=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){
-		$this->debug->msg( "No image sent over...aborting.\n" );
+		echo "No image sent over...aborting.\n";
 		return false;
 		}
 
@@ -706,14 +659,8 @@ function dup_image( $gd=null, $opt=null )
 
 		imagecopyresampled( $gd2, $gd, 0, 0, 0, 0, $w, $h, $w, $h );
 
-#		if( $this->debug_flag ){ imagepng( $gd, "./" . __FUNCTION__ . "-image-$c.png" ); $c++; }
-
 		if( $opt ){ imagedestroy( $gd ); }
-
-#		if( $this->debug_flag ){ imagepng( $gd2, "./" . __FUNCTION__ . "-image-$c.png" ); $c++; }
 		}
-
-	$this->debug->out();
 
 	return $gd2;
 }
@@ -763,10 +710,8 @@ function get_colors( $gd=null, $opt=null )
 ################################################################################
 function blank_image( $gd=null, $rgb=null, $opt=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){
-		$this->debug->msg( "No image sent over...aborting.\n" );
+		echo "No image sent over...aborting.\n";
 		return false;
 		}
 
@@ -797,8 +742,6 @@ function blank_image( $gd=null, $rgb=null, $opt=null )
 
 	if( $opt ){ imagedestroy( $gd ); }
 
-	$this->debug->out();
-
 	return $gd2;
 }
 ################################################################################
@@ -807,8 +750,7 @@ function blank_image( $gd=null, $rgb=null, $opt=null )
 ################################################################################
 function scale_image( $gd=null, $sx=null, $sy=null )
 {
-	$this->debug->in();
-	$this->debug->msg( "SX = $sx, SY = $sy\n" );
+	echo "SX = $sx, SY = $sy\n";
 #
 #	This can come over as:
 #
@@ -819,9 +761,9 @@ function scale_image( $gd=null, $sx=null, $sy=null )
 	if( is_array($sx) ){ $s1 = $sx[0]; $sy = $sx[1]; unset($sx); $sx = $s1; }
 		else if( preg_match("/x/i", $sx) ){ $s = explode( 'x', $sx ); unset($sx); $sx = $s[0]; $sy = $s[1]; }
 
-	if( is_null($gd) ){ $this->debug->msg( "GD is NULL", true ); }
-	if( is_null($sx) ){ $this->debug->msg( "SX is NULL", true ); }
-	if( is_null($sy) ){ $this->debug->msg( "SY is NULL", true ); }
+	if( is_null($gd) ){ echo "GD is NULL\n"; }
+	if( is_null($sx) ){ echo "SX is NULL\n"; }
+	if( is_null($sy) ){ echo "SY is NULL\n"; }
 
 #	$gd2 = imagescale( $gd, $sx, $sy,  IMG_BICUBIC );
 	$gd2 = imagescale( $gd, $sx, $sy );
@@ -829,8 +771,6 @@ function scale_image( $gd=null, $sx=null, $sy=null )
 	imagesavealpha($gd2, true);
 
 	imagedestroy( $gd );
-
-	$this->debug->out();
 
 	return $gd2;
 }
@@ -840,8 +780,6 @@ function scale_image( $gd=null, $sx=null, $sy=null )
 ################################################################################
 function ConvertBMP2GD($src, $dest = false)
 {
-	$this->debug->in();
-
 	if (!($src_f = fopen($src, "rb"))) { return false; }
 	if (!($dest_f = fopen($dest, "wb"))) { return false; }
 	$header = unpack("vtype/Vsize/v2reserved/Voffset", fread($src_f, 14));
@@ -950,8 +888,6 @@ function ConvertBMP2GD($src, $dest = false)
 	fclose($src_f);
 	fclose($dest_f);
 
-	$this->debug->out();
-
 	return $gd;
 }
 ################################################################################
@@ -960,8 +896,6 @@ function ConvertBMP2GD($src, $dest = false)
 ################################################################################
 function old_imagebmp ($im, $fn = false)
 {
-	$this->debug->in();
-
 	if( !is_resource($im) ) return false;
 
 	if ($fn === false) $fn = 'php://output';
@@ -1000,8 +934,6 @@ function old_imagebmp ($im, $fn = false)
 
 	fclose($f);
 
-	$this->debug->out();
-
 	return true;
 }
 ################################################################################
@@ -1009,16 +941,12 @@ function old_imagebmp ($im, $fn = false)
 ################################################################################
 function old_imagecreatefrombmp($file)
 {
-	$this->debug->in();
-
 	$tmp_name = tempnam("./temp_files", "GD");
 	if (ConvertBMP2GD($file, $tmp_name)){
 		$img = imagecreatefromgd($tmp_name);
 		unlink($tmp_name);
 		return $img;
 		}
-
-	$this->debug->out();
 
 	return false;
 }
@@ -1027,8 +955,6 @@ function old_imagecreatefrombmp($file)
 ################################################################################
 function find_box( $gd, $color, $offset=0 )
 {
-	$this->debug->in();
-
 	if( !is_resource($gd) ){ return false; }
 
     $color = imagecolorat( $gd, 0, 0 );
@@ -1058,8 +984,6 @@ function find_box( $gd, $color, $offset=0 )
     $right += 5;
     $bot += 5;
 
-	$this->debug->out();
-
 	return array( $top, $bot, $left, $right );
 }
 ################################################################################
@@ -1073,16 +997,12 @@ function find_box( $gd, $color, $offset=0 )
 ################################################################################
 function is_dir_empty( $dir, $regexp=null )
 {
-	$this->debug->in();
-
 	if (!is_readable($dir)) return false;
 	$scan = scandir( $dir );
 	foreach( $scan as $k=>$v ){
 		if( preg_match("/^(\.|\.\.)$/", $v) ){ unset( $scan[$k] ); }
 		if( !is_null($regexp) && preg_match($regexp, $v) ){ unset( $scan[$k] ); }
 		}
-
-	$this->debug->out();
 
 	return (count($scan) < 1 ? true : false);
 }
@@ -1094,8 +1014,6 @@ function is_dir_empty( $dir, $regexp=null )
 ################################################################################
 function trim_image( $gd )
 {
-	$this->debug->in();
-
 	$fc = 0;
 
     $w = imagesx( $gd );
@@ -1105,7 +1023,7 @@ function trim_image( $gd )
     $h2 = $h + 100;
 
     $color = imagecolorat( $gd, 0, 0 );
-	$this->debug->msg( "COLOR #1 = " . dechex($color) . "\n" );
+	echo "COLOR #1 = " . dechex($color) . "\n";
 
 	$a = ($color >> 24) & 0xff;
 	$r = ($color >> 16) & 0xff;
@@ -1134,27 +1052,19 @@ function trim_image( $gd )
 		imagedestroy( $gd );
 		}
 		else {
-			$this->debug->msg( "NO imagecolorallocatealpha function", true );
+			echo "NO imagecolorallocatealpha function\n";
 			}
 
-	if( is_resource($this->debug) ){
-		$this->debug->msg( "W = $w, H = $h\n" );
-		$this->debug->msg( "W2 = $w2, H2 = $h2\n" );
-		$this->debug->msg( "Saving : ./" . __FUNCTION__ . "-image-$fc.png @ " . __LINE__ . "\n" );
-		imagepng( $gd2, "./" . __FUNCTION__ . "-image-$fc.png" );
-		$fc++;
-		}
-
     $color = imagecolorat( $gd2, 0, 0 );
-	$this->debug->msg( "COLOR #1 = " . dechex($color) . "\n" );
+	echo "COLOR #1 = " . dechex($color) . "\n";
 
 	$a = ($color >> 24) & 0xff;
 	$r = ($color >> 16) & 0xff;
 	$g = ($color >> 8) & 0xff;
 	$b = $color & 0xff;
 
-	$this->debug->msg( "A = $a, R = $r, G = $g, B = $b\n" );
-	$this->debug->msg( "COLOR #2 = " . dechex($color) . "\n" );
+	echo "A = $a, R = $r, G = $g, B = $b\n";
+	echo "COLOR #2 = " . dechex($color) . "\n";
 
     $w = imagesx( $gd2 );
     $h = imagesy( $gd2 );
@@ -1164,27 +1074,27 @@ function trim_image( $gd )
 #	Left
 #
 	$flag = false;
-	$this->debug->msg( "Working on the LEFT part\n" );
+	echo "Working on the LEFT part\n";
     for( $x=0; $x<$w; $x++ ){
         for( $y=0; $y<$h; $y++ ){
             $rgb = imagecolorat( $gd2, $x, $y );
-			$this->debug->msg( "Left : X = $x, Y = $y, Color = $color, RGB = $rgb\n" );
+			echo "Left : X = $x, Y = $y, Color = $color, RGB = $rgb\n";
             if( ($color != $rgb) ){ $left = $x; $flag = true; break; }
 			}
 
 		if( $flag ){ break; }
 		}
 
-	$this->debug->msg( "Left : X = $x, Y = $y, Color = $color, RGB = $rgb\n" );
+	echo "Left : X = $x, Y = $y, Color = $color, RGB = $rgb\n";
 #
 #	Top
 #
 	$flag = false;
-	$this->debug->msg( "Working on the TOP part\n" );
+	echo "Working on the TOP part\n";
 	for( $y=0; $y<$h; $y++ ){
 		for( $x=0; $x<$w; $x++ ){
             $rgb = imagecolorat( $gd2, $x, $y );
-			$this->debug->msg( "Top : X = $x, Y = $y, Color = $color, RGB = $rgb\n" );
+			echo "Top : X = $x, Y = $y, Color = $color, RGB = $rgb\n";
             if( ($color != $rgb) ){ $top = $y; $flag = true; break; }
 			}
 
@@ -1194,11 +1104,11 @@ function trim_image( $gd )
 #	Right
 #
 	$flag = false;
-	$this->debug->msg( "Working on the RIGHT part\n" );
+	echo "Working on the RIGHT part\n";
 	for( $x=($w-1); $x>0; $x-- ){
 		for( $y=($h-1); $y>0; $y-- ){
             $rgb = imagecolorat( $gd2, $x, $y );
-			$this->debug->msg( "Right : X = $x, Y = $y, Color = $color, RGB = $rgb\n" );
+			echo "Right : X = $x, Y = $y, Color = $color, RGB = $rgb\n";
             if( ($color != $rgb) ){ $right = $x; $flag = true; break; }
 			}
 
@@ -1208,18 +1118,18 @@ function trim_image( $gd )
 #	Bottom
 #
 	$flag = false;
-	$this->debug->msg( "Working on the BOTTOM part\n" );
+	echo "Working on the BOTTOM part\n";
 	for( $y=($h-1); $y>0; $y-- ){
 		for( $x=($w-1); $x>0; $x-- ){
             $rgb = imagecolorat( $gd2, $x, $y );
-			$this->debug->msg( "Bottom : X = $x, Y = $y, Color = $color, RGB = $rgb\n" );
+			echo "Bottom : X = $x, Y = $y, Color = $color, RGB = $rgb\n";
             if( ($color != $rgb) ){ $bot = $y; $flag = true; break; }
 			}
 
 		if( $flag ){ break; }
 		}
 
-	$this->debug->msg( "Left = $left, Right = $right, Top = $top, Bottom = $bot\n" );
+	echo "Left = $left, Right = $right, Top = $top, Bottom = $bot\n";
 
     if( ($top == 99999) || ($bot == -99999) || ($left == 99999) || ($right == -99999) ){ return null; }
 
@@ -1228,7 +1138,7 @@ function trim_image( $gd )
     $h2 = abs($bot - $top) + ($os * 2) + 1;
 
     $color = imagecolorat( $gd2, 0, 0 );
-	$this->debug->msg( "COLOR #1 = " . dechex($color) . "\n" );
+	echo "COLOR #1 = " . dechex($color) . "\n";
 
 	$a = ($color >> 24) & 0xff;
 	$r = ($color >> 16) & 0xff;
@@ -1250,18 +1160,8 @@ function trim_image( $gd )
 		imagedestroy( $gd2 );
 		}
 		else {
-			$this->debug->msg( "NO imagecolorallocatealpha function", true );
+			echo "NO imagecolorallocatealpha function\n";
 			}
-
-	if( is_resource($this->debug) ){
-		$this->debug->msg( "W = $w, H = $h" );
-		$this->debug->msg( "W2 = $w2, H2 = $h2" );
-		$this->debug->msg( "Saving : ./" . __FUNCTION__ . "-image-$fc.png @ " );
-		imagepng( $gd, "./" . __FUNCTION__ . "-image-$fc.png" );
-		$fc++;
-		}
-
-	$this->debug->out();
 
     return $gd;
 }
@@ -1272,8 +1172,6 @@ function trim_image( $gd )
 ################################################################################
 function rotateX($x, $y, $theta)
 {
-	$this->debug->in();
-	$this->debug->out();
 	return $x * cos($theta) - $y * sin($theta);
 }
 ################################################################################
@@ -1283,8 +1181,6 @@ function rotateX($x, $y, $theta)
 ################################################################################
 function rotateY($x, $y, $theta)
 {
-	$this->debug->in();
-	$this->debug->out();
 	return $x * sin($theta) + $y * cos($theta);
 }
 ################################################################################
@@ -1298,9 +1194,8 @@ function rotateY($x, $y, $theta)
 ################################################################################
 function rot_image( &$srcImg=null, $angle=null, $bgcolor=null, $ignore_transparent=0 )
 {
-	$this->debug->in();
-	if( is_null($srcImg) ){ $this->debug->msg( "GD is NULL", true ); }
-	if( is_null($angle) ){ $this->debug->msg( "NO ANGLE GIVEN", true ); }
+	if( is_null($srcImg) ){ echo "GD is NULL\n"; }
+	if( is_null($angle) ){ echo "NO ANGLE GIVEN\n"; }
 	if( is_null($bgcolor) ){ $bgcolor = imagecolorat( $srcImg, 0, 0 ); }
 #
 #	Get the RGBA parts of the background color
@@ -1366,7 +1261,6 @@ function rot_image( &$srcImg=null, $angle=null, $bgcolor=null, $ignore_transpare
         }
     }
    
-	$this->debug->out();
     return $destimg;
 }
 ################################################################################
@@ -1374,8 +1268,7 @@ function rot_image( &$srcImg=null, $angle=null, $bgcolor=null, $ignore_transpare
 ################################################################################
 function rt_image( $gd )
 {
-	$this->debug->in();
-	if( is_null($gd) ){ $this->debug->msg( "GD is NULL", true ); }
+	if( is_null($gd) ){ echo "GD is NULL\n"; }
 
 	$a = 0;
 	$angle = 0;
@@ -1397,7 +1290,7 @@ function rt_image( $gd )
 #
 #	Now check them
 #
-		$this->debug->msg( "I = $i, W = $w - $w2, H = $h - $h2\n" );
+		echo "I = $i, W = $w - $w2, H = $h - $h2\n";
 #		imagepng( $gd2, "./test-3.png" ); sleep( 1 );
 
 		if( ($w2 * $h2) < ($aw * $ah) ){
@@ -1408,16 +1301,14 @@ function rt_image( $gd )
 		}
 
 	if( $angle > 0 ){
-		$this->debug->msg( "Returning NEW : Angle = $angle, W = $aw, H = $ah\n" );
+		echo "Returning NEW : Angle = $angle, W = $aw, H = $ah\n";
 		$gd2 = $this->rot_image( $gd, $angle );
 		$gd2 = $this->trim_image( $gd2 );
 
-		$this->debug->out();
 		return $gd2;
 		}
 
-	$this->debug->msg( "Returning OLD\n" );
-	$this->debug->out();
+	echo "Returning OLD\n";
 	return $gd;
 }
 ################################################################################
@@ -1425,8 +1316,6 @@ function rt_image( $gd )
 ################################################################################
 function unique_color( $gd )
 {
-	$this->debug->in();
-
 	$a1 = 0;
 	$r1 = 255;
 	$g1 = 255;
@@ -1447,8 +1336,7 @@ function unique_color( $gd )
 					if( --$g1 < 0 ){
 						$g1 = 255;
 						if( --$r1 < 0 ){
-							$this->debug->msg("Couldn't find a color " );
-							$this->debug->out();
+							echo "Couldn't find a color\n";
 							}
 						}
 					}
@@ -1461,8 +1349,6 @@ function unique_color( $gd )
 	$color |= ($g1 & 0xff) << 8;
 	$color |= ($b1 & 0xff);
 
-	$this->debug->out();
-
 	return $color;
 }
 ################################################################################
@@ -1470,7 +1356,6 @@ function unique_color( $gd )
 ################################################################################
 function get_file_list( $exts=null )
 {
-	$this->debug->in();
 #
 #	Get ONLY the graphic files found.
 #
@@ -1481,16 +1366,14 @@ function get_file_list( $exts=null )
 #
 #	Get where to start
 #
-	$this->debug->msg( "Directory to work with? " );
+	echo "Directory to work with?\n";
 	$dir = rtrim( stream_get_line(STDIN, 1024, PHP_EOL) );
 	if( strlen($dir) < 1 ){ $dir = $cwd; }
 	$dir = str_replace( "\\", "/", $dir );
-	$this->debug->msg( "DIR = $dir\n" );
+	echo "DIR = $dir\n";
 	chdir( $dir );
 
 	list( $good, $bad ) = $this->get_files( $dir, "/$exts$/i" );
-
-	$this->debug->out();
 
 	return array( $good, $bad );
 }
@@ -1500,14 +1383,12 @@ function get_file_list( $exts=null )
 ################################################################################
 function check_files( $good )
 {
-	$this->debug->in();
-
 	foreach( $good as $k=>$v ){
 #
 #	First, we need to get the first 1024 bytes from the file.
 #	Nothing else is needed at this point.
 #
-		$this->debug->msg( "Working on : $v\n" );
+		echo "Working on : $v\n";
 		$fh = fopen( $v, "r" );
 		$r = fread( $fh, 1024 );
 		fclose( $fh );
@@ -1516,7 +1397,7 @@ function check_files( $good )
 #
 		if( preg_match("/pngp$/i", $v) ){
 			$f = preg_replace( "/pngp$/i", "png", $v );
-			$this->debug->msg( "Renaming :	$v\nTo		: $f\n" );
+			echo "Renaming :	$v\nTo		: $f\n";
 			rename( $v, $f );
 			$v = $f;
 			}
@@ -1528,7 +1409,7 @@ function check_files( $good )
 		$png = preg_match( "/png/i", substr($r, 1, 3) );
 		if( $png && !preg_match("/png$/i", $v) ){
 			$png = preg_replace( "/\.\w{3,4}$/i", ".png", $v );
-			$this->debug->msg( "Saving	: $v\nTo	: $png\n" );
+			echo "Saving	: $v\nTo	: $png\n";
 			rename( $v, $png );
 			$v = $png;
 			}
@@ -1536,7 +1417,7 @@ function check_files( $good )
 		$gif = preg_match( "/gif/i", substr($r, 1, 3) );
 		if( $gif && !preg_match("/gif$/i", $v) ){
 			$gif = preg_replace( "/\.\w{3,4}$/i", ".gif", $v );
-			$this->debug->msg( "Saving	: $v\nTo	: $gif\n" );
+			echo "Saving	: $v\nTo	: $gif\n";
 			rename( $v, $gif );
 			$v = $gif;
 			}
@@ -1544,7 +1425,7 @@ function check_files( $good )
 		$bmp = preg_match( "/(bm|ba|ci|cp|ic|pt)/i", substr($r, 1, 2) );
 		if( $bmp && !preg_match("/bmp$/i", $v) ){
 			$bmp = preg_replace( "/\.\w{3,4}$/i", ".bmp", $v );
-			$this->debug->msg( "Saving	: $v\nTo	: $bmp\n" );
+			echo "Saving	: $v\nTo	: $bmp\n";
 			rename( $v, $bmp );
 			$v = $bmp;
 			}
@@ -1553,7 +1434,7 @@ function check_files( $good )
 		$jpg = preg_match( "/(exif|jfif|jfi|jpg|jpeg)$hs/i", substr($r, 6, 5) );
 		if( $jpg && !preg_match("/(exif|jfif|jfi|jpg|jpeg)$/i", $v) ){
 			$jpg = preg_replace( "/\.\w{3,4}$/i", ".jpg", $v );
-			$this->debug->msg( "Saving	: $v\nTo	: $jpg\n" );
+			echo "Saving	: $v\nTo	: $jpg\n";
 			rename( $v, $jpg );
 			$v = $jpg;
 			}
@@ -1566,7 +1447,7 @@ function check_files( $good )
 		$tif = preg_match("/($tiff1|$tiff2)/i", $hex );
 		if( $tif && !preg_match("/(tif|tiff)$/i", $v) ){
 			$tif = preg_replace( "/\.\w{3,4}$/i", ".tif", $v );
-			$this->debug->msg( "Saving	: $v\nTo	: $tif\n" );
+			echo "Saving	: $v\nTo	: $tif\n";
 			rename( $v, $tif );
 			$v = $tif;
 			}
@@ -1574,7 +1455,7 @@ function check_files( $good )
 		$webp = ( preg_match("/riff/i", substr($r, 0, 4)) || preg_match("/webp/i", substr($r, 8, 4)) );
 		if( $webp && !preg_match("/webp$/i", $v) ){
 			$webp = preg_replace( "/\.\w{3,4}$/i", ".webp", $v );
-			$this->debug->msg( "Saving	: $v\nTo	: $webp\n" );
+			echo "Saving	: $v\nTo	: $webp\n";
 			rename( $v, $webp );
 			$v = $webp;
 			}
@@ -1585,24 +1466,22 @@ function check_files( $good )
 if( false ){
 		if( preg_match("/(web|webp)$/i", $v) &&
 			(preg_match("/riff/i", substr($r, 0, 4)) || preg_match("/webp/i", substr($r, 8, 4)) ) ){
-			$this->debug->msg( "Moving $v : WEBP to PNG\n" );
+			echo "Moving $v : WEBP to PNG\n";
 			$gd = imagecreatefromwebp( $v );
 			$png = preg_replace( "/(webp|web)$/i", "png", $v );
-			$this->debug->msg( "Saving to $png\n" );
+			echo "Saving to $png\n";
 			imagepng( $gd, $png );
 			unlink( $v );
 			}
 		}
 }
 
-	$this->debug->out();
 }
 ################################################################################
 #	get_ftype(). Get which type of file I am looking at.
 ################################################################################
 function get_ftype( $image )
 {
-	$this->debug->in();
 #
 #	First, we need to get the first 1024 bytes from the file.
 #	Nothing else is needed at this point.
@@ -1761,8 +1640,6 @@ function get_ftype( $image )
 	$id = preg_match( "/$hs/i", substr($r, 0, 4) );
 	if( $id ){ return "ycc"; }
 
-	$this->debug->out();
-
 	return false;
 }
 ################################################################################
@@ -1770,14 +1647,13 @@ function get_ftype( $image )
 ################################################################################
 function convert_files( $g=null, $file_ext=null )
 {
-	$this->debug->in();
 	if( is_null($g) ){
-		$this->debug->msg( "DIE : No file array given" );
+		echo "DIE : No file array given\n";
 		return false;
 		}
 
 	if( is_null($file_ext) ){
-		$this->debug->msg( "DIE: No file extension given" );
+		echo "DIE: No file extension given\n";
 		return false;
 		}
 
@@ -1787,33 +1663,30 @@ function convert_files( $g=null, $file_ext=null )
 			if( !preg_match("/(tif|tiff)$/i", $v) ){
 				$gd = $this->get_image( $v );
 				$chg = preg_replace( "/\w{3,4}$/i", $file_ext, $v );
-				$this->debug->msg( "Moving	: $v\nTo	: $chg\n" );
+				echo "Moving	: $v\nTo	: $chg\n";
 				$this->put_image( $gd, $chg );
 
-				$this->debug->msg( "Deleting	: $v\n" . str_repeat( '-', 80 ) . "\n" );
-				if( unlink($v) === false ){ $this->debug->msg( "Line " . __LINE__ . " : CAN NOT DELETE : $v\n" ); }
+				echo "Deleting	: $v\n" . str_repeat( '-', 80 ) . "\n";
+				if( unlink($v) === false ){ echo "Line " . __LINE__ . " : CAN NOT DELETE : $v\n"; }
 				}
 				else {
 					if( preg_match("/tiff$/i", $v) ){
 						$chg = preg_replace( "/\w{3,4}$/i", "tif", $v );
-						$this->debug->msg( "Renaming	: $v\nTo	: $chg\n" );
+						echo "Renaming	: $v\nTo	: $chg\n";
 						rename( $v, $chg );
 						}
-						else { $this->debug->msg( "File OK	: $v\n" ); }
+						else { echo "File OK	: $v\n"; }
 					}
 			}
-			else { $this->debug->msg( "File OK	: $v\n" ); }
+			else { echo "File OK	: $v\n"; }
 		}
-
-	$this->debug->out();
 }
 ################################################################################
 #	remove_nonwords(). Remove non-words and replace them with underscores.
 ################################################################################
 function remove_nonwords( $g=null )
 {
-	$this->debug->in();
-	if( is_null($g) ){ $this->debug->msg( "List is empty", true ); }
+	if( is_null($g) ){ echo "List is empty\n"; }
 
 	$a = array();
 	foreach( $g as $k=>$v ){
@@ -1821,12 +1694,11 @@ function remove_nonwords( $g=null )
 		$base = preg_replace( "/\W+/", "_", $base );
 		$base = substr( $base, 0, -4 ) . "." . substr( $base, -3, 3 );
 		$f = dirname( $v ) . "/$base";
-		$this->debug->msg( "Renaming	: $v\nTo	: $f\n" );
+		echo "Renaming	: $v\nTo	: $f\n";
 		rename( $v, $f );
 		$a[] = $f;
 		}
 
-	$this->debug->out();
 	return $a;
 }
 ################################################################################
@@ -1834,9 +1706,7 @@ function remove_nonwords( $g=null )
 ################################################################################
 function grey_out( $g=null )
 {
-	$this->debug->in();
-
-	if( is_null($g) ){ $this->debug->msg( "Array is NULL - aborting" ); }
+	if( is_null($g) ){ echo "Array is NULL - aborting\n"; }
 
 	foreach( $g as $k=>$v ){
 #
@@ -1868,27 +1738,23 @@ function grey_out( $g=null )
 		$this->put_image( $gd , $v );
 		}
 
-	$this->debug->out();
 }
 ################################################################################
 #	fget_csv(). Get a csv file
 ################################################################################
 function fget_csv( $file=null, $sep=',' )
 {
-	$this->debug->in();
 	$fileSize = filesize( $file );
 
-	if( is_null($file) ){ $this->debug->msg( "FILE is NULL", true ); }
+	if( is_null($file) ){ echo "FILE is NULL\n"; }
 
 	$array = array();
 	if( ($fp = fopen( $file, "r" )) !== FALSE ){
 		while( ($data = fgetcsv($fp, $fileSize, $sep)) !== FALSE ){ $array[] = $data; }
 		}
-		else { $this->debug->msg( "Could not read $file", true ); }
+		else { echo "Could not read $file\n"; }
 
 	fclose( $fp );
-
-	$this->debug->out();
 
 	return $array;
 }
@@ -1897,17 +1763,13 @@ function fget_csv( $file=null, $sep=',' )
 ################################################################################
 function fput_csv( $file=null, $array=null, $sep=',' )
 {
-	$this->debug->in();
-
-	if( is_null($file) ){ $this->debug->msg( "FILE is NULL", true ); }
-	if( is_null($array) ){ $this->debug->msg( "ARRAY is NULL", true ); }
+	if( is_null($file) ){ echo "FILE is NULL\n"; }
+	if( is_null($array) ){ echo "ARRAY is NULL\n"; }
 
 	if( ($fp = fopen( $file, "w" )) !== FALSE ){
 		foreach( $array as $k=>$v ){ fputcsv( $fp, $v, $sep ); }
 		}
-		else { $this->debug->msg( "Could not read $file", true ); }
-
-	$this->debug->out();
+		else { echo "Could not read $file\n"; }
 
 	fclose( $fp );
 }
@@ -1939,11 +1801,9 @@ function fput_csv( $file=null, $array=null, $sep=',' )
 ################################################################################
 function get_hash( $file=null, $level=null, $ram=null )
 {
-	$this->debug->in();
-
 	if( is_null($file) || !file_exists($file) || (strlen(trim($file)) < 1) ){
-		$this->debug->msg( "Line " . __LINE__ . " : FILE is NULL\n" );
-		$this->debug->msg( "Line " . __LINE__ . " : FILE = $file\n" );
+		echo "Line " . __LINE__ . " : FILE is NULL\n";
+		echo "Line " . __LINE__ . " : FILE = $file\n";
 		return false;
 		}
 
@@ -1961,7 +1821,7 @@ function get_hash( $file=null, $level=null, $ram=null )
 		}
 
 	if( !$flag ){
-		$this->debug->msg( "Line " . __LINE__ . " : LEVEL = $level\n" );
+		echo "Line " . __LINE__ . " : LEVEL = $level\n";
 		return false;
 		}
 
@@ -1969,12 +1829,11 @@ function get_hash( $file=null, $level=null, $ram=null )
 
 	$info = null;
 	while( is_null($info = hash($level, $file))  ){
-		$this->debug->msg( "Line " . __LINE__ . " : INFO is NULL ($info)\n" );
+		echo "Line " . __LINE__ . " : INFO is NULL ($info)\n";
 		sleep( 3 );
 		}
 
 	unset( $f );
-	$this->debug->out();
 
 	return $info;
 }
@@ -2051,7 +1910,7 @@ function chmod_all( $dir )
 	if( count($dirs) < 1 ){ return false; }
 
 	foreach( $dirs as $k=>$v ){
-		$this->debug->msg( "Line " . __LINE__ . " : CHMODing : $k\n" );
+		echo "Line " . __LINE__ . " : CHMODing : $k\n";
 		chmod( $k, 0777 );
 		$cd++;
 #
@@ -2059,7 +1918,7 @@ function chmod_all( $dir )
 #
 		list( $g, $b ) = $this->get_files( $k, null, false );
 		foreach( $g as $k1=>$v1 ){
-			$this->debug->msg( "Line " . __LINE__ . " : CHMODing : $v1\n" );
+			echo "Line " . __LINE__ . " : CHMODing : $v1\n";
 			chmod( $v1, 0777 );
 			$cf++;
 			}
@@ -2086,7 +1945,7 @@ function del_empty_dirs( $dir )
 #
 		list( $g, $b ) = $this->get_files( $k, null, false );
 		if( count($g) < 1 ){
-			$this->debug->msg( "Line " . __LINE__ . " : Removing : $k\n" );
+			echo "Line " . __LINE__ . " : Removing : $k\n";
 #			rmdir( $k );
 			$cd++;
 			}
@@ -2104,8 +1963,6 @@ function del_empty_dirs( $dir )
 ################################################################################
 function move_files_up( $dir )
 {
-	$this->debug->in();
-
 	$dq = '"';
 	$flag = 1;
 #
@@ -2187,8 +2044,6 @@ function move_files_up( $dir )
 ################################################################################
 function remdir( $cur_dir=null, $opt=true )
 {
-	$this->debug->in();
-
 	if( is_null($cur_dir) || !is_dir($cur_dir) ){ return false; }
 
 	$c = 0;
@@ -2256,7 +2111,6 @@ function remdir( $cur_dir=null, $opt=true )
 		}
 
 	echo "All files are removed\n";
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -2336,97 +2190,6 @@ function pathinfo( $path=null, $fromString=null, $toString=null )
 		}
 
 	return $pathinfo;
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null, $opt=false )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ $title = __FUNCTION__; }
-	if( is_null($arg) ){ $arg = "[BLANK]"; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	if( $opt ){ die( "***** ERROR : Aborting.\n" ); }
-
-	$this->debug->out();
-	return true;
-}
-################################################################################
-#	dump(). A short function to dump a file.
-################################################################################
-function dumpfile( $f=null, $l=null )
-{
-	$this->debug->in();
-
-	if( is_null($f) ){
-		$this->debug->msg( "DIE : No file given" );
-		return false;
-		}
-
-	if( is_null($l) ){ $l = 32; }
-
-	$fh = fopen($f, "r" );
-	$r = fread( $fh, 1024 );
-	fclose( $fh );
-
-	$this->debug->msg( "Dump File	: " );
-	for ($i = 0; $i < $l; $i++) {
-		$this->debug->msg( str_pad(dechex(ord($r[$i])), 2, '0', STR_PAD_LEFT) );
-		}
-
-	$this->debug->msg( "\nHeader  : " );
-	for ($i = 0; $i < 32; $i++) {
-		$s = ord( $r[$i] );
-		$s = ($s > 127) ? $s - 127 : $s;
-		$s = ($s < 32) ? ord(" ") : $s;
-		$this->debug->msg( chr( $s ) );
-		}
-
-	$this->debug->msg( "\n" );
-	$this->debug->out();
-
-	return true;
 }
 
 }

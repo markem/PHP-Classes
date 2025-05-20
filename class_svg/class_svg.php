@@ -23,13 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -102,7 +95,6 @@ class class_svg
 ################################################################################
 public function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['svg']) ){
 		return $this->init( func_get_args() );
 		}
@@ -113,8 +105,6 @@ public function __construct()
 ################################################################################
 public function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -126,7 +116,6 @@ public function init()
 	$this->cmd_list = [];
 	$this->tabs = 0;
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -156,11 +145,8 @@ public function init()
 ################################################################################
 public function open()
 {
-	$this->debug->in();
-
 	$this->def( func_get_args(), "svg", false );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -168,8 +154,6 @@ public function open()
 ################################################################################
 private function def( $args=null, $cmd=null, $end=null )
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -202,7 +186,6 @@ private function def( $args=null, $cmd=null, $end=null )
 
 	if( $end ){ $this->tabs--; }
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -217,11 +200,8 @@ private function def( $args=null, $cmd=null, $end=null )
 ################################################################################
 public function circle()
 {
-	$this->debug->in();
-
 	$this->def( func_get_args(), "circle", true );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -238,11 +218,8 @@ public function circle()
 ################################################################################
 public function rect()
 {
-	$this->debug->in();
-
 	$this->def( func_get_args(), "rect", true );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -257,11 +234,8 @@ public function rect()
 ################################################################################
 public function ellipse()
 {
-	$this->debug->in();
-
 	$this->def( func_get_args(), "ellipse", true );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -276,11 +250,8 @@ public function ellipse()
 ################################################################################
 public function line()
 {
-	$this->debug->in();
-
 	$this->def( func_get_args(), "line", true );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -293,11 +264,8 @@ public function line()
 ################################################################################
 public function polygon()
 {
-	$this->debug->in();
-
 	$this->def( func_get_args(), "polygon", true );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -309,11 +277,8 @@ public function polygon()
 ################################################################################
 public function polyline()
 {
-	$this->debug->in();
-
 	$this->def( func_get_args(), "polyline", true );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -346,11 +311,8 @@ public function polyline()
 ################################################################################
 public function path()
 {
-	$this->debug->in();
-
 	$this->def( func_get_args(), "path", true );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -390,11 +352,8 @@ public function path()
 ################################################################################
 public function text()
 {
-	$this->debug->in();
-
 	$this->def( func_get_args(), "text", true );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -403,12 +362,9 @@ public function text()
 ################################################################################
 public function filter()
 {
-	$this->debug->in();
-
 	$this->def( func_get_args(), "defs", false );
 	$this->def( func_get_args(), "filter", false );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -416,14 +372,11 @@ public function filter()
 ################################################################################
 public function pop()
 {
-	$this->debug->in();
-
 	$end = array_pop( $this->svg_end );
 	while( ($cmd = array_pop($this->cmd_list)) ){
 		$this->html .= array_pop( $this->svg_end );
 		}
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -431,8 +384,6 @@ public function pop()
 ################################################################################
 public function stroke( $color=null, $width=null, $linecap=null, $dasharray=null )
 {
-	$this->debug->in();
-
 	$s = "";
 	if( !is_null($color) ){ $s .= "stroke='$color' "; }
 	if( !is_null($width) ){ $s .= "stroke-width='$width' "; }
@@ -440,7 +391,6 @@ public function stroke( $color=null, $width=null, $linecap=null, $dasharray=null
 	if( !is_null($dasharray) ){ $s .= "stroke-dasharray='$dasharray' "; }
 
 
-	$this->debug->out();
 	return $s;
 }
 ################################################################################
@@ -451,8 +401,6 @@ public function stroke( $color=null, $width=null, $linecap=null, $dasharray=null
 ################################################################################
 public function end()
 {
-	$this->debug->in();
-
 	$s = array_pop( $this->svg_start );
 	$e = array_pop( $this->svg_end );
 
@@ -463,7 +411,6 @@ public function end()
 	$this->html .= str_repeat("	", $this->tabs) . "</$e>\n";
 	$this->tabs--;
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -471,14 +418,11 @@ public function end()
 ################################################################################
 public function blur( $dev=null )
 {
-	$this->debug->in();
-
 	if( is_null($dev) ){ $dev = 15; }
 
 	$this->html .= str_repeat("	", $this->tabs) .
 		"<feGaussianBlur in='SourceGraphic' stdDeviation='$dev' />\n";
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -488,8 +432,6 @@ public function blur( $dev=null )
 ################################################################################
 public function ds()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -521,7 +463,6 @@ public function ds()
 	$this->html .= str_repeat("	", $this->tabs) .
 		"<feBlend in='SourceGraphic', in2='offOut' mode='$mode' />\n";
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -536,8 +477,6 @@ public function ds()
 ################################################################################
 public function linear()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -570,7 +509,6 @@ public function linear()
 	$s .= "</linearGradient>\n";
 	$this->html .= $s;
 
-	$this->debug->out();
 	return $s;
 }
 ################################################################################
@@ -579,8 +517,6 @@ public function linear()
 ################################################################################
 public function radial()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -616,7 +552,6 @@ public function radial()
 	$s .= "</radialGradient>\n";
 	$this->html .= $s;
 
-	$this->debug->out();
 	return $s;
 }
 ################################################################################
@@ -624,64 +559,8 @@ public function radial()
 ################################################################################
 public function print()
 {
-	$this->debug->in();
-
 	print_r( $this->html );
 
-	$this->debug->out();
-	return true;
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
 	return true;
 }
 

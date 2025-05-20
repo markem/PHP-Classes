@@ -23,13 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -78,7 +71,6 @@
 ################################################################################
 class class_statistics
 {
-	private $debug = null;			#	Debug information.
 	private $temp_path = null;		#	A temporary file path if needed.
 
 	private $Gdata = null;		#	If we need a global data area - here it is.
@@ -91,7 +83,6 @@ class class_statistics
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['statistics']) ){
 		return $this->init( func_get_args() );
 		}
@@ -102,8 +93,6 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -125,8 +114,6 @@ function init()
 			$this->debug->msg( __FILE__ . ": Can not load CLASS_FILES" );
 			return false;
 			}
-
-	$this->debug->out();
 }
 ################################################################################
 #	average(). Add everything up and divide by how many entries there are.
@@ -136,7 +123,6 @@ function average()
 {
 	$args = func_get_args();
 	$argv = func_num_args();
-	$this->debug->in();
 
 	$cnt = 0;
 	$avg = 0;
@@ -160,7 +146,6 @@ function average()
 			else {}
 		}
 
-	$this->debug->out();
 	return $avg / $cnt;
 }
 ################################################################################
@@ -173,7 +158,6 @@ function avedev()
 {
 	$args = func_get_args();
 	$argv = func_num_args();
-	$this->debug->in();
 #
 #	First - we have to call the average() function to get the mean.
 #
@@ -202,7 +186,6 @@ function avedev()
 
 		}
 
-	$this->debug->out();
 	return $avg / $cnt;
 }
 ################################################################################
@@ -214,7 +197,6 @@ function count()
 {
 	$args = func_get_args();
 	$argv = func_num_args();
-	$this->debug->in();
 
 	$a = 0;
 	$b = 0;
@@ -235,7 +217,6 @@ function count()
 
 		}
 
-	$this->debug->out();
 	return array( $a, $b );
 }
 ################################################################################
@@ -246,7 +227,6 @@ function max()
 {
 	$args = func_get_args();
 	$argv = func_num_args();
-	$this->debug->in();
 
 	$a = null;
 	for( $i=0; $i<$argv; $i++ ){
@@ -270,7 +250,6 @@ function max()
 
 		}
 
-	$this->debug->out();
 	return $a;
 }
 ################################################################################
@@ -281,7 +260,6 @@ function min()
 {
 	$args = func_get_args();
 	$argv = func_num_args();
-	$this->debug->in();
 
 	$a = null;
 	for( $i=0; $i<$argv; $i++ ){
@@ -305,61 +283,7 @@ function min()
 
 		}
 
-	$this->debug->out();
 	return $a;
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
-	return true;
 }
 ################################################################################
 #	test(). Test out all functions.
@@ -369,26 +293,14 @@ function test()
 	echo "Average (1,2,3...) = " . $this->average( 99,33,4,null,56,98 ) . "\n";
 	echo "Average Deviation = " . $this->avedev( 5,99, 2, 23, 41, 67 ) . "\n";
 }
-################################################################################
-#	End of the class
-################################################################################
+
 }
-################################################################################
-#	Add the class to the GLOBALS['classes'] variable so everyone can use it.
-################################################################################
 
 	if( !isset($GLOBALS['classes']) ){ global $classes; }
 	if( !isset($GLOBALS['classes']['statistics']) ){
 		$GLOBALS['classes']['statistics'] = new class_statistics();
 		}
 
-$stats = new class_statistics();
-echo $stats->test();
-
-#	sim1.us			:	!Q6&yw_1'0i=](CD
-#	sim1.biz		:	peVG2O03fdT34Vsf
-#	wagthead.com	:	RBXuI59r`2]qPJ}{
-#	sim1.us			:	xn4U4d6aTMJoUvEs
 ?>
 
 

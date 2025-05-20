@@ -23,13 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 	include_once( "$lib/class_rgb.php" );
 	include_once( "$lib/class_files.php" );
 	include_once( "$lib/class_color.php" );
@@ -126,7 +119,6 @@ class class_gd
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['gd']) ){
 		return $this->init( func_get_args() );
 		}
@@ -138,8 +130,6 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -210,8 +200,6 @@ function init()
 	$this->exts['webp'] = "web|webp";
 
 	$this->exts_all = implode( "|", $this->exts );
-
-	$this->debug->out();
 }
 ################################################################################
 #	make_gd(). Make a blank GD image.
@@ -247,7 +235,7 @@ function make_trans( $color, $trans=100 )
 ################################################################################
 function set( $gd=null )
 {
-	if( is_null($gd) ){ $this->died( "*****ERROR : GD not given\n" ); }
+	if( is_null($gd) ){ die( "*****ERROR : GD not given\n" ); }
 
 	$this->gd = $gd;
 	return true;
@@ -273,16 +261,12 @@ function destroy( $gd=null )
 ################################################################################
 function pc2byte( $percentage=null )
 {
-	$this->debug->in();
-
-	if( is_null($percentage) ){ $this->died( "Percentage MUST BE between -100 and 100" ); }
+	if( is_null($percentage) ){ die( "Percentage MUST BE between -100 and 100" ); }
 	if( ($percentage < -100) || ($percentage > 100) ){
-		$this->died( "Percentage MUST BE between -100 and 100" );
+		die( "Percentage MUST BE between -100 and 100" );
 		}
 
 	$percentage = ( $percentage / 100.0 );
-
-	$this->debug->out();
 
 	return ceil($percentage * 255.0);
 }
@@ -299,16 +283,14 @@ function pc2byte( $percentage=null )
 ################################################################################
 function crop_new( $gd=null, $old=null, $new=null, $del=true )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 
 	if( is_null($old) ){
-		$this->died( "***** ERROR (" . __LINE__ . "): OLD is not defined in class_gd->crop_new()" );
+		die( "***** ERROR (" . __LINE__ . "): OLD is not defined in class_gd->crop_new()" );
 		}
 
 	if( is_null($new) ){
-		$this->died( "***** ERROR (" . __LINE__ . "): NEW is not defined in class_gd->crop_new()" );
+		die( "***** ERROR (" . __LINE__ . "): NEW is not defined in class_gd->crop_new()" );
 		}
 #
 #	This is for the OLD array.
@@ -378,7 +360,6 @@ function crop_new( $gd=null, $old=null, $new=null, $del=true )
 	imagecopyresampled( $gd2, $gd, $n[1], $n[0], $o[1], $o[0], $w, $h, $o[3], $o[2] );
 	if( $del === true ){ imagedestroy( $gd ); }
 
-	$this->debug->out();
 	return $gd2;
 }
 ################################################################################
@@ -389,8 +370,6 @@ function crop_new( $gd=null, $old=null, $new=null, $del=true )
 ################################################################################
 function convertArray( $a )
 {
-	$this->debug->in();
-
 	$n = [];
 	foreach( $a as $k=>$v ){
 		if( preg_match("/\s*t.*/i", $k) ){ $n[0] = $v; }	#	top
@@ -400,7 +379,6 @@ function convertArray( $a )
 			else { $n[] = $v; }	#	number
 		}
 
-	$this->debug->out();
 	return $n;
 }
 ################################################################################
@@ -409,8 +387,6 @@ function convertArray( $a )
 ################################################################################
 function sepia( $gd=null, $opt=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 	if( is_null($opt) ){ $r = 90; $g = 55; $b = 30; }
 		else if( $opt == 1 ){ $r = 100; $g = 50; $b = 0; }
@@ -424,7 +400,6 @@ function sepia( $gd=null, $opt=null )
 	$gd = $this->brightness( -30 );
 	$gd = $this->colorize( $gd, $r, $g, $b );
 
-	$this->debug->out();
 	return $gd;
 }
 ################################################################################
@@ -432,17 +407,14 @@ function sepia( $gd=null, $opt=null )
 ################################################################################
 function colorize( $gd=null, $r=null, $g=null, $b=null, $a=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
-	if( is_null($r) ){ $this->died( "COLORIZE - No RED(r=null) value given" ); }
-	if( is_null($g) ){ $this->died( "COLORIZE - No GREEN(g=null) value given" ); }
-	if( is_null($b) ){ $this->died( "COLORIZE - No BLUE(b=null) value given" ); }
+	if( is_null($r) ){ die( "COLORIZE - No RED(r=null) value given" ); }
+	if( is_null($g) ){ die( "COLORIZE - No GREEN(g=null) value given" ); }
+	if( is_null($b) ){ die( "COLORIZE - No BLUE(b=null) value given" ); }
 	if( is_null($a) ){ $a = 0; }
 
 	$return = imagefilter( $gd, IMG_FILTER_COLORIZE, $r, $g, $b, $a );
 
-	$this->debug->out();
 	return $gd;
 }
 ################################################################################
@@ -451,8 +423,6 @@ function colorize( $gd=null, $r=null, $g=null, $b=null, $a=null )
 ################################################################################
 function pixelate_v52( $gd=null, $pixelsize=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 	if( is_null($pixelsize) ){ $pixelsize = 1; }
 
@@ -466,7 +436,6 @@ function pixelate_v52( $gd=null, $pixelsize=null )
 				$x+$pixelsize-1, $y+$pixelsize-1,$color );
         }
 
-	$this->debug->out();
 	return $gd;
 }
 ################################################################################
@@ -474,8 +443,6 @@ function pixelate_v52( $gd=null, $pixelsize=null )
 ################################################################################
 function greyscale( $gd=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 
     $w = imagesx( $gd );
@@ -492,7 +459,6 @@ function greyscale( $gd=null )
 		}
 
 	imagepng( $gd, "C:/Users/marke/Desktop/Books/Abby Rokah/out/test.png" );
-	$this->debug->out();
 
 	return $gd;
 }
@@ -503,19 +469,17 @@ function greyscale( $gd=null )
 ################################################################################
 function split_image( $gd=null, $path=null, $dir=null, $trans=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){
-		$this->died( "*****ERROR : GD is NULL!\n" );
+		die( "*****ERROR : GD is NULL!\n" );
 		}
 
 	if( is_null($path) ){
-		$this->died( "*****ERROR : No output path given" );
+		die( "*****ERROR : No output path given" );
 		}
 
-	if( is_null($dir) ){ $this->died( "Directory number is NULL!" ); }
+	if( is_null($dir) ){ die( "Directory number is NULL!" ); }
 
-	if( is_null($trans) ){ $this->died( "No Transparent color given!" ); }
+	if( is_null($trans) ){ die( "No Transparent color given!" ); }
 
 	global $gd, $gd2, $trans, $magic_wand;
 	global $xLow, $xHigh, $yLow, $yHigh, $width, $height;
@@ -607,7 +571,6 @@ function split_image( $gd=null, $path=null, $dir=null, $trans=null )
 
 	imageDestroy( $gd2 );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -616,8 +579,6 @@ function split_image( $gd=null, $path=null, $dir=null, $trans=null )
 ################################################################################
 function find_image( $x=null, $y=null, $cnt=0 )
 {
-	$this->debug->in();
-
 	global $gd, $gd2, $trans, $magic_wand;
 	global $xLow, $xHigh, $yLow, $yHigh, $width, $height;
 	global $low_h, $low_s, $low_l;
@@ -715,8 +676,6 @@ function find_image( $x=null, $y=null, $cnt=0 )
 
 #	echo "xLow = $xLow, xHigh = $xHigh, yLow = $yLow, yHigh = $yHigh\n";
 #	$this->dump( "Exiting<----", "X = $x, Y = $y, CNT = $cnt" );
-
-	$this->debug->out();
 }
 ################################################################################
 #	save_image(). Saves the image to a given location.
@@ -734,7 +693,7 @@ function save_image( $path=null, $dir=null, $file=null )
 
 	if( ($xLow < 0) || ($xLow >= $w) || ($xHigh < 0) || ($xHigh >= $w) ||
 		($yLow < 0) || ($yLow >= $h) || ($yHigh < 0) || ($yHigh >= $h) ){
-		$this->died(
+		die(
 			"*****ERROR : xHigh = $xHigh, xLow = $xLow, yHigh = $yHigh, yLow = $yLow\n"
 			);
 		}
@@ -790,12 +749,8 @@ function save_image( $path=null, $dir=null, $file=null )
 ################################################################################
 function grayscale( $gd=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 	imagefilter( $gd, IMG_FILTER_GRAYSCALE );
-
-	$this->debug->out();
 
 	return $gd;
 }
@@ -805,13 +760,9 @@ function grayscale( $gd=null )
 ################################################################################
 function negate( $gd=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 
 	imagefilter( $gd, IMG_FILTER_NEGATE );
-
-	$this->debug->out();
 
 	return $gd;
 }
@@ -821,16 +772,12 @@ function negate( $gd=null )
 ################################################################################
 function smooth( $gd=null, $amount=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 	if( is_null($amount) ){
-		$this->died( "*****ERROR : No Amount Given - \$this->smooth(GD=null,AMOUNT=null)\n" );
+		die( "*****ERROR : No Amount Given - \$this->smooth(GD=null,AMOUNT=null)\n" );
 		}
 
 	imagefilter( $gd, IMG_FILTER_SMOOTH, $amount );
-
-	$this->debug->out();
 
 	return $gd;
 }
@@ -840,13 +787,9 @@ function smooth( $gd=null, $amount=null )
 ################################################################################
 function mean_removal( $gd=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 
 	imagefilter( $gd, IMG_FILTER_MEAN_REMOVAL );
-
-	$this->debug->out();
 
 	return $gd;
 }
@@ -856,13 +799,9 @@ function mean_removal( $gd=null )
 ################################################################################
 function blur( $gd=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 
 	imagefilter( $gd, IMG_FILTER_SELECTIVE_BLUR );
-
-	$this->debug->out();
 
 	return $gd;
 }
@@ -872,13 +811,9 @@ function blur( $gd=null )
 ################################################################################
 function gaussian( $gd=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 
 	imagefilter( $gd, IMG_FILTER_GAUSSIAN_BLUR );
-
-	$this->debug->out();
 
 	return $gd;
 }
@@ -888,13 +823,9 @@ function gaussian( $gd=null )
 ################################################################################
 function emboss( $gd=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 
 	imagefilter( $gd, IMG_FILTER_EMBOSS );
-
-	$this->debug->out();
 
 	return $gd;
 }
@@ -904,13 +835,9 @@ function emboss( $gd=null )
 ################################################################################
 function edgedetect( $gd=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 
 	imagefilter( $gd, IMG_FILTER_EDGEDETECT );
-
-	$this->debug->out();
 
 	return $gd;
 }
@@ -920,15 +847,11 @@ function edgedetect( $gd=null )
 ################################################################################
 function brightness( $gd=null, $percent=0.0 )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
-	if( abs($percentage) > 100 ){ $this->died( "Percentage MUST BE between -100 and 100" ); }
+	if( abs($percentage) > 100 ){ die( "Percentage MUST BE between -100 and 100" ); }
 
 	$value = $this->pc2byte( $percent );
 	imagefilter( $gd, IMG_FILTER_BRIGHTNESS, $value );
-
-	$this->debug->out();
 
 	return $gd;
 }
@@ -938,16 +861,12 @@ function brightness( $gd=null, $percent=0.0 )
 ################################################################################
 function contrast( $gd=null, $percent=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 	if( is_null($percent) ){ $percent = 0.0; }
-	if( abs($percent) > 100 ){ $this->died( "Percentage MUST BE between -100 and 100" ); }
+	if( abs($percent) > 100 ){ die( "Percentage MUST BE between -100 and 100" ); }
 
 	$value = $this->pc2byte( $percent );
 	imagefilter( $gd, IMG_FILTER_CONTRAST, $value );
-
-	$this->debug->out();
 
 	return $gd;
 }
@@ -978,15 +897,13 @@ function contrast( $gd=null, $percent=null )
 ################################################################################
 function darken( $old_gd=null, $percent=null, $old_colors=null, $del=true )
 {
-	$this->debug->in();
-
 	if( is_null($old_gd) ){ $old_gd = $this->gd; }
 	if( is_null($percent) ){
-		$this->died( "NO PERCENTAGE GIVEN" );
+		die( "NO PERCENTAGE GIVEN" );
 		}
 
 	if( is_null($old_colors) ){
-		$this->died( "NO COLOR GIVEN" );
+		die( "NO COLOR GIVEN" );
 		}
 #
 #	If there is only one color make it into an array.
@@ -1041,8 +958,6 @@ function darken( $old_gd=null, $percent=null, $old_colors=null, $del=true )
 
 	if( $del ){ imagedestroy( $old_gd ); }
 
-	$this->debug->out();
-
 	return $new_gd;
 }
 ################################################################################
@@ -1067,10 +982,8 @@ function darken( $old_gd=null, $percent=null, $old_colors=null, $del=true )
 ################################################################################
 function extract( $old_gd=null, $old_color=null, $default=null )
 {
-	$this->debug->in();
-
 	if( is_null($old_gd) ){ $old_gd = $this->gd; }
-	if( is_null($old_color) ){ $this->died( "NO COLOR GIVEN" ); }
+	if( is_null($old_color) ){ die( "NO COLOR GIVEN" ); }
 	if( is_null($default) ){ $default = "0;0;0;0"; }
 #
 #	Convert string to array.
@@ -1126,8 +1039,6 @@ function extract( $old_gd=null, $old_color=null, $default=null )
 			}
 		}
 
-	$this->debug->out();
-
 	return $new_gd;
 }
 ################################################################################
@@ -1146,11 +1057,9 @@ function sign( $n=0 ){ return ($n > 0) - ($n < 0); }
 ################################################################################
 function color_atol( $color1=null, $color2=null, $tolerance=35 )
 {
-	$this->debug->in();
-
-	if( is_null($color1) ){ $this->died("COLOR_TOL:COLOR #1 is NULL" ); }
-	if( is_null($color2) ){ $this->died("COLOR_TOL:COLOR #1 is NULL" ); }
-	if( is_null($tolerance) ){ $this->died("COLOR_TOL:TOLERANCE is NULL" ); }
+	if( is_null($color1) ){ die("COLOR_TOL:COLOR #1 is NULL" ); }
+	if( is_null($color2) ){ die("COLOR_TOL:COLOR #1 is NULL" ); }
+	if( is_null($tolerance) ){ die("COLOR_TOL:TOLERANCE is NULL" ); }
 #
 #	Break up the colors
 #
@@ -1180,7 +1089,6 @@ function color_atol( $color1=null, $color2=null, $tolerance=35 )
 	if( ($g1 >= $bg) && ($g1 <= $tg) ){ $flag += 4; }
 	if( ($b1 >= $bb) && ($b1 <= $tb) ){ $flag += 8; }
 
-	$this->debug->out();
 	return $flag;
 }
 ################################################################################
@@ -1189,13 +1097,10 @@ function color_atol( $color1=null, $color2=null, $tolerance=35 )
 ################################################################################
 function color_tol( $color1=null, $color2=null, $tolerance=35 )
 {
-	$this->debug->in();
-
 	$flag = $this->color_atol( $color1, $color2, $tolerance );
 
 	$test = $flag % 2;
 
-	$this->debug->out();
 	return ($flag - $test);
 }
 ################################################################################
@@ -1211,9 +1116,9 @@ function color_tol( $color1=null, $color2=null, $tolerance=35 )
 #{
 #	$this->debug->in();
 #
-#	if( is_null($r) ){ $this->died( "R is NULL" ); }
-#	if( is_null($g) ){ $this->died( "G is NULL" ); }
-#	if( is_null($b) ){ $this->died( "B is NULL" ); }
+#	if( is_null($r) ){ die( "R is NULL" ); }
+#	if( is_null($g) ){ die( "G is NULL" ); }
+#	if( is_null($b) ){ die( "B is NULL" ); }
 #
 #	$oldR = $r;
 #	$oldG = $g;
@@ -1297,7 +1202,7 @@ function rgb2hsl( $r, $g, $b )
 ################################################################################
 function color2hsl( $color=null )
 {
-	if( is_null($color) ){ $this->died( "COLOR is NULL" ); }
+	if( is_null($color) ){ die( "COLOR is NULL" ); }
 
 	list( $a, $r, $g, $b ) = $this->cr->get_ARGB( $color );
 	return $this->rgb2hsl( $r, $g, $b );
@@ -1314,9 +1219,9 @@ function color2hsl( $color=null )
 #{
 #	$this->debug->in();
 #
-#	if( is_null($h) ){ $this->died( "H is NULL" ); }
-#	if( is_null($s) ){ $this->died( "S is NULL" ); }
-#	if( is_null($l) ){ $this->died( "L is NULL" ); }
+#	if( is_null($h) ){ die( "H is NULL" ); }
+#	if( is_null($s) ){ die( "S is NULL" ); }
+#	if( is_null($l) ){ die( "L is NULL" ); }
 #
 #	$c = ( 1.0 - abs(2 * $l - 1.0) ) * $s;
 #	$x = $c * ( 1.0 - abs(fmod(($h / 60.0), 2.0) - 1.0) );
@@ -1405,14 +1310,11 @@ function hsl2rgb( $h, $s, $l )
 ################################################################################
 function hsb2rgb()
 {
-	$this->debug->in();
+	if( is_null($h) ){ die( "H is NULL\n" ); }
+	if( is_null($s) ){ die( "S is NULL\n" ); }
+	if( is_null($l) ){ die( "L is NULL\n" ); }
 
-	if( is_null($h) ){ $this->died( "H is NULL" ); }
-	if( is_null($s) ){ $this->died( "S is NULL" ); }
-	if( is_null($l) ){ $this->died( "L is NULL" ); }
-
-	$this->died( "HSB2RGB is not written yet so not defined" );
-	$this->debug->out();
+	die( "HSB2RGB is not written yet so not defined\n" );
 }
 ################################################################################
 #	rgb2hsb(). Convert between an R,G,B color to an HSB color. Returns HSB.
@@ -1422,11 +1324,9 @@ function hsb2rgb()
 ################################################################################
 function rgb2hsb( $rgb_r=null, $rgb_g=null, $rgb_b=null )
 {
-	$this->debug->in();
-
-	if( is_null($r) ){ $this->died( "R is NULL" ); }
-	if( is_null($g) ){ $this->died( "G is NULL" ); }
-	if( is_null($b) ){ $this->died( "B is NULL" ); }
+	if( is_null($r) ){ die( "R is NULL\n" ); }
+	if( is_null($g) ){ die( "G is NULL\n" ); }
+	if( is_null($b) ){ die( "B is NULL\n" ); }
 
 	$r = $rgb_r / 255.0;
 	$g = $rgb_g / 255.0;
@@ -1492,14 +1392,11 @@ function rgb2hsv( $rgb_r=null, $rgb_g=null, $rgb_b=null )
 ################################################################################
 function hsv2rgb( $h=null, $s=null, $v=null )
 {
-	$this->debug->in();
+	if( is_null($h) ){ die( "H is NULL" ); }
+	if( is_null($s) ){ die( "S is NULL" ); }
+	if( is_null($l) ){ die( "L is NULL" ); }
 
-	if( is_null($h) ){ $this->died( "H is NULL" ); }
-	if( is_null($s) ){ $this->died( "S is NULL" ); }
-	if( is_null($l) ){ $this->died( "L is NULL" ); }
-
-	$this->died( "HSB2RGB not written yet - so not defined" );
-	$this->debug->out();
+	die( "HSB2RGB not written yet - so not defined" );
 }
 ################################################################################
 #	rect(). Does an UNFILLED rectangle.
@@ -1509,8 +1406,6 @@ function hsv2rgb( $h=null, $s=null, $v=null )
 ################################################################################
 function rect( $gd=null, $color=null, $x=null, $y=null, $w=null, $h=null, $opt=TRUE )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 	if( is_null($color) ){ $color = $this->trans; }
 	if( is_null($x) ){ $x = $this->old_x; }
@@ -1522,7 +1417,6 @@ function rect( $gd=null, $color=null, $x=null, $y=null, $w=null, $h=null, $opt=T
 	if( $opt ){ $return = imagerectangle( $gd, $x, $y, $w, $h, $color ); }
 		else { $return = imagefilledrectangle( $gd, $x, $y, $w, $h, $color ); }
 
-	$this->debug->out();
 	return $return;
 }
 ################################################################################
@@ -1531,9 +1425,6 @@ function rect( $gd=null, $color=null, $x=null, $y=null, $w=null, $h=null, $opt=T
 ################################################################################
 function rectf( $gd=null, $color=null, $x=null, $y=null, $w=null, $h=null )
 {
-	$this->debug->in();
-	$this->debug->out();
-
 	return $this->rect( $gd, $color, $x, $y, $w, $h, FALSE );
 }
 ################################################################################
@@ -1541,8 +1432,6 @@ function rectf( $gd=null, $color=null, $x=null, $y=null, $w=null, $h=null )
 ################################################################################
 function info( $gd=null )
 {
-	$this->debug->in();
-	$this->debug->out();
 
 	if( is_null($gd) ){ $gd = $this->gd; }
 
@@ -1557,14 +1446,12 @@ function info( $gd=null )
 ################################################################################
 function fsize( $filename=null, $opt=TRUE )
 {
-	$this->debug->in();
-
-	if( is_null($filename) ){ $this->died( "FILENAME is NULL" ); }
+	if( is_null($filename) ){ die( "FILENAME is NULL" ); }
 	if( !file_exists($filename) ){
-		$this->died( "FILENAME does not exist ($filename)" );
+		die( "FILENAME does not exist ($filename)" );
 		}
 	if( !preg_match("/$this->exts_all$/i", $filename) ){
-		$this->died( "Unknown type of FILENAME ($filename)" );
+		die( "Unknown type of FILENAME ($filename)" );
 		}
 
 	$JPGAPP = [];
@@ -1572,7 +1459,6 @@ function fsize( $filename=null, $opt=TRUE )
 		else { $info = $this->gd->getimagesizefromstring( $filename, $jpgapp ); }
 	$info[] = $jpgapp;
 
-	$this->debug->out();
 	return $info;
 }
 #-------------------------------------------------------------------------------
@@ -1589,8 +1475,6 @@ function fsizefs( $filename=null ){ return $this->fsize( $filename, FALSE ); }
 ################################################################################
 function ellipse( $gd=null, $color=null, $cx=null, $cy=null, $w=null, $h=null, $opt=true )
 {
-	$this->debug->in();
-
 #	echo "COLOR = $color, CX = $cx, CY = $cy, W = $w, H = $h\n";
 	if( is_null($gd) || !is_resource($gd) ){ $gd = $this->gd; }
 	if( is_null($color) ){ $color = $this->white; }
@@ -1607,38 +1491,26 @@ function ellipse( $gd=null, $color=null, $cx=null, $cy=null, $w=null, $h=null, $
 	if( $opt ){ $return = imageellipse( $gd, $cx, $cy, $w, $h, $color ); }
 		else { $return = imagefilledellipse( $gd, $cx, $cy, $w, $h, $color ); }
 
-	$this->debug->out();
 	return $return;
 }
 #-------------------------------------------------------------------------------
 function ellipsef( $gd=null, $color=null, $cx=null,
 	$cy=null, $w=null, $h=null, $opt=FALSE )
 {
-	$this->debug->in();
-
-	$this->debug->out();
 
 	return $this->ellipse( $gd, $color, $cx, $cy, $w, $h, $opt );
 }
 #-------------------------------------------------------------------------------
 function circle( $gd=null, $color=null, $cx=null, $cy=null, $w=null, $opt=TRUE )
 {
-	$this->debug->in();
-
 	if( is_null($w) ){ $w = $this->w; }
-
-	$this->debug->out();
 
 	return $this->ellipse( $gd, $color, $cx, $cy, $w, $w, $opt );
 }
 #-------------------------------------------------------------------------------
 function circlef( $gd=null, $color=null, $cx=null, $cy=null, $w=null, $opt=FALSE )
 {
-	$this->debug->in();
-
 	if( is_null($w) ){ $w = $this->w; }
-
-	$this->debug->out();
 
 	return $this->ellipse( $gd, $color, $cx, $cy, $w, $w, $opt );
 }
@@ -1649,11 +1521,9 @@ function circlef( $gd=null, $color=null, $cx=null, $cy=null, $w=null, $opt=FALSE
 ################################################################################
 function plot( $gd=null, $color=null, $x=null, $y=null, $flip=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
-	if( is_null($x) ){ $this->died( "X is NULL" ); }
-	if( is_null($y) ){ $this->died( "Y is NULL" ); }
+	if( is_null($x) ){ die( "X is NULL" ); }
+	if( is_null($y) ){ die( "Y is NULL" ); }
 	if( is_null($color) ){ $color = $this->white; }
 	if( is_null($flip) ){ $flip = true; }
 #
@@ -1664,7 +1534,6 @@ function plot( $gd=null, $color=null, $x=null, $y=null, $flip=null )
 	$this->old_color = $color;
 	$gd = imagesetpixel( $gd, $x, $y, $color );
 
-	$this->debug->out();
 	return $gd;
 }
 #-------------------------------------------------------------------------------
@@ -1691,10 +1560,8 @@ function dot( $gd=null, $x=null, $y=null, $color=null, $flip=false )
 ################################################################################
 function plots( $gd=null, $array=null, $color=null, $size=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
-	if( is_null($array) ){ $this->died( "ARRAY is NULL" ); }
+	if( is_null($array) ){ die( "ARRAY is NULL" ); }
 
 	$return = [];
 	foreach( $array as $k=>$v ){
@@ -1712,8 +1579,6 @@ function plots( $gd=null, $array=null, $color=null, $size=null )
 		if( !is_null($size) ){ $return[] = $this->plot( $c, $x, $y ); }
 			else { $return[] = $this->ellipsef( $c, $x, $y, $size ); }
 		}
-
-	$this->debug->out();
 
 	return $return;
 }
@@ -1737,15 +1602,11 @@ function dots( $gd=null, $array=null, $color=null, $size=null )
 ################################################################################
 function moveto( $x=null, $y=null )
 {
-	$this->debug->in();
-
-	if( is_null($x) ){ $this->died("X is NULL" ); }
-	if( is_null($y) ){ $this->died("Y is NULL" ); }
+	if( is_null($x) ){ die("X is NULL" ); }
+	if( is_null($y) ){ die("Y is NULL" ); }
 
 	$this->old_x = $x;
 	$this->old_y = $y;
-
-	$this->debug->out();
 
 	return true;
 }
@@ -1754,14 +1615,10 @@ function moveto( $x=null, $y=null )
 ################################################################################
 function lineto( $gd=null, $color=null, $x=null, $y=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 
 	$ox = $this->old_x;
 	$oy = $this->old_y;
-
-	$this->debug->out();
 
 	return $this->line( $gd, $color, $ox, $oy, $x, $y );
 }
@@ -1770,21 +1627,17 @@ function lineto( $gd=null, $color=null, $x=null, $y=null )
 ################################################################################
 function line( $gd=null, $color=null, $sx=null, $sy=null, $ex=null, $ey=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
-	if( is_null($sx) ){ $this->died("SX is NULL" ); }
-	if( is_null($sy) ){ $this->died("SY is NULL" ); }
-	if( is_null($ex) ){ $this->died("EX is NULL" ); }
-	if( is_null($ey) ){ $this->died("EY is NULL" ); }
+	if( is_null($sx) ){ die("SX is NULL" ); }
+	if( is_null($sy) ){ die("SY is NULL" ); }
+	if( is_null($ex) ){ die("EX is NULL" ); }
+	if( is_null($ey) ){ die("EY is NULL" ); }
 
 	$this->old_color = $color;
 	$gd = imageline( $gd, $sx, $sy, $ex, $ey, $color );
 
 	$this->old_x = $ex;
 	$this->old_y = $ey;
-
-	$this->debug->out();
 
 	return $gd;
 }
@@ -1793,17 +1646,14 @@ function line( $gd=null, $color=null, $sx=null, $sy=null, $ex=null, $ey=null )
 ################################################################################
 function get_color( $gd=null, $name=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) || !is_resource($gd) ){ $gd = $this->gd; }
-	if( is_null($name) ){ $this->died( "COLOR is NULL" ); }
+	if( is_null($name) ){ die( "COLOR is NULL" ); }
 
 	list( $red, $green, $blue ) = $this->cc->name2rgb( $name );
 	echo "NAME = $name, RED = $red, GREEN = $green, BLUE = $blue\n";
 
 	$color = imagecolorallocate( $gd, $red, $green, $blue );
 
-	$this->debug->out();
 	return $color;
 }
 ################################################################################
@@ -1813,8 +1663,6 @@ function get_color( $gd=null, $name=null )
 ################################################################################
 function get_topleft( $gd=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 
 	$w = imagesx( $gd );
@@ -1838,7 +1686,6 @@ function get_topleft( $gd=null )
 			}
 		}
 
-	$this->debug->out();
 }
 ################################################################################
 #	get_botleft(). Returns the bottom-left most pixel of an image.
@@ -1847,8 +1694,6 @@ function get_topleft( $gd=null )
 ################################################################################
 function get_botleft( $gd=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 
 	$w = imagesx( $gd );
@@ -1871,8 +1716,6 @@ function get_botleft( $gd=null )
 			if( $color != $border ){ return array( $x, $y ); }
 			}
 		}
-
-	$this->debug->out();
 }
 ################################################################################
 #	get_topright(). Returns the left most pixel of an image.
@@ -1882,8 +1725,6 @@ function get_botleft( $gd=null )
 ################################################################################
 function get_topright( $gd=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 
 	$w = imagesx( $gd );
@@ -1944,8 +1785,6 @@ function get_topright( $gd=null )
 			}
 		}
 
-	$this->debug->out();
-
 	return array( $ret_x, $ret_y );
 }
 ################################################################################
@@ -1956,8 +1795,6 @@ function get_topright( $gd=null )
 ################################################################################
 function get_botright( $gd=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 
 	$w = imagesx( $gd );
@@ -1980,16 +1817,12 @@ function get_botright( $gd=null )
 			if( $color != $border ){ return array( $x, $y ); }
 			}
 		}
-
-	$this->debug->out();
 }
 ################################################################################
 #	get_bb(). Gets the image's bounding box.
 ################################################################################
 function get_bb( $gd=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 
 	$w = imagesx( $gd );
@@ -2010,8 +1843,6 @@ function get_bb( $gd=null )
 	list( $bb[2][0], $bb[2][1] ) = $this->get_topright( $gd );
 	list( $bb[3][0], $bb[3][1] ) = $this->get_botright( $gd );
 
-	$this->debug->out();
-
 	return $bb;
 }
 #--------------------------------------------------------------------------------
@@ -2021,20 +1852,16 @@ function get_bounding_box( $gd=null ){ return $this->get_bb( $gd ); }
 ################################################################################
 function string( $gd=null, $font=null, $x=null, $y=null, $string=null, $color=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) || !is_resource($gd) ){ $gd = $this->gd; }
 	if( is_null($font) ){ $font = 3; }
 	if( is_null($x) ){ $x = $this->old_x; }
 	if( is_null($y) ){ $y = $this->old_y; }
 	if( is_null($string) ){
 		$string = $this->old_string;
-		if( is_null($string) ){ $this->died( "STRING IS NULL" ); }
+		if( is_null($string) ){ die( "STRING IS NULL" ); }
 		}
 
 	if( is_null($color) ){ $color = $this->old_color; }
-
-	$this->debug->out();
 
 	return imagestring( $gd, $font, $x, $y, $string, $color );
 }
@@ -2043,20 +1870,16 @@ function string( $gd=null, $font=null, $x=null, $y=null, $string=null, $color=nu
 ################################################################################
 function stringUp( $gd=null, $font=null, $x=null, $y=null, $string=null, $color=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 	if( is_null($font) ){ $font = 3; }
 	if( is_null($x) ){ $x = $this->old_x; }
 	if( is_null($y) ){ $y = $this->old_y; }
 	if( is_null($string) ){
 		$string = $this->old_string;
-		if( is_null($string) ){ $this->died( "STRING IS NULL" ); }
+		if( is_null($string) ){ die( "STRING IS NULL" ); }
 		}
 
 	if( is_null($color) ){ $color = $this->old_color; }
-
-	$this->debug->out();
 
 	return imagestringup( $gd, $font, $x, $y, $string, $color );
 }
@@ -2067,15 +1890,13 @@ function stringUp( $gd=null, $font=null, $x=null, $y=null, $string=null, $color=
 function rotString( $gd=null, $angle=null, $font=null, $x=null,
 	$y=null, $string=null, $color=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 	if( is_null($font) ){ $font = 3; }
 	if( is_null($x) ){ $x = $this->old_x; }
 	if( is_null($y) ){ $y = $this->old_y; }
 	if( is_null($string) ){
 		$string = $this->old_string;
-		if( is_null($string) ){ $this->died( "STRING IS NULL" ); }
+		if( is_null($string) ){ die( "STRING IS NULL" ); }
 		}
 
 	if( is_null($color) ){ $color = $this->old_color; }
@@ -2121,8 +1942,6 @@ function rotString( $gd=null, $angle=null, $font=null, $x=null,
 
 	imagedestroy( $gd2 );
 
-	$this->debug->out();
-
 	return array( $gd, $ret );
 }
 ################################################################################
@@ -2131,7 +1950,6 @@ function rotString( $gd=null, $angle=null, $font=null, $x=null,
 ################################################################################
 function oneTrans( $gd=null )
 {
-	$this->debug->in();
 	if( is_null($gd) ){ $gd = $this->gd; }
 
 	$w = imagesx( $gd );
@@ -2175,7 +1993,6 @@ function oneTrans( $gd=null )
 			}
 		}
 
-	$this->debug->out();
 	return $gd;
 }
 ################################################################################
@@ -2183,9 +2000,7 @@ function oneTrans( $gd=null )
 ################################################################################
 function save( $filename=null )
 {
-	$this->debug->in();
 	$this->cf->put_image( $this->gd, $filename );
-	$this->debug->out();
  
 	return true;
 }
@@ -2194,11 +2009,9 @@ function save( $filename=null )
 ################################################################################
 function set_color( $color=null )
 {
-	$this->debug->in();
-	if( is_null($color) ){ $this->died( "COLOR IS NULL" ); }
+	if( is_null($color) ){ die( "COLOR IS NULL" ); }
 
 	$this->old_color = $color;
-	$this->debug->out();
 
 	return true;
 }
@@ -2213,8 +2026,6 @@ function get_used_color(){ return $this->old_color; }
 ################################################################################
 function cc( $old_gd=null, $old_r=null, $old_g=null, $old_b=null, $opt=null )
 {
-	$this->debug->in();
-
 	if( is_null($old_gd) ){ die( "***** ERROR : GD is NULL" ); }
 	if( is_null($old_r) ){ die( "***** ERROR : R is NULL" ); }
 	if( is_null($old_g) ){ die( "***** ERROR : G is NULL" ); }
@@ -2276,7 +2087,6 @@ echo "In CC @ " . __LINE__ . " : RGB = $rgb\n";
 #
 	if( $opt ){ imagedestroy( $old_gd ); }
 
-	$this->debug->out();
 	return $new_gd;
 }
 ################################################################################
@@ -2285,8 +2095,6 @@ echo "In CC @ " . __LINE__ . " : RGB = $rgb\n";
 ################################################################################
 function remove_color( $gd=null, $cwd=null, $color=null, $trans=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ die( "***** ERROR : GD is NULL" ); }
 	if( is_null($cwd) ){ die( "***** ERROR : CWD is NULL" ); }
 	if( is_null($color) ){ die( "***** ERROR : COLOR is NULL" ); }
@@ -2319,7 +2127,6 @@ function remove_color( $gd=null, $cwd=null, $color=null, $trans=null )
 #	$name = "$images/image_$color" . "d.png";
 #	$cf->put_image( $new_gd, $name, false );
 
-	$this->debug->out();
 	return array( $gd, $new_gd );
 }
 ################################################################################
@@ -2328,8 +2135,6 @@ function remove_color( $gd=null, $cwd=null, $color=null, $trans=null )
 ################################################################################
 function hollow_out( $dir=null, $cwd=null, $infile=null, $outfile=null )
 {
-	$this->debug->in();
-
 	if( is_null($dir) ){ die( "***** ERROR : DIR is NULL" ); }
 	if( is_null($cwd) ){ die( "***** ERROR : cwd is NULL" ); }
 	if( is_null($infile) ){ die( "***** ERROR : INFILE is NULL" ); }
@@ -2399,7 +2204,6 @@ function hollow_out( $dir=null, $cwd=null, $infile=null, $outfile=null )
 		}
 
 	$cf->put_image( $new_gd, "$dir/$outfile" );
-	$this->debug->out();
 	return $gd;
 }
 ################################################################################
@@ -2407,8 +2211,6 @@ function hollow_out( $dir=null, $cwd=null, $infile=null, $outfile=null )
 ################################################################################
 function seal_holes( $dir=null, $cwd=null, $infile=null, $outfile=null )
 {
-	$this->debug->in();
-
 	if( is_null($dir) ){ die( "***** ERROR : DIR is NULL" ); }
 	if( is_null($cwd) ){ die( "***** ERROR : cwd is NULL" ); }
 	if( is_null($infile) ){ die( "***** ERROR : INFILE is NULL" ); }
@@ -2473,7 +2275,6 @@ function seal_holes( $dir=null, $cwd=null, $infile=null, $outfile=null )
 		}
 
 	$cf->put_image( $new_gd, "$dir/$outfile" );
-	$this->debug->out();
 	return $gd;
 }
 ################################################################################
@@ -2556,48 +2357,6 @@ function get_mask( $maskDir )
 	return $picked_mask_colors;
 }
 ################################################################################
-#	died(). A simple function to print an error message and then die.
-################################################################################
-function died( $string=null, $opt=FALSE )
-{
-	$this->debug->in();
-
-	if( is_null($string) ){ $string = "Program Aborted"; }
-
-	$backtrace = debug_backtrace();
-
-	echo "TITLE : $string\n";
-	foreach( $backtrace as $k=>$v ){
-		foreach( $v as $k1=>$v1 ){
-			$flag = false;
-			if( is_array($v1) ){
-				$flag = true;
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	" . strtoupper($k1) . " : [$k2] = $v2\n";
-					}
-				}
-	
-			if( preg_match("/object/i", $k1) &&  $opt ){
-				$flag = true;
-				}
-				else if( preg_match("/object/i", $k1) ){ $flag = true; }
-
-			if( !$flag ){
-				echo "	" . strtoupper($k1) . " = " . $v1 . "\n";
-				}
-			}
-
-
-		echo "\n";
-		}
-
-	echo __FILE__ . ":" . __CLASS__ . ":" . __METHOD__ . ":" . __LINE__ . " = $string";
-
-	$this->debug->out();
-
-	exit(-1);
-}
-################################################################################
 #	show_memory(). Taken from
 #		https://www.php.net/manual/en/function.memory-get-usage.php
 #		using xelozz -at- gmailcom's code
@@ -2610,68 +2369,11 @@ function show_memory()
 	return $s;
  }
 ################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
-	return true;
-}
-################################################################################
 #	__destruct(). Do the clean-up necessary.
 ################################################################################
 function __destruct()
 {
-	$this->debug->in();
-
 	if( is_resource($this->gd) ){ imagedestroy( $this->gd ); }
-
-	$this->debug->out();
 }
 
 }

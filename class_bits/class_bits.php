@@ -24,13 +24,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -91,7 +84,6 @@ class class_bits
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['files']) ){
 		return $this->init( func_get_args() );
 		}
@@ -102,8 +94,6 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -112,8 +102,6 @@ function init()
 	$this->vars = [];
 	$this->regs = [];
 	$this->bit_length = 32;
-
-	$this->debug->out();
 }
 ################################################################################
 #	set_length(). Set how large the variables/registers are
@@ -516,23 +504,6 @@ function multi_csra( $num=null, $save=true, $opt=false )
 function multi_csrb( $num=null, $save=true )
 {
 	return $this->multi_csra( $num, $save, true );
-}
-#################################################################################
-#	dump(). Print a line
-#################################################################################
-function dump( $msg, $opt=false )
-{
-	if( !is_array($msg) ){ $msg = trim( $msg ); }
-	$dbg = debug_backtrace();
-
-	$line = $dbg[0]['line'];
-
-	if( is_array($msg) ){ echo "LINE : $line =\n"; print_r($msg); echo "\n"; }
-		else { echo "LINE : $line = $msg\n"; }
-
-	if( $opt ){ exit; }
-
-	return true;
 }
 
 }

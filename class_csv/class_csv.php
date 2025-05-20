@@ -23,13 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -82,14 +75,12 @@
 ################################################################################
 class class_csv
 {
-	private $debug = null;
 
 ################################################################################
 #	__construct(). Init the class.
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['csv']) ){
 		return $this->init( func_get_args() );
 		}
@@ -100,24 +91,18 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
 		}
-
-	$this->debug->out();
 }
 ################################################################################
 #	@link http://gist.github.com/385876
 ################################################################################
 function fget_csv($filename='', $isTitle=true, $delimiter=',')
 {
-	$this->debug->in();
-
     if(!file_exists($filename) || !is_readable($filename)){
-		$this->debug->die( __FUNCTION__, __LINE__, " >>> The filename is Not there.<br>\n" );
+		die( __FUNCTION__, __LINE__, " >>> The filename is Not there.<br>\n" );
 		}
 
 	$data = array();
@@ -133,8 +118,6 @@ function fget_csv($filename='', $isTitle=true, $delimiter=',')
 #
 	if( $isTitle ){ $title = array_pop( $data ); }
 		else { $title = null; }
-
-	$this->debug->out();
 #
 #	Return TITLE and DATA. In this way, if the first line
 #	IS NOT a title line - you can just put it back onto the
@@ -151,18 +134,16 @@ function fget_csv($filename='', $isTitle=true, $delimiter=',')
 ################################################################################
 function fput_csv($filename='', $array=null, $isTitle=true, $delimiter=',')
 {
-	$this->debug->in();
-
 	$c = count( $array );
 
 	if( !isset($array) || is_null($array) || $c < 1 ){
-		$this->debug->die( __FUNCTION__, __LINE__, " >>> The array is blank.<br>\n" );
+		die( __FUNCTION__, __LINE__, " >>> The array is blank.<br>\n" );
 		}
 
 	$fh = fopen( $filename, "w" );
 
 	if( $fh == false ){
-		$this->debug->die( __FUNCTION__, __LINE__, " >>> The filename is Not there.<br>\n" );
+		die( __FUNCTION__, __LINE__, " >>> The filename is Not there.<br>\n" );
 		}
 
 	if( $isTitle ){
@@ -176,61 +157,6 @@ function fput_csv($filename='', $array=null, $isTitle=true, $delimiter=',')
 
 	fclose( $fh );
 
-	$this->debug->out();
-
-	return true;
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
 	return true;
 }
 

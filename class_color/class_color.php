@@ -23,13 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 	include_once( "$lib/class_rgb.php" );
 
 ################################################################################
@@ -77,7 +70,6 @@
 ################################################################################
 class class_color
 {
-	private $debug = null;
 	private	$color_table = array();
 	private	$crgb = null;
 
@@ -112,7 +104,6 @@ class class_color
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['color']) ){
 		return $this->init( func_get_args() );
 		}
@@ -123,8 +114,6 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -1203,8 +1192,6 @@ function init()
 		);
 
 	$this->crgb = new class_rgb();
-
-	$this->debug->out();
 }
 
 ################################################################################
@@ -1238,7 +1225,6 @@ function init()
 ################################################################################
 function rgb2name( $r, $g, $b )
 {
-	$this->debug->in();
 #
 #	Try to find the perfect match.
 #
@@ -1275,8 +1261,6 @@ function rgb2name( $r, $g, $b )
 #
 #	It is unlikely we will wind up here - but....
 #
-	$this->debug->out();
-
 	return "Unknown";
 }
 
@@ -1313,8 +1297,6 @@ function rgb2name( $r, $g, $b )
 ################################################################################
 function hex2name()
 {
-	$this->debug->in();
-
 	if( func_num_args() == 1 ){
 		$h = func_get_arg();
 		if( preg_match("/^#/", $h) ){ $h = substr( $h, 1 ); }
@@ -1373,8 +1355,6 @@ function hex2name()
 #
 #	Here we are again...
 #
-	$this->debug->out();
-
 	return "Unknown";
 }
 
@@ -1409,13 +1389,9 @@ function hex2name()
 ################################################################################
 function rgb2hex( $r, $g, $b )
 {
-	$this->debug->in();
-
 	$nr = dechex( $r ); if( strlen($nr) < 2 ){ $nr = "0$nr"; }
 	$ng = dechex( $g ); if( strlen($ng) < 2 ){ $ng = "0$ng"; }
 	$nb = dechex( $b ); if( strlen($nb) < 2 ){ $nb = "0$nb"; }
-
-	$this->debug->out();
 
 	return "$nr$ng$nb";
 }
@@ -1452,8 +1428,6 @@ function rgb2hex( $r, $g, $b )
 ################################################################################
 function hex2rgb()
 {
-	$this->debug->in();
-
 	$num_args = func_num_args();
 	$func_args = func_get_args();
 
@@ -1479,8 +1453,6 @@ function hex2rgb()
 	$nr = hexdec( $nr );
 	$ng = hexdec( $ng );
 	$nb = hexdec( $nb );
-
-	$this->debug->out();
 
 	return array($nr, $ng, $nb );
 }
@@ -1516,7 +1488,6 @@ function hex2rgb()
 ################################################################################
 function name2rgb( $s=null )
 {
-	$this->debug->in();
 	if( is_null($s) ){ $this->die("COLOR NAME is NULL", __LINE__ ); }
 
 	for( $i=0; $i<count($this->color_table); $i++ ){
@@ -1526,8 +1497,6 @@ function name2rgb( $s=null )
 				$this->color_table[$i]['blue'] );
 			}
 		}
-
-	$this->debug->out();
 }
 
 ################################################################################
@@ -1561,15 +1530,11 @@ function name2rgb( $s=null )
 ################################################################################
 function name2hex( $s )
 {
-	$this->debug->in();
-
 	for( $i=0; $i<count($this->color_table); $i++ ){
 		if( preg_match("/$s/i", $this->color_table[$i]['name']) ){
 			return $this->color_table[$i]['hex'];
 			}
 		}
-
-	$this->debug->out();
 }
 ################################################################################
 #	Returns four $GDs one for each of the colors.
@@ -1742,75 +1707,6 @@ function cmyk2rgb( $cmyk=null, $opt=true )
 		}
 
 	return $gd;
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
-	return true;
-}
-################################################################################
-#	myDie(). A simple function to print an error message and then die.
-################################################################################
-function myDie( $string=null, $line=null )
-{
-	$this->debug->in();
-
-	if( is_null($string) ){ $string = "Program Aborted"; }
-	if( is_null($string) ){ $line = __LINE__; }
-
-	echo __FILE__ . ":" . __CLASS__ . ":" . __METHOD__ . ":" . __LINE__ . " = $string";
-
-	$this->debug->out();
-
-	exit(-1);
 }
 ################################################################################
 #	__destruct(). Do the clean-up necessary.

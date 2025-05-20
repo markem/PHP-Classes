@@ -23,13 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -80,8 +73,6 @@
 ################################################################################
 class class_js
 {
-	private $debug_flag = false;
-
 	private $base_path = null;
 	private $base_file = null;
 	private $jsCode = null;
@@ -109,7 +100,6 @@ class class_js
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['gd']) ){
 		return $this->init( func_get_args() );
 		}
@@ -120,8 +110,6 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -511,8 +499,6 @@ $jsc.cookies = function(cookie_dough)
 
 END_OF_JAVASCRIPT;
 
-	$this->debug->out();
-
 	return true;
 }
 ################################################################################
@@ -520,8 +506,6 @@ END_OF_JAVASCRIPT;
 ################################################################################
 function checkEmail()
 {
-	$this->debug->in();
-
 	$jsc = $this->jsc;
 
 	$this->jsCode .= <<<END_OF_JAVASCRIPT
@@ -544,8 +528,6 @@ $jsc.checkEmail = function(id)
 }\n
 END_OF_JAVASCRIPT;
 
-	$this->debug->out();
-
 	return true;
 }
 ################################################################################
@@ -553,8 +535,6 @@ END_OF_JAVASCRIPT;
 ################################################################################
 function isAlnum()
 {
-	$this->debug->in();
-
 	$jsc = $this->jsc;
 
 	$this->jsCode .= <<<END_OF_JAVASCRIPT
@@ -576,8 +556,6 @@ $jsc.isAlnum = function(id)
 }
 END_OF_JAVASCRIPT;
 
-	$this->debug->out();
-
 	return true;
 }
 ################################################################################
@@ -585,8 +563,6 @@ END_OF_JAVASCRIPT;
 ################################################################################
 function isAlpha()
 {
-	$this->debug->in();
-
 	$jsc = $this->jsc;
 
 	global $tcf;
@@ -726,8 +702,6 @@ $jsc.uniqid = function()
 
 END_OF_JAVASCRIPT;
 
-	$this->debug->out();
-
 	return true;
 }
 ################################################################################
@@ -736,14 +710,10 @@ END_OF_JAVASCRIPT;
 ################################################################################
 function add( $script=null, $vars=null )
 {
-	$this->debug->in();
-
 	$jsc = $this->jsc;
 
 	$this->jsCode .= !is_null($script) ? $script : "";
 	$this->jsVars .= !is_null($vars) ? $vars : "";
-
-	$this->debug->out();
 
 	return true;
 }
@@ -754,8 +724,6 @@ function add( $script=null, $vars=null )
 ################################################################################
 function show()
 {
-	$this->debug->in();
-
 	$jsc = $this->jsc;
 
 	$scripts = $this->jsVars;
@@ -797,8 +765,6 @@ Thank you.</span><p>
 </noscript>\n
 END_OF_HTML;
 
-	$this->debug->out();
-
 	return array( $scripts, $noscripts);
 }
 
@@ -808,68 +774,11 @@ END_OF_HTML;
 ################################################################################
 function save( $js=null )
 {
-	$this->debug->in();
-
 	$jsc = $this->jsc;
 
 	file_put_contents( "$base_path/$base_file", $this->show() );
 
-	$this->debug->out();
-
 	return "<script type='text/javascript' language='javascript' src='$base_path/$base_file'></script>";
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
-	return true;
 }
 
 }

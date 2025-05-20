@@ -23,13 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -156,8 +149,6 @@
 ################################################################################
 class class_ansicon
 {
-	private $debug = null;
-	private $debug_flag = false;
 #
 #	Change to your path to the ansi program.
 #
@@ -200,13 +191,9 @@ class class_ansicon
 #
 ################################################################################
 #	__construct(). Constructor.
-#
-#	Notes:	To turn on debug send over "DEBUG=TRUE" as an option. This way of
-#		doing things allows for any kind of info to be sent over.
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['ansicon']) ){
 		return $this->init( func_get_args() );
 		}
@@ -231,16 +218,6 @@ function init()
 		$args = array_pop( $args );
 		}
 
-	$this->debug_flag = false;
-	if( is_array($args) ){
-		foreach( $args as $k=>$v ){
-			if( is_string($v) ){
-				if( preg_match("/(d|deb|debug)/i", $v) ){ $this->debug_flag = true; }
-				}
-			}
-		}
-
-	$this->debug->msg( ">" );
 	$this->path_ansi = 'C:\Program_Files\ansi189';
 	$this->path_ciso = 'C:\Program_Files\ansi189\ciso';
 
@@ -1020,8 +997,6 @@ EOD;
 		[ "46", "Cyan" ],
 		[ "47", "White" ]
 		];
-
-	$this->debug->msg( "<" );
 }
 ################################################################################
 #	sys(). A system command
@@ -1029,7 +1004,7 @@ EOD;
 private function start( $cmd=null )
 {
 	if( is_null($cmd) ){
-		$this->debug->msg( "CMD is NULL in start()" );
+		echo "CMD is NULL in start()\n";
 		return false;
 		}
 
@@ -3083,9 +3058,7 @@ public function __set( $name, $value )
 			$path_ciso = str_replace( "\\", "/", $path_ciso );
 			}
 		else {
-			$this->debug->die(
-				"DIE : Unknown variable. Only 'ansi' and 'ciso' are defined.\n",
-				true ); 
+			die( "DIE : Unknown variable. Only 'ansi' and 'ciso' are defined.\n" );
 			}
 }
 ################################################################################
@@ -3096,9 +3069,7 @@ public function __get( $name )
 	if( preg_match("/ansi/i", $name) ){ return $this->path_ansi; }
 		else if( preg_match("/ciso/i", $name) ){ return $this->path_ciso; }
 		else {
-			$this->debug->die(
-				"DIE : Unknown variable. Only 'ansi' and 'ciso' are defined.\n",
-				true ); 
+			die( "DIE : Unknown variable. Only 'ansi' and 'ciso' are defined.\n" );
 			}
 }
 ################################################################################
@@ -3731,89 +3702,6 @@ function __destruct()
 
 		proc_close( $this->ansi_handle );
 		}
-}
-################################################################################
-#	debug(). Print debug statements.
-################################################################################
-private function debug( $msg=null, $opt=null )
-{
-	$dbg = debug_backtrace();
-	$debug = $dbg[0];
-	if( false || $this->debug_flag ){
-		echo "--->Entering	:	" . $debug['file'] . " [" . $debug['class'] . "] " .
-			$debug['function'] . " # " . $debug['line'] . "\n";
-		}
-
-	array_shift( $dbg );
-	$debug = $dbg[0];
-	if( $this->debug_flag ){
-		if( preg_match("/>/", $msg) ){ $msg = "--->Entering"; }
-			else if( preg_match("/</", $msg) ){ $msg = "<--- Exiting"; }
-
-		$msg = "$msg	:	" . $debug['file'] . " [" . $debug['class'] . "] " .
-			$debug['function'] . " # " . $debug['line'] . "\n";
-
-		if( $opt ){ die( $msg ); }
-			else { echo $msg; }
-		}
-
-	if( false || $this->debug_flag ){
-		echo "<---Exiting :	" . $debug['file'] . " [" . $debug['class'] . "] " .
-			$debug['function'] . " # " . $debug['line'] . "\n";
-		}
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
-	return true;
 }
 
 }

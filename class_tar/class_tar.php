@@ -25,13 +25,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 	if( file_exists("$lib/class_files.php") ){
 		include_once( "$lib/class_files.php" );
 		}
@@ -120,7 +113,6 @@ class class_tar
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['tar']) ){
 		return $this->init( func_get_args() );
 		}
@@ -131,8 +123,6 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -163,7 +153,6 @@ function init()
 	$this->dump_file = "$this->cwd/tar-output.dat";
 
 	$this->cf = $GLOBALS['classes']['files'];
-	$this->cd = $GLOBALS['classes']['debug'];
 #
 #	tar Header Block, from POSIX 1003.1-1990.  
 #
@@ -252,22 +241,16 @@ function init()
 	define( "SPARSES_IN_EXTRA_HEADER", 16 );
 	define( "SPARSES_IN_OLDGNU_HEADER", 4 );
 	define( "SPARSES_IN_SPARSE_HEADER", 21 );
-
-	$this->debug->out();
 }
 ################################################################################
 #	in_file(). Get the tar file to read
 ################################################################################
 function in_file( $file=null )
 {
-	$this->debug->in();
-
 	if( is_null($file) ){ die( "***** ERROR : Input Filename is NULL" ); }
 	$this->in_file = $file;
 	$this->max_size = filesize( $file );
 	$this->max_file_type = filetype( $file );
-
-	$this->debug->out();
 }
 ################################################################################
 #	out_file(). Get the tar file to read
@@ -275,8 +258,6 @@ function in_file( $file=null )
 ################################################################################
 function out_file( $file=null )
 {
-	$this->debug->in();
-
 	if( is_null($file) ){
 #
 #	Get the input file's name and make that the output filename
@@ -291,15 +272,12 @@ function out_file( $file=null )
 		}
 
 	$this->out_file = $file;
-
-	$this->debug->out();
 }
 ################################################################################
 #	in_dir(). Where we will get the incoming file(s).
 ################################################################################
 function in_dir( $dir=null )
 {
-	$this->debug->in();
 #
 #	Is the directory NULL? Fix it.
 #
@@ -318,7 +296,6 @@ function in_dir( $dir=null )
 #
 	if( file_exists($dir) ){
 		$this->in_dir = $dir;
-		$this->debug->out();
 		return true;
 		}
 #
@@ -333,7 +310,6 @@ function in_dir( $dir=null )
 #
 	if( strtolower($a[0]) === strtolower($b[0]) ){
 		$this->in_dir = $dir;
-		$this->debug->out();
 		return true;
 		}
 		else if( $b[0] === '..' ){
@@ -344,7 +320,6 @@ function in_dir( $dir=null )
 			array_shift( $dir );
 			$d = implode( '/', $d );
 			$this->in_dir = "$c/$d";
-			$this->debug->out();
 			return true;
 			}
 		else if( $b[0] === '.' ){
@@ -352,7 +327,6 @@ function in_dir( $dir=null )
 			array_shift( $dir );
 			$d = implode( '/', $d );
 			$this->in_dir = "$this->cwd/$d";
-			$this->debug->out();
 			return true;
 			}
 #
@@ -362,7 +336,6 @@ function in_dir( $dir=null )
 #
 	if( file_exists("$this->cwd/$dir") ){
 		$this->in_dir = $dir;
-		$this->debug->out();
 		return true;
 		}
 #
@@ -370,28 +343,20 @@ function in_dir( $dir=null )
 #	and we have to figure out WHERE that directory path is
 #	located.
 #
-
-	$this->debug->out();
 }
 ################################################################################
 #	out_dir(). Where we will get the incoming file(s).
 ################################################################################
 function out_dir( $dir=null )
 {
-	$this->debug->in();
-
 	if( is_null($dir) ){ die( "***** ERROR : Directory is NULL" ); }
 	$this->out_dir = $dir;
-
-	$this->debug->out();
 }
 ################################################################################
 #	open_in_file(). Open the input file
 ################################################################################
 function open_in_file()
 {
-	$this->debug->in();
-
 	if( is_null($this->in_dir) || (strlen($this->in_dir) < 1) ){
 		$this->in_dir = '.';
 		}
@@ -406,7 +371,6 @@ function open_in_file()
 		}
 
 	$this->in_file_loc = 0;
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -414,7 +378,6 @@ function open_in_file()
 ################################################################################
 function open_out_file()
 {
-	$this->debug->in();
 #
 #	If there isn't an output file name (for output and NOT the files
 #	that are IN the TAR file.
@@ -434,7 +397,6 @@ function open_out_file()
 		}
 
 	$this->out_file_loc = 0;
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -442,12 +404,10 @@ function open_out_file()
 ################################################################################
 function open_dump_file()
 {
-	$this->debug->in();
 	if( ($this->dump_fp = fopen($this->dump_file, "w")) === false ){
 		die( "***** ERROR : Could not open : $this->dump_file" );
 		}
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -484,7 +444,6 @@ function open_dump_file()
 ################################################################################
 function get_header()
 {
-	$this->debug->in();
 	if( is_null($this->in_fp) ){ die( "***** ERROR : Input File Pointer is NULL" ); }
 #
 #	Get the header information
@@ -583,7 +542,6 @@ function get_header()
 		}
 		else { $this->in_file_loc += 512; }
 
-	$this->debug->out();
 	if( feof($this->in_fp) ){
 		echo "*** INFO : @ " . __LINE__ . " END OF FILE DETECTED\n";
 		return false;
@@ -596,7 +554,6 @@ function get_header()
 ################################################################################
 function get_body()
 {
-	$this->debug->in();
 #
 #	Calculate how big of a file we want to get
 #	NOTES : ALWAYS add one block on even if there is only one byte.
@@ -651,8 +608,6 @@ function get_body()
 
 	$this->dump_body();
 
-	$this->debug->out();
-
 	if( feof($this->in_fp) ){
 		echo "*** INFO : @ " . __LINE__ . " END OF FILE DETECTED\n";
 		echo "*** INFO : AT " . $this->dec($this->in_file_loc) . "\n";
@@ -666,7 +621,6 @@ function get_body()
 ################################################################################
 function find_header()
 {
-	$this->debug->in();
 #
 #	First - go back to the beginning of the header and get the 
 #	header. Then we just start looking for the next header. The difference
@@ -680,7 +634,6 @@ function find_header()
 	echo "File Size = " . $this->file_size . "\n";
 	exit();
 #
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -688,7 +641,6 @@ function find_header()
 ################################################################################
 function put_header()
 {
-	$this->debug->in();
 	if( is_null($this->out_fp) ){ die( "***** ERROR : Output File Pointer is NULL" ); }
 #
 #	Put the header together
@@ -714,7 +666,6 @@ function put_header()
 #	fwrite( $out_fp, $s, 512 );
 
 	$this->out_file_loc += 512;
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -722,7 +673,6 @@ function put_header()
 ################################################################################
 function put_body()
 {
-	$this->debug->in();
 	if( is_null($this->out_fp) ){ die( "***** ERROR : Output File Pointer is NULL" ); }
 
 	fseek( $this->out_fp, $this->out_file_loc, SEEK_SET );
@@ -734,7 +684,6 @@ function put_body()
 #	fwrite( $out_fp, $s, $size );
 
 	$this->out_file_loc += $size;
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -742,8 +691,6 @@ function put_body()
 ################################################################################
 function dump_header()
 {
-	$this->debug->in();
-
 	$this->file_path = $this->file_path . str_repeat( " ", 100-strlen($this->file_path) );
 	$this->link_path = $this->link_path . str_repeat( " ", 100-strlen($this->link_path) );
 
@@ -775,7 +722,6 @@ function dump_header()
 	fprintf( $this->dump_fp, "dump_header : File Location = %s\n", $this->dec($this->in_file_loc) );
 	fprintf( $this->dump_fp, "\n\n" );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -783,8 +729,6 @@ function dump_header()
 ################################################################################
 function dump_body( $opt=true )
 {
-	$this->debug->in();
-
 	fprintf( $this->dump_fp, "%s\n", str_repeat('=', 80) );
 	fprintf( $this->dump_fp, "dump_body : File Size = %d(%0o)\n", $this->file_size, $this->file_size );
 	fprintf( $this->dump_fp, "dump_body : Input File Location = %d\n", $this->in_file_loc );
@@ -803,7 +747,6 @@ function dump_body( $opt=true )
 
 	fprintf( $this->dump_fp, "%s\n", str_repeat('#', 80) );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -811,11 +754,8 @@ function dump_body( $opt=true )
 ################################################################################
 function close_in_file()
 {
-	$this->debug->in();
-
 	fclose( $this->in_fp );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -823,11 +763,8 @@ function close_in_file()
 ################################################################################
 function close_out_file()
 {
-	$this->debug->in();
-
 	fclose( $this->out_fp );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -835,11 +772,8 @@ function close_out_file()
 ################################################################################
 function close_dump_file()
 {
-	$this->debug->in();
-
 	fclose( $this->dump_fp );
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -883,59 +817,6 @@ function hex( $i=null )
 
 	$i = hex2bin( $i );
 	return $this->dec( $i );
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
-	return true;
 }
 ################################################################################
 #	__destruct(). Ending of the class function. Be sure to close all files.

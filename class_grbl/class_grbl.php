@@ -24,13 +24,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 	include_once( "$lib/class_files.php" );
 	include_once( "$lib/class_pr.php" );
 
@@ -85,7 +78,6 @@
 ################################################################################
 class class_grbl
 {
-	public $debug = null;
 	public $temp_path = null;
 
 	private $cf = null;
@@ -105,7 +97,6 @@ class class_grbl
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['grbl']) ){
 		return $this->init( func_get_args() );
 		}
@@ -120,7 +111,6 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
 	$this->pr = $pr = new class_pr();
 	$this->cf = $cf = new class_files();
 
@@ -372,7 +362,6 @@ function init()
 		}
 
 	$this->mode = $mode;
-	$this->debug->out();
 	return $devices;
 }
 ################################################################################

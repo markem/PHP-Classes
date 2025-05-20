@@ -24,13 +24,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 	include_once( "$lib/class_files.php" );
 	include_once( "$lib/class_pr.php" );
 
@@ -106,7 +99,6 @@ class class_serial
 	private $bauds = null;
 	private $modes = null;
 	private $devices = null;
-	private $debug = null;
 	private $settings = null;
 	private $baud = null;
 	private $device = null;
@@ -141,7 +133,6 @@ class class_serial
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['serial']) ){
 		return $this->init( func_get_args() );
 		}
@@ -163,6 +154,8 @@ function __construct()
 #			parity bit for data characters being transmitted. It also
 #			indicates that the local system does not check for a parity
 #			bit in data received from a remote host.
+#
+#			NOTE : YOU MUST ONLY HAVE AN "N". The word "NONE" does NOT WORK.
 #
 #		E or EVEN	=	Even parity (all 1s must add up to an even value)
 #			Specifies that the total number of binary 1s, in a single
@@ -194,8 +187,6 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$this->pr = $pr = new $GLOBALS['classes']['pr'];
 	$this->cf = $cf = new $GLOBALS['classes']['files'];
 
@@ -224,6 +215,10 @@ function init()
 #
 	$this->settings = [];
 #
+#	Make an array for the processes
+#
+	$this->process = [];
+#
 #	Entries that are in all of the different cases. If you want to change them
 #	then send the information as a KEY=>VALUE. Ex: array("stop bits"=>1).
 #	All keyword names ignore the case of the keyword.
@@ -239,11 +234,11 @@ function init()
 #
 	$this->settings['timeout'] = null;
 	$this->settings['xon/xoff'] = null;
-	$this->settings['cts-handshaking'] = null;
-	$this->settings['dsr-handshaking'] = null;
-	$this->settings['dsr-sensitivity'] = null;
-	$this->settings['dtr-circuit'] = null;
-	$this->settings['rts-circuit'] = null;
+	$this->settings['cts handshaking'] = null;
+	$this->settings['dsr handshaking'] = null;
+	$this->settings['dsr sensitivity'] = null;
+	$this->settings['dtr circuit'] = null;
+	$this->settings['rts circuit'] = null;
 #
 #	Freebasic section
 #
@@ -308,7 +303,6 @@ function init()
 		fclose( $fp );
 		}
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -317,7 +311,6 @@ function init()
 ################################################################################
 function modes()
 {
-	$this->debug->in();
 	$pr = $this->pr;
 #
 #	Use the MODE command to find all of the modes
@@ -401,17 +394,86 @@ function modes()
 #
 			$title = array_pop( $a );
 			while( strlen(trim($title)) < 1 ){ $title = array_pop( $a ); }
-			$title = substr( $title, 0, -1 );
+			$a[] = $title;
+			$title = implode( ' ', $a );
+			$title = substr( trim($title), 0, -1 );
 			$modes[$dev][strtolower($title)] = strtolower( $info );
 			}
 		}
 #
+#	Now we have to fix the modes because modes has bad information in it
+#	And you have do this for to ALL of the modes. Not just one or two!
+#
+	foreach( $modes as $k=>$v ){
+		foreach( $v as $k1=>$v1 ){
+			if( preg_match("/off/i", $v1) ){ $modes[$k][$k1] = false; }
+				else if( preg_match("/on/i", $v1) ){ $modes[$k][$k1] = true; }
+
+			if( preg_match("/none/i", $v1) ){ $modes[$k][$k1] = "n"; }
+				else if( preg_match("/even/i", $v1) ){ $modes[$k][$k1] = "e"; }
+				else if( preg_match("/odd/i", $v1) ){ $modes[$k][$k1] = "o"; }
+
+			if( preg_match("/handshaking/i", $k1) ){
+				if( preg_match("/off/i", $v1) ){ $v1 = false; }
+					else { $v1 = true; }
+
+				$modes[$k][$k1] = $v1;
+				}
+
+			if( preg_match("/circuit/i", $k1) ){
+				if( preg_match("/off/i", $v1) ){ $v1 = false; }
+					else { $v1 = true; }
+
+				$modes[$k][$k1] = $v1;
+				}
+
+			if( preg_match("/sensitivity/i", $k1) ){
+				if( preg_match("/off/i", $v1) ){ $v1 = false; }
+					else { $v1 = true; }
+
+				$modes[$k][$k1] = $v1;
+				}
+			}
+#
+#	Parity check
+#
+		if( isset($v['parity']) && preg_match("/n(one)*/i", $v['parity']) ){
+if( isset($v['parity']) ){ $pr->pr( "Parity = " . $v['parity'] ); }
+			$modes[$k][$k1] = 'n';
+			}
+			else if( isset($v['parity']) && preg_match("/y(es)*/i", $v['parity']) ){
+if( isset($v['parity']) ){ $pr->pr( "Parity = " . $v['parity'] ); }
+				$modes[$k][$k1] = "y";
+				}
+			else { $modes[$k][$k1] = 'n'; }
+#
+#	Fix a whole slew of other problems that the MODES command gives us
+#	for the VigoTec VigoWriter. You can just put a IF(FALSE){} around this
+#	if you do not have a VigoTec VigoWriter.
+#
+		if( preg_match("/com3/i", $k) ){
+			$modes[$k]['baud'] = 115200;
+			$modes[$k]['cs#'] = 0;
+			$modes[$k]['cd#'] = 0;
+			$modes[$k]['ds#'] = 0;
+			$modes[$k]['rs'] = true;
+			}
+			else if( preg_match("/com4/i", $k) ){
+				$modes[$k]['baud'] = 115200;
+				$modes[$k]['cs#'] = 0;
+				$modes[$k]['cd#'] = 0;
+				$modes[$k]['ds#'] = 0;
+				$modes[$k]['rs'] = true;
+				}
+		}
+
+$pr->pr( $modes, "MODES = " );
+#
 #	Now be sure to put the device name INTO the modes array.
 #
-	$this->modes = $modes;
 	$this->devices = $devices;
+	$this->modes = $modes;
 
-	$this->debug->out();
 	return $modes;
 }
 ################################################################################
@@ -419,9 +481,6 @@ function modes()
 ################################################################################
 function get_modes()
 {
-	$this->debug->in();
-
-	$this->debug->out();
 	return $this->modes;
 }
 ################################################################################
@@ -465,9 +524,15 @@ function set( $ary=null, $opt=null )
 	foreach( $ary as $k=>$v ){
 		$k = strtolower( $k );
 		$this->settings[$k] = $v;
-$pr->pr( $k, "K =" );
-$pr->pr( $v, "V =" );
 		}
+
+	foreach( $this->settings as $k=>$v ){
+		if( preg_match("/null/i", $v) || is_null($v) ){
+			$this->settings[$k] = false;
+			}
+		}
+
+$pr->pr( $this->settings, "Settings =" );
 }
 ################################################################################
 #	get(). Gets the settings. You should call this one first and then
@@ -475,9 +540,6 @@ $pr->pr( $v, "V =" );
 ################################################################################
 function get()
 {
-	$this->debug->in();
-
-	$this->debug->out();
 	return $this->settings;
 }
 ################################################################################
@@ -494,7 +556,6 @@ function cwd( $cwd )
 #	it back together again.
 #
 	$pathinfo = $cf->pathinfo( $cwd );
-$pr->pr( $pathinfo, "Pathinfo =" );
 
 	$this->cwd = $pathinfo['dirname'];
 #
@@ -545,6 +606,7 @@ function env( $env=null )
 function open()
 {
 	$dq = '"';
+	$ret = "";
 	$pr = $this->pr;
 	$cwd = $this->cwd;
 	$exe = $this->exe;
@@ -562,10 +624,9 @@ function open()
 	$cmd = "$dq$cwd/$exe$dq";
 #	$cmd = "con";
 $pr->pr( $cmd, "CMD = " );
+	$this->process[$exe] = proc_open( $cmd, $circuit, $pipes, $cwd, $env );
 
-	$this->process = proc_open( $cmd, $circuit, $pipes, $cwd, $env );
-
-	if( !is_resource($this->process) ){
+	if( count($this->process) < 1 ){
 		die( "***** ERROR : Could not open a process via PROC_OPEN - aborting.\n" );
 		}
 
@@ -583,43 +644,89 @@ $pr->pr( $cmd, "CMD = " );
 	$this->pipes = $pipes;
 	$this->circuit = $circuit;
 #$pr->pr( $pipes, "Pipes = " );
-
-	$this->write( "" );
-	$ret = $this->read();
+#
+#	If this is a communication port - since we are dealing with the pen plotter
+#	we need to send it a return. Otherwise we do nothing more.
+#
+	if( preg_match("/com/i", $this->settings['device']) ){
+		$this->write( "" );
+		$ret = $this->read();
 #$pr->pr( $ret, "ret = " );
+		}
 
 	return $ret;
 }
 ################################################################################
-#	input(). Get input from the serial port.
+#	read(). Read from the serial port.
 #
 #	NOTES : Returns either the information from the pipe or FALSE.
 ################################################################################
 function read( $pipe=1 )
 {
-	$cnt = 0;
-	while( true ){
-		$fstat = fstat($this->pipes[$pipe]);
-		if( $fstat['size'] > 0 ){ break; }
-		if( $cnt++ > $this->count ){ return false; }
-		echo "Waiting...\n";
-		sleep( $this->wait );
-		}
+	$pr = $this->pr;
 
-	return fread( $this->pipes[$pipe], $this->length );
+	if( preg_match("/com/i", $this->settings['device']) ){
+		$cnt = 0;
+		while( true ){
+			$fstat = fstat($this->pipes[$pipe]);
+			if( $fstat['size'] > 0 ){ break; }
+			if( $cnt++ > $this->count ){ return false; }
+			echo "Waiting...\n";
+			sleep( $this->wait );
+			}
+
+		return fread( $this->pipes[$pipe], $this->length );
+		}
+#
+#	Because there might be other devices I do not know of - we will
+#	do another IF statement instead of just using an ELSE statement.
+#
+#	What this does is it just sits there and looks to see if the KEY.DAT
+#	file has been created by the basic program. If so - it gets it and
+#	then deletes it so we don't get duplicate key strokes.
+#
+		else if( preg_match("/con/i", $this->settings['device']) ){
+			$cnt = 0;
+			$info = "";
+			$file = $this->cwd . "/key.dat";
+			while( true ){
+				if( file_exists($file) ){
+					try {
+						$info = file_get_contents( $file );
+						unlink( $file );
+						}
+						catch( exception $e ){
+							$pr->pr( $e->getMessage(), "Error = " );
+							}
+					}
+
+				if( strlen($info) > 0 ){ break; }
+				if( $cnt++ > $this->count ){ return false; }
+				sleep( 1 );
+				}
+
+			return $info;
+			}
 }
 ################################################################################
-#	output(). Print something to the serial port.
+#	write(). Write something to the serial port.
 ################################################################################
 function write( $info="", $pipe=0 )
 {
-	if( !is_resource($this->pipes[$pipe]) ){
-		die( "***** ERROR : Did not get the pipe #$pipe - aborting.\n" );
-		}
+#
+#	Only do this for a COM port
+#
+	if( preg_match("/com/i", $this->settings['device']) ){
+		if( !is_resource($this->pipes[$pipe]) ){
+			die( "***** ERROR : Did not get the pipe #$pipe - aborting.\n" );
+			}
 
-	$info = trim( $info ) . "\r\n";
-	echo "Writing : $info";
-	return fwrite( $this->pipes[$pipe], $info );
+		$info = trim( $info ) . "\r\n";
+		echo "Writing : $info";
+		$ret = fwrite( $this->pipes[$pipe], $info );
+		sleep( 1 );
+		return $ret;
+		}
 }
 ################################################################################
 #	close(). Close the connection.
@@ -629,18 +736,24 @@ function close()
 	if( !is_array($this->pipes) ){
 		die( "Finished\n" );
 		}
-
-	if( is_resource($this->process) ){
-echo "Closing Processes\n";
+#
+#	Because we can have several processes - we have to terminate each process
+#	and under Windows - we have to stop each one of these
+#
+	if( count($this->process) > 0 ){
+		echo "Closing Processes\n";
 #		$ret = proc_close( $this->process );
-		$ret = proc_terminate( $this->process );
+		foreach( $this->process as $k=>$v ){
+			$ret = proc_terminate( $v );
 #
 #	Under Windows - we have to physically kill the executable.
 #
-		if( preg_match("/win/i", PHP_OS) ){
-			system( "taskkill /IM $this->exe /F" );
+			if( preg_match("/win/i", PHP_OS) ){
+				system( "taskkill /IM $v /F" );
+				}
+
+			echo "Return value = $ret\n";
 			}
-echo "Return value = $ret\n";
 		}
 
 	if( !is_null($this->pipes[0]) || is_resource($this->pipes[0]) ){
@@ -661,7 +774,7 @@ echo "Return value = $ret\n";
 	return $ret;
 }
 ################################################################################
-#	make_freebasic(). Create the Freebasic program for use with this class.
+#	makeFBCom(). Create the Freebasic program for use with this class.
 #
 #	NOTES :	Remember this ONLY generates the FreeBasic code THEN you have to
 #		compile it with FreeBasic and THEN you can use the program to talk to
@@ -697,7 +810,7 @@ echo "Return value = $ret\n";
 #	'IRn' IRQ number for COM (only supported (?) on DOS) 
 #
 ################################################################################
-function make_freebasic()
+function makeFBCom()
 {
 	$basFile = "$this->cwd/$this->bas";
 	$settings = $this->settings;
@@ -927,19 +1040,95 @@ rem	+---------------------------------------------------------------------------
 EOD;
 
 	echo "Now that the file has been made you must compile it with FreeBasic.\n";
-	echo "You should wind up with something like 'serial.exe'\n";
-	echo "The output file is : $basFile\n";
+	echo "AFTER COMPILING, you should wind up with something like 'serial.exe'\n";
+	echo "What >I< wind up with is serial32.exe\n";
+	echo "The source code is in file : $basFile\n";
 
 	return file_put_contents( $basFile, $code );
 }
 ################################################################################
-#	make_qb64(). Create the QB64 code.
+#	makeFBKey(). Make the FreeBasic program to handle getting keys from the
+#		console.
+################################################################################
+function makeFBKey()
+{
+	$basFile = "$this->cwd/$this->bas";
+	$settings = $this->settings;
+
+	$code = <<<EOD
+'
+'	This is taken directly from the FreeBasic CHM file and just modified to work here.
+'
+'	include fbgfx.bi for some useful definitions
+'
+#include "fbgfx.bi"
+
+#if __FB_LANG__ = "fb"
+Using fb ' constants and structures are stored in the FB namespace in lang fb
+#endif
+
+	Dim e As Event
+
+	ScreenRes 200, 50
+
+	Do
+		If (ScreenEvent(@e)) Then
+			Select Case e.type
+				Case EVENT_KEY_PRESS
+					If (e.scancode = SC_ESCAPE) Then
+						End
+						End If
+
+					If (e.ascii > 0) Then
+						open "key.dat" for append as #1
+						Print #1, chr( e.ascii );
+						close #1
+						End If
+
+				Case EVENT_KEY_RELEASE
+				Case EVENT_KEY_REPEAT
+					If (e.ascii > 0) Then
+						open "key.dat" for append as #1
+						Print #1, chr( e.ascii );
+						close #1
+						End If
+
+				Case EVENT_MOUSE_MOVE
+				Case EVENT_MOUSE_BUTTON_PRESS
+				Case EVENT_MOUSE_BUTTON_RELEASE
+				Case EVENT_MOUSE_DOUBLE_CLICK
+				Case EVENT_MOUSE_WHEEL
+				Case EVENT_MOUSE_ENTER
+				Case EVENT_MOUSE_EXIT
+				Case EVENT_WINDOW_GOT_FOCUS
+				Case EVENT_WINDOW_LOST_FOCUS
+				Case EVENT_WINDOW_CLOSE
+					End
+
+				Case EVENT_MOUSE_HWHEEL
+				End Select
+			End If
+
+		Sleep 1
+		Loop
+EOD;
+
+	echo "Now that the file has been made you must compile it with FreeBasic.\n";
+	echo "AFTER COMPILING, you should wind up with something like 'inkey.exe'\n";
+	echo "What >I< wind up with is inkey32.exe\n";
+	echo "The source code is in file : $basFile\n";
+
+	return file_put_contents( $basFile, $code );
+}
+################################################################################
+#	makeQBCom(). Create the QB64 code.
 #	NOTES :	Remember this ONLY generates the QB64 code THEN you have to
 #		compile it with QB64 and THEN you can use the program to talk to
 #		your serial device.
 ################################################################################
-function make_qb64()
+function makeQBCom()
 {
+	$pr = $this->pr;
 	$basFile = "$this->cwd/$this->bas";
 	$settings = $this->settings;
 #
@@ -948,50 +1137,51 @@ function make_qb64()
 	$baud = is_null($settings['baud']) ? "9600" : $settings['baud'];
 	$device = is_null($settings['device']) ? "com1" : $settings['device'];
 	$device = str_replace( ":", "", $device );
+$pr->pr( "Device = $device" );
 
 	$parity = is_null($settings['parity']) ? ",n" : "," .$settings['parity'];
 	$data_bits = is_null($settings['data-bits']) ? ",8" : "," .$settings['data-bits'];
 	$stop_bits = is_null($settings['stop-bits']) ? ",1" : "," .$settings['stop-bits'];
-	$timeout = is_null($settings['timeout']) ? "" : "," .$settings['timeout'];
+	$timeout = ($settings['timeout'] === false) ? "" : "," .$settings['timeout'];
 
-	if( is_null($settings['cs#']) ){ $csn = ""; }
+	if( $settings['cs#'] === false ){ $csn = ""; }
 		else if( is_numeric($settings['cs#']) ){ $csn = ",cs" .$settings['cs#']; }
 		else { $csn = ",cs0"; }
 
-	if( is_null($settings['ds#']) ){ $dsn = ""; }
+	if( $settings['ds#'] === false ){ $dsn = ""; }
 		else if( is_numeric($settings['ds#']) ){ $dsn = ",ds" .$settings['ds#']; }
 		else { $dsn = ",ds0"; }
 
-	if( is_null($settings['cd#']) ){ $cdn = ""; }
+	if( $settings['cd#'] === false ){ $cdn = ""; }
 		else if( is_numeric($settings['cd#']) ){ $cdn = ",cd" .$settings['cd#']; }
 		else { $cdn = ",cd0"; }
 
-	if( is_null($settings['op#']) ){ $opn = ""; }
+	if( $settings['op#'] === false ){ $opn = ""; }
 		else if( is_numeric($settings['op#']) ){ $opn = ",op" .$settings['op#']; }
 		else { $opn = ",op0"; }
 
-	if( is_null($settings['tb#']) ){ $tbn = ""; }
+	if( $settings['tb#'] === false ){ $tbn = ""; }
 		else if( is_numeric($settings['tb#']) ){ $tbn = ",tb" .$settings['tb#']; }
 		else { $tbn = ",tb0"; }
 
-	if( is_null($settings['rb#']) ){ $rbn = ""; }
+	if( $settings['rb#'] === false ){ $rbn = ""; }
 		else if( is_numeric($settings['rb#']) ){ $rbn = ",rb" .$settings['rb#']; }
 		else { $rbn = ",rb0"; }
 
-	if( is_null($settings['ir#']) ){ $irn = ""; }
+	if( $settings['ir#'] === false ){ $irn = ""; }
 		else if( is_numeric($settings['ir#']) ){ $irn = ",ir" .$settings['ir#']; }
 		else { $irn = ",ir0"; }
 #
 #	These are all TRUE/FALSE. True = PUT THE WORD IN, False = Leave it off
 #
-	$rs = is_null($setting['rs']) ? "" : ",rs";
-	$lf = is_null($settings['lf']) ? "" : ",lf";
-	$asc = is_null($settings['asc']) ? "" : ",asc";
-	$bin = is_null($settings['bin']) ? "" : ",bin";
-	$pe = is_null($settings['pe']) ? "" : ",pe";
-	$dt = is_null($settings['dt']) ? "" : ",dt";
-	$fe = is_null($settings['fe']) ? "" : ",fe";
-	$me = is_null($settings['me']) ? "" : ",me";
+	$rs = ($settings['rs'] === false) ? "" : ",rs";
+	$lf = ($settings['lf'] === false) ? "" : ",lf";
+	$asc = ($settings['asc'] === false) ? "" : ",asc";
+	$bin = ($settings['bin'] === false) ? "" : ",bin";
+	$pe = ($settings['pe'] === false) ? "" : ",pe";
+	$dt = ($settings['dt'] === false) ? "" : ",dt";
+	$fe = ($settings['fe'] === false) ? "" : ",fe";
+	$me = ($settings['me'] === false) ? "" : ",me";
 #
 #	QB64 Info
 #
@@ -1012,19 +1202,19 @@ function make_qb64()
 #
 	if( preg_match("/con/i", $device) ){ $com = $device; return; }
 		else {
-			$com = "$device:$baud$parity$data_bits$stop_bits$timeout" .
-					"$csn$cdn$dsn$opn$tbn$rbn$irn$rs$lf$asc$bin$pe$dt$fe$me";
+			$com = strtoupper( "$device:$baud$parity$data_bits$stop_bits$timeout" .
+					"$csn$cdn$dsn$opn$tbn$rbn$irn$rs$lf$asc$bin$pe$dt$fe$me" );
 			}
 
 	$code = <<<EOD
-
+rem
 rem Tab Settings are set to 4 (ts=4)
 rem	+--------------------------------------------------------------------------------
 rem	|BEGIN DOC
 rem	|
 rem	|-Calling Sequence:
 rem	|
-rem	|	com()
+rem	|	myCom()
 rem	|
 rem	|-Description:
 rem	|
@@ -1034,7 +1224,7 @@ rem |
 rem	|	Although the program presented by mdijkens works - it needed to be
 rem	|	modified by me to work with the VigoTEC Pen Plotter. The first
 rem	|	addition was the small program at the front of this script (ie:
-rem	|	From the "rem $Debug" to the "end" statement. Secondly, I had to
+rem	|	From the "rem \$Debug" to the "end" statement. Secondly, I had to
 rem	|	figure out why the ErrorHandler simply refused to work. THIS problem
 rem	|	was caused by not having the main program mentioned above. Once the
 rem	|	"end" statement was inserted - the error message about the ErrorHandler
@@ -1077,7 +1267,7 @@ rem	|	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51
 rem	|	---------------------------------------------------------------------------
 rem	|	Please note that _MY_ Legal notice _HERE_ is as follows:
 rem	|
-rem	|		COM.BAS. A program to handle working with serial ports.
+rem	|		myCom.BAS. A program to handle working with serial ports.
 rem	|		Copyright (C) 2025-NOW.  Mark Manning. All rights reserved
 rem	|		except for those given by the above license. Also, everything
 rem	|		from the ErrorHandler on down belongs to mdijkens and NOT me.
@@ -1086,9 +1276,9 @@ rem	|	Please place _YOUR_ legal notices _HERE_. Thank you.
 rem	|
 rem	|END DOC
 rem	+--------------------------------------------------------------------------------
-function com()
+rem	function myCom()
 
-rem $Debug
+rem \$Debug
     print ser.open
     inp$ = ""
     while inp$ <> "q"
@@ -1144,11 +1334,58 @@ Function ser.read$ ()
 	on error goto ErrorHandler
 End Function
 
+
 EOD;
 
 	echo "Now that the file has been made you must compile it with QB64.\n";
 	echo "You should wind up with something like 'serial.exe'\n";
 	echo "The output file is : $basFile\n";
+
+	return file_put_contents( $basFile, $code );
+}
+################################################################################
+#	makeQBKey(). Make the FreeBasic program to handle getting keys from the
+#		console.
+################################################################################
+function makeQBKey()
+{
+	$basFile = "$this->cwd/$this->bas";
+	$settings = $this->settings;
+
+	$code = <<<EOD
+'
+'	Simple inkey$ program
+'
+'	input the escape character so we can test against it
+'	IF you want to use the escape key - then just choose another key
+'	and put it in this next line.
+'
+	esc$ = ""
+
+	open "key.dat" for output as #1
+	close #1
+
+	while 1
+		mykey$ = inkey$
+		if mykey$ = esc$ then
+			end
+			endif
+
+		if len(mykey$) > 0 then
+			print mykey$;
+			open "key.dat" for append as #1
+			print #1, mykey$;
+			close #1
+			endif
+		wend
+	end
+
+EOD;
+
+	echo "Now that the file has been made you must compile it with FreeBasic.\n";
+	echo "AFTER COMPILING, you should wind up with something like 'inkey.exe'\n";
+	echo "What >I< wind up with is inkey32.exe\n";
+	echo "The source code is in file : $basFile\n";
 
 	return file_put_contents( $basFile, $code );
 }

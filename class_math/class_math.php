@@ -23,13 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -75,7 +68,6 @@
 ################################################################################
 class class_math
 {
-	public $debug = false;
 	private $pi = null;
 #
 #	The following is taken from Wikipedia at
@@ -146,7 +138,6 @@ class class_math
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['math']) ){
 		return $this->init( func_get_args() );
 		}
@@ -157,14 +148,11 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
 		}
 
-	$debug = false;
 	$pi = 3.14159265358979323846;
 #
 #	The following is taken from Wikipedia at
@@ -229,18 +217,14 @@ function init()
 #
 	$codata_2023_a = 0.0072973525649;
 	$codata_2023_r = 137.035999166;
-
-	$this->debug->out();
 }
 ################################################################################
 #	area_square(). computes the area of the square.
 ################################################################################
 function area_square( $w=null, $h=null )
 {
-	$this->debug->in();
-	if( is_null($w) ){ $this->debug->die( "Area of a square - no side given", true ); }
+	if( is_null($w) ){ die( "Area of a square - no side given", true ); }
 	if( is_null($h) ){ $h = $w; }
-	$this->debug->out();
 
 	return ($w * $h);
 }
@@ -249,8 +233,6 @@ function area_square( $w=null, $h=null )
 ################################################################################
 function area_rectangle( $w=null, $h=null )
 {
-	$this->debug->in();
-	$this->debug->out();
 	return $this->area_square( $w, $h );
 }
 ################################################################################
@@ -258,8 +240,6 @@ function area_rectangle( $w=null, $h=null )
 ################################################################################
 function area_triangle( $b=null, $h=null )
 {
-	$this->debug->in();
-	$this->debug->out();
 	return $this->area_square($b, $h) / 2.0;
 }
 ################################################################################
@@ -268,10 +248,8 @@ function area_triangle( $b=null, $h=null )
 ################################################################################
 function area_rhombus( $D=null, $d=null )
 {
-	$this->debug->in();
-	if( is_null($D) ){ $this->debug->die( "Area of a rhombus - D not given", true ); }
-	if( is_null($d) ){ $this->debug->die( "Area of a rhombus - d not given", true ); }
-	$this->debug->out();
+	if( is_null($D) ){ die( "Area of a rhombus - D not given", true ); }
+	if( is_null($d) ){ die( "Area of a rhombus - d not given", true ); }
 
 	return (($D * $d) / 2.0);
 }
@@ -280,11 +258,9 @@ function area_rhombus( $D=null, $d=null )
 ################################################################################
 function area_trapezoid( $B=null, $b=null, $h=null )
 {
-	$this->debug->in();
-	if( is_null($B) ){ $this->debug->die( "Area of a trapezoid - B not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "Area of a trapezoid - b not given", true ); }
-	if( is_null($h) ){ $this->debug->die( "Area of a trapezoid - h not given", true ); }
-	$this->debug->out();
+	if( is_null($B) ){ die( "Area of a trapezoid - B not given", true ); }
+	if( is_null($b) ){ die( "Area of a trapezoid - b not given", true ); }
+	if( is_null($h) ){ die( "Area of a trapezoid - h not given", true ); }
 
 	return (($B + $b) / 2.0) * $h;
 }
@@ -294,10 +270,8 @@ function area_trapezoid( $B=null, $b=null, $h=null )
 ################################################################################
 function area_polygon( $P=null, $a=null )
 {
-	$this->debug->in();
-	if( is_null($P) ){ $this->debug->die( "Area of a polygon - P not given", true ); }
-	if( is_null($a) ){ $this->debug->die( "Area of a polygon - a not given", true ); }
-	$this->debug->out();
+	if( is_null($P) ){ die( "Area of a polygon - P not given", true ); }
+	if( is_null($a) ){ die( "Area of a polygon - a not given", true ); }
 
 	return ($P / 2.0) * $a;
 }
@@ -306,9 +280,7 @@ function area_polygon( $P=null, $a=null )
 ################################################################################
 function area_circle( $r=null )
 {
-	$this->debug->in();
-	if( is_null($r) ){ $this->debug->die( "Area of a circle - r not given", true ); }
-	$this->debug->out();
+	if( is_null($r) ){ die( "Area of a circle - r not given", true ); }
 
 	return (($r * $r) * $this->PI );
 }
@@ -317,9 +289,7 @@ function area_circle( $r=null )
 ################################################################################
 function area_perimeter( $r=null )
 {
-	$this->debug->in();
-	if( is_null($r) ){ $this->debug->die( "Area of a circles perimeter - r not given", true ); }
-	$this->debug->out();
+	if( is_null($r) ){ die( "Area of a circles perimeter - r not given", true ); }
 
 	return (2.0 * $this->PI * $r);
 }
@@ -328,10 +298,8 @@ function area_perimeter( $r=null )
 ################################################################################
 function area_cone( $r=null, $s=null )
 {
-	$this->debug->in();
-	if( is_null($r) ){ $this->debug->die( "Area of a cone - r not given", true ); }
-	if( is_null($s) ){ $this->debug->die( "Area of a cone - s not given", true ); }
-	$this->debug->out();
+	if( is_null($r) ){ die( "Area of a cone - r not given", true ); }
+	if( is_null($s) ){ die( "Area of a cone - s not given", true ); }
 
 	return ($this->PI * $r) * $s;
 }
@@ -340,9 +308,7 @@ function area_cone( $r=null, $s=null )
 ################################################################################
 function area_sphere( $r )
 {
-	$this->debug->in();
-	if( is_null($r) ){ $this->debug->die( "Area of a sphere - r not given", true ); }
-	$this->debug->out();
+	if( is_null($r) ){ die( "Area of a sphere - r not given", true ); }
 
 	return (4.0 * $this->PI * ($r * $r));
 }
@@ -351,10 +317,8 @@ function area_sphere( $r )
 ################################################################################
 function vol_cube( $w=null, $h=null )
 {
-	$this->debug->in();
-	if( is_null($w) ){ $this->debug->die( "Volume of a cube - w not given", true ); }
+	if( is_null($w) ){ die( "Volume of a cube - w not given", true ); }
 	if( is_null($h) ){ $h = $w; }
-	$this->debug->out();
 
 	return ( $w * $h * $w );
 }
@@ -363,11 +327,9 @@ function vol_cube( $w=null, $h=null )
 ################################################################################
 function vol_parallelepiped( $l=null, $w=null, $h=null )
 {
-	$this->debug->in();
-	if( is_null($l) ){ $this->debug->die( "Volume of a parallelepiped - l not given", true ); }
-	if( is_null($w) ){ $this->debug->die( "Volume of a parallelepiped - w not given", true ); }
-	if( is_null($h) ){ $this->debug->die( "Volume of a parallelepiped - h not given", true ); }
-	$this->debug->out();
+	if( is_null($l) ){ die( "Volume of a parallelepiped - l not given", true ); }
+	if( is_null($w) ){ die( "Volume of a parallelepiped - w not given", true ); }
+	if( is_null($h) ){ die( "Volume of a parallelepiped - h not given", true ); }
 
 	return ($l * $w * $h);
 }
@@ -376,8 +338,6 @@ function vol_parallelepiped( $l=null, $w=null, $h=null )
 ################################################################################
 function vol_ppp( $l=null, $w=null, $h=null )
 {
-	$this->debug->in();
-	$this->debug->out();
 	return vol_parallelepiped( $l, $w, $h );
 }
 ################################################################################
@@ -385,10 +345,8 @@ function vol_ppp( $l=null, $w=null, $h=null )
 ################################################################################
 function vol_prism( $b=null, $h=null )
 {
-	$this->debug->in();
-	if( is_null($b) ){ $this->debug->die( "Volume of a prism - b not given", true ); }
-	if( is_null($h) ){ $this->debug->die( "Volume of a prism - h not given", true ); }
-	$this->debug->out();
+	if( is_null($b) ){ die( "Volume of a prism - b not given", true ); }
+	if( is_null($h) ){ die( "Volume of a prism - h not given", true ); }
 
 	return ($b * $h);
 }
@@ -397,10 +355,8 @@ function vol_prism( $b=null, $h=null )
 ################################################################################
 function volume_cylinder( $r=null, $h=null )
 {
-	$this->debug->in();
-	if( is_null($r) ){ $this->debug->die( "Volume of a cylinder - r not given", true ); }
-	if( is_null($h) ){ $this->debug->die( "Volume of a cylinder - h not given", true ); }
-	$this->debug->out();
+	if( is_null($r) ){ die( "Volume of a cylinder - r not given", true ); }
+	if( is_null($h) ){ die( "Volume of a cylinder - h not given", true ); }
 
 	return ($this->PI * ($r * $r)) * $h;
 }
@@ -409,10 +365,8 @@ function volume_cylinder( $r=null, $h=null )
 ################################################################################
 function volume_cone( $b=null, $h=null )
 {
-	$this->debug->in();
-	if( is_null($b) ){ $this->debug->die( "Volume of a cone - b not given", true ); }
-	if( is_null($h) ){ $this->debug->die( "Volume of a cone - h not given", true ); }
-	$this->debug->out();
+	if( is_null($b) ){ die( "Volume of a cone - b not given", true ); }
+	if( is_null($h) ){ die( "Volume of a cone - h not given", true ); }
 
 	return ($b * $h) / 3.0;
 }
@@ -421,9 +375,7 @@ function volume_cone( $b=null, $h=null )
 ################################################################################
 function volume_sphere( $r=null )
 {
-	$this->debug->in();
-	if( is_null($r) ){ $this->debug->die( "Volume of a sphere - r not given", true ); }
-	$this->debug->out();
+	if( is_null($r) ){ die( "Volume of a sphere - r not given", true ); }
 
 	return (($r * $r * $r) * $this->PI) * (4.0 / 3.0);
 }
@@ -432,13 +384,11 @@ function volume_sphere( $r=null )
 ################################################################################
 function eq_dp( $x=null, $y=null, $k=null )
 {
-	$this->debug->in();
-	if( is_null($x) ){ $this->debug->die( "Equation - Directly Proportional - x not given", true ); }
-	if( is_null($y) ){ $this->debug->die( "Equation - Directly Proportional - y not given", true ); }
-	if( is_null($k) ){ $this->debug->die( "Equation - Directly Proportional - k not given", true ); }
+	if( is_null($x) ){ die( "Equation - Directly Proportional - x not given", true ); }
+	if( is_null($y) ){ die( "Equation - Directly Proportional - y not given", true ); }
+	if( is_null($k) ){ die( "Equation - Directly Proportional - k not given", true ); }
 
 	if( ($y == ($k * $x)) && ($k == ($y / $x)) ){ return true; }
-	$this->debug->out();
 
 	return false;
 }
@@ -447,13 +397,11 @@ function eq_dp( $x=null, $y=null, $k=null )
 ################################################################################
 function eq_ip( $x=null, $y=null, $k=null )
 {
-	$this->debug->in();
-	if( is_null($x) ){ $this->debug->die( "Equation - Inversely Proportional - x not given", true ); }
-	if( is_null($y) ){ $this->debug->die( "Equation - Inversely Proportional - y not given", true ); }
-	if( is_null($k) ){ $this->debug->die( "Equation - Inversely Proportional - k not given", true ); }
+	if( is_null($x) ){ die( "Equation - Inversely Proportional - x not given", true ); }
+	if( is_null($y) ){ die( "Equation - Inversely Proportional - y not given", true ); }
+	if( is_null($k) ){ die( "Equation - Inversely Proportional - k not given", true ); }
 
 	if( ($y == ($k / $x)) && ($k = ($y * $x)) ){ return true; }
-	$this->debug->out();
 
 	return false;
 }
@@ -462,10 +410,9 @@ function eq_ip( $x=null, $y=null, $k=null )
 ################################################################################
 function eq_quadratic( $a=null, $b=null, $c=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Equation - Quadratic formula - a not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "Equation - Quadratic formula - b not given", true ); }
-	if( is_null($c) ){ $this->debug->die( "Equation - Quadratic formula - c not given", true ); }
+	if( is_null($a) ){ die( "Equation - Quadratic formula - a not given", true ); }
+	if( is_null($b) ){ die( "Equation - Quadratic formula - b not given", true ); }
+	if( is_null($c) ){ die( "Equation - Quadratic formula - c not given", true ); }
 
 	if( $a !== 0.0 ){
 		$d = sqrt(($b * $b) - (4.0 * $a * $c));
@@ -474,8 +421,6 @@ function eq_quadratic( $a=null, $b=null, $c=null )
 		return array( $r1, $r2 );
 		}
 
-	$this->debug->out();
-
 	return false;
 }
 ################################################################################
@@ -483,12 +428,10 @@ function eq_quadratic( $a=null, $b=null, $c=null )
 ################################################################################
 function eq_line( $a=null, $b=null, $c=null, $x=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Equation of a line - a not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "Equation of a line - b not given", true ); }
-	if( is_null($c) ){ $this->debug->die( "Equation of a line - c not given", true ); }
-	if( is_null($x) ){ $this->debug->die( "Equation of a line - x not given", true ); }
-	$this->debug->out();
+	if( is_null($a) ){ die( "Equation of a line - a not given", true ); }
+	if( is_null($b) ){ die( "Equation of a line - b not given", true ); }
+	if( is_null($c) ){ die( "Equation of a line - c not given", true ); }
+	if( is_null($x) ){ die( "Equation of a line - x not given", true ); }
 
 	return ($a * ($x * $x)) + ($b * $x) + $c;
 }
@@ -502,15 +445,12 @@ function eq_line( $a=null, $b=null, $c=null, $x=null )
 ################################################################################
 function eq_concavity( $a=null, $b=null, $c=null, $x=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Equation - Concavity - a not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "Equation - Concavity - b not given", true ); }
-	if( is_null($c) ){ $this->debug->die( "Equation - Concavity - c not given", true ); }
+	if( is_null($a) ){ die( "Equation - Concavity - a not given", true ); }
+	if( is_null($b) ){ die( "Equation - Concavity - b not given", true ); }
+	if( is_null($c) ){ die( "Equation - Concavity - c not given", true ); }
 
 	if( $a > 0.0 ){ return "up"; }
 		else if( $a < 0.0 ){ return "down"; }
-
-	$this->debug->out();
 
 	return false;
 }
@@ -519,11 +459,9 @@ function eq_concavity( $a=null, $b=null, $c=null, $x=null )
 ################################################################################
 function eq_discriminant( $a=null, $b=null, $c=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Equation - Discriminant - a not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "Equation - Discriminant - b not given", true ); }
-	if( is_null($c) ){ $this->debug->die( "Equation - Discriminant - c not given", true ); }
-	$this->debug->out();
+	if( is_null($a) ){ die( "Equation - Discriminant - a not given", true ); }
+	if( is_null($b) ){ die( "Equation - Discriminant - b not given", true ); }
+	if( is_null($c) ){ die( "Equation - Discriminant - c not given", true ); }
 
 	return (($b * $b) - (4.0 * $a * $c));
 }
@@ -533,15 +471,13 @@ function eq_discriminant( $a=null, $b=null, $c=null )
 ################################################################################
 function eq_vertex_parabola( $a=null, $b=null, $c=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Equation - Vertex of a parabola - a not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "Equation - Vertex of a parabola - b not given", true ); }
-	if( is_null($c) ){ $this->debug->die( "Equation - Vertex of a parabola - c not given", true ); }
+	if( is_null($a) ){ die( "Equation - Vertex of a parabola - a not given", true ); }
+	if( is_null($b) ){ die( "Equation - Vertex of a parabola - b not given", true ); }
+	if( is_null($c) ){ die( "Equation - Vertex of a parabola - c not given", true ); }
 
 	$delta = $this->eq_discriminant( $a, $b, $c );
 	$v1 = (-$b) / (2.0 * $a);
 	$v2 = (-$delta) / (4.0 * $a );
-	$this->debug->out();
 
 	return array( $v1, $v2 );
 }
@@ -551,12 +487,10 @@ function eq_vertex_parabola( $a=null, $b=null, $c=null )
 ################################################################################
 function eq_parabola( $a=null, $h=null, $k=null, $x=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Equation - parabola - a not given", true ); }
-	if( is_null($h) ){ $this->debug->die( "Equation - parabola - h not given", true ); }
-	if( is_null($k) ){ $this->debug->die( "Equation - parabola - k not given", true ); }
+	if( is_null($a) ){ die( "Equation - parabola - a not given", true ); }
+	if( is_null($h) ){ die( "Equation - parabola - h not given", true ); }
+	if( is_null($k) ){ die( "Equation - parabola - k not given", true ); }
 	if( is_null($x) ){ $x = 1.0; }
-	$this->debug->out();
 
 	return ($a * ($x - ($h * $h))) + $k;
 }
@@ -565,10 +499,8 @@ function eq_parabola( $a=null, $h=null, $k=null, $x=null )
 ################################################################################
 function vertex_parabola( $h=null, $k=null )
 {
-	$this->debug->in();
-	if( is_null($h) ){ $this->debug->die( "Equation - vertex of parabola - h not given", true ); }
-	if( is_null($k) ){ $this->debug->die( "Equation - vertex of parabola - k not given", true ); }
-	$this->debug->out();
+	if( is_null($h) ){ die( "Equation - vertex of parabola - h not given", true ); }
+	if( is_null($k) ){ die( "Equation - vertex of parabola - k not given", true ); }
 
 	return $this->eq_vertex_parabola( $h, $k );
 }
@@ -577,10 +509,8 @@ function vertex_parabola( $h=null, $k=null )
 ################################################################################
 function eq_diff2sqr( $a=null, $b=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Equation - Difference of two squares - a not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "Equation - Difference of two squares - b not given", true ); }
-	$this->debug->out();
+	if( is_null($a) ){ die( "Equation - Difference of two squares - a not given", true ); }
+	if( is_null($b) ){ die( "Equation - Difference of two squares - b not given", true ); }
 
 	return ($a * $a) - ($b * $b);
 }
@@ -589,10 +519,8 @@ function eq_diff2sqr( $a=null, $b=null )
 ################################################################################
 function eq_pst( $a=null, $b=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Equation - Perfect square trinomial - a not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "Equation - Perfect square trinomial - b not given", true ); }
-	$this->debug->out();
+	if( is_null($a) ){ die( "Equation - Perfect square trinomial - a not given", true ); }
+	if( is_null($b) ){ die( "Equation - Perfect square trinomial - b not given", true ); }
 
 	return ($a * $a) + (2.0 * $a * $b) + ($b * $b);
 }
@@ -601,9 +529,8 @@ function eq_pst( $a=null, $b=null )
 ################################################################################
 function eq_binominal_theorem( $x=null, $y=null, $n=null )
 {
-	$this->debug->in();
-	if( is_null($x) ){ $this->debug->die( "Equation - Binomial Theorem - x not given", true ); }
-	if( is_null($y) ){ $this->debug->die( "Equation - Binomial Theorem - y not given", true ); }
+	if( is_null($x) ){ die( "Equation - Binomial Theorem - x not given", true ); }
+	if( is_null($y) ){ die( "Equation - Binomial Theorem - y not given", true ); }
 
 	$c = 0;
 	for( $i=0; $i<=$k; $i++ ){
@@ -612,8 +539,6 @@ function eq_binominal_theorem( $x=null, $y=null, $n=null )
 		$c += ( $a * $b );
 		}
 
-	$this->debug->out();
-
 	return $c;
 }
 ################################################################################
@@ -621,8 +546,6 @@ function eq_binominal_theorem( $x=null, $y=null, $n=null )
 ################################################################################
 function eq_bith( $x=null, $y=null, $n=null )
 {
-	$this->debug->in();
-	$this->debug->out();
 	return $this->eq_binomial_theorem( $x, $y, $n );
 }
 ################################################################################
@@ -630,11 +553,9 @@ function eq_bith( $x=null, $y=null, $n=null )
 ################################################################################
 function do_prod1( $a=null, $m=null, $n=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Equation - Do Product #1 - a not given", true ); }
-	if( is_null($m) ){ $this->debug->die( "Equation - Do Product #1 - m not given", true ); }
-	if( is_null($n) ){ $this->debug->die( "Equation - Do Product #1 - n not given", true ); }
-	$this->debug->out();
+	if( is_null($a) ){ die( "Equation - Do Product #1 - a not given", true ); }
+	if( is_null($m) ){ die( "Equation - Do Product #1 - m not given", true ); }
+	if( is_null($n) ){ die( "Equation - Do Product #1 - n not given", true ); }
 
 	return ($a ** ($m + $n));
 }
@@ -643,11 +564,9 @@ function do_prod1( $a=null, $m=null, $n=null )
 ################################################################################
 function do_prod2( $a=null, $b=null, $m=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Equation - Do Product #2 - a not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "Equation - Do Product #2 - b not given", true ); }
-	if( is_null($m) ){ $this->debug->die( "Equation - Do Product #2 - m not given", true ); }
-	$this->debug->out();
+	if( is_null($a) ){ die( "Equation - Do Product #2 - a not given", true ); }
+	if( is_null($b) ){ die( "Equation - Do Product #2 - b not given", true ); }
+	if( is_null($m) ){ die( "Equation - Do Product #2 - m not given", true ); }
 
 	return ($a * $b) ** $m;
 }
@@ -656,11 +575,9 @@ function do_prod2( $a=null, $b=null, $m=null )
 ################################################################################
 function do_quot1( $a=null, $m=null, $n=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Equation - Do Quotient #1 - a not given", true ); }
-	if( is_null($m) ){ $this->debug->die( "Equation - Do Quotient #1 - m not given", true ); }
-	if( is_null($n) ){ $this->debug->die( "Equation - Do Quotient #1 - n not given", true ); }
-	$this->debug->out();
+	if( is_null($a) ){ die( "Equation - Do Quotient #1 - a not given", true ); }
+	if( is_null($m) ){ die( "Equation - Do Quotient #1 - m not given", true ); }
+	if( is_null($n) ){ die( "Equation - Do Quotient #1 - n not given", true ); }
 
 	return ($a ** ($m - $n));
 }
@@ -669,13 +586,11 @@ function do_quot1( $a=null, $m=null, $n=null )
 ################################################################################
 function do_quot2( $a=null, $b=null, $m=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Equation - Do Quotient #2 - a not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "Equation - Do Quotient #2 - b not given", true ); }
-	if( is_null($m) ){ $this->debug->die( "Equation - Do Quotient #2 - m not given", true ); }
+	if( is_null($a) ){ die( "Equation - Do Quotient #2 - a not given", true ); }
+	if( is_null($b) ){ die( "Equation - Do Quotient #2 - b not given", true ); }
+	if( is_null($m) ){ die( "Equation - Do Quotient #2 - m not given", true ); }
 
 	if( abs($b) > 0.0 ){ return ($a / $b) ** $m; }
-	$this->debug->out();
 
 	return false;
 }
@@ -684,11 +599,9 @@ function do_quot2( $a=null, $b=null, $m=null )
 ################################################################################
 function do_pop( $a=null, $m=null, $p=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Equation - Do Power of Power - a not given", true ); }
-	if( is_null($m) ){ $this->debug->die( "Equation - Do Power of Power - m not given", true ); }
-	if( is_null($p) ){ $this->debug->die( "Equation - Do Power of Power - p not given", true ); }
-	$this->debug->out();
+	if( is_null($a) ){ die( "Equation - Do Power of Power - a not given", true ); }
+	if( is_null($m) ){ die( "Equation - Do Power of Power - m not given", true ); }
+	if( is_null($p) ){ die( "Equation - Do Power of Power - p not given", true ); }
 
 	return $a ** ($m * $p);
 }
@@ -697,10 +610,8 @@ function do_pop( $a=null, $m=null, $p=null )
 ################################################################################
 function do_nexp( $a=null, $n=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Equation - Do Negative Exponents - a not given", true ); }
-	if( is_null($n) ){ $this->debug->die( "Equation - Do Negative Exponents - n not given", true ); }
-	$this->debug->out();
+	if( is_null($a) ){ die( "Equation - Do Negative Exponents - a not given", true ); }
+	if( is_null($n) ){ die( "Equation - Do Negative Exponents - n not given", true ); }
 
 	return (1.0 / $a) ** $n;
 }
@@ -709,11 +620,9 @@ function do_nexp( $a=null, $n=null )
 ################################################################################
 function do_fexp( $a=null, $p=null, $q=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Equation - Do Fractional Exponents - a not given", true ); }
-	if( is_null($p) ){ $this->debug->die( "Equation - Do Fractional Exponents - p not given", true ); }
-	if( is_null($q) ){ $this->debug->die( "Equation - Do Fractional Exponents - q not given", true ); }
-	$this->debug->out();
+	if( is_null($a) ){ die( "Equation - Do Fractional Exponents - a not given", true ); }
+	if( is_null($p) ){ die( "Equation - Do Fractional Exponents - p not given", true ); }
+	if( is_null($q) ){ die( "Equation - Do Fractional Exponents - q not given", true ); }
 
 	return ($a ** $p) ** (1.0 / $q);
 }
@@ -722,9 +631,7 @@ function do_fexp( $a=null, $p=null, $q=null )
 ################################################################################
 function magic_square1( $n=null )
 {
-	$this->debug->in();
-	if( is_null($n) ){ $this->debug->die( "Equation - Magic Square #1 - n not given", true ); }
-	$this->debug->out();
+	if( is_null($n) ){ die( "Equation - Magic Square #1 - n not given", true ); }
 
 	return (0.5 * $n)(($n * $n) + 1.0);
 }
@@ -733,11 +640,9 @@ function magic_square1( $n=null )
 ################################################################################
 function magic_square2( $n=null, $a=null, $d=null )
 {
-	$this->debug->in();
-	if( is_null($n) ){ $this->debug->die( "Equation - Magic Square #2 - n not given", true ); }
-	if( is_null($a) ){ $this->debug->die( "Equation - Magic Square #2 - a not given", true ); }
-	if( is_null($d) ){ $this->debug->die( "Equation - Magic Square #2 - d not given", true ); }
-	$this->debug->out();
+	if( is_null($n) ){ die( "Equation - Magic Square #2 - n not given", true ); }
+	if( is_null($a) ){ die( "Equation - Magic Square #2 - a not given", true ); }
+	if( is_null($d) ){ die( "Equation - Magic Square #2 - d not given", true ); }
 
 	return ($n * 0.5)(($a * 2.0) + ($d * (($n * $n) - 1.0)));
 }
@@ -746,13 +651,9 @@ function magic_square2( $n=null, $a=null, $d=null )
 ################################################################################
 function d2r( $n=null )
 {
-	$this->debug->in();
-
-	if( is_null($n) ){ $this->debug->die( "Degrees to Radians - n not given", true ); }
+	if( is_null($n) ){ die( "Degrees to Radians - n not given", true ); }
 	if( preg_match("/(\.|\d)+d/", $n) || is_numeric($n) ){ $n = deg2rad( substr($n, 0, -1) ); }
 	if( preg_match("/(\.|\d)+r/", $n) ){ $n = substr( $n, 0, -1 ); }
-
-	$this->debug->out();
 
 	return $n;
 }
@@ -763,13 +664,11 @@ function d2r( $n=null )
 ################################################################################
 function law_cos( $b=null, $c=null, $a=null )
 {
-	$this->debug->in();
-	if( is_null($b) ){ $this->debug->die( "Law of Cosine - b not given", true ); }
-	if( is_null($c) ){ $this->debug->die( "Law of Cosine - c not given", true ); }
-	if( is_null($a) ){ $this->debug->die( "Law of Cosine - a not given", true ); }
+	if( is_null($b) ){ die( "Law of Cosine - b not given", true ); }
+	if( is_null($c) ){ die( "Law of Cosine - c not given", true ); }
+	if( is_null($a) ){ die( "Law of Cosine - a not given", true ); }
 
 	$a = $this->d2r( $a );
-	$this->debug->out();
 
 	return (($b * $b) + ($c * $c) - (2.0 * $b * $c * cos($a)));
 }
@@ -778,11 +677,10 @@ function law_cos( $b=null, $c=null, $a=null )
 ################################################################################
 function heron_formula( $s=null, $a=null, $b=null, $c=null )
 {
-	$this->debug->in();
-	if( is_null($s) ){ $this->debug->die( "Heron's formula - s not given", true ); }
-	if( is_null($a) ){ $this->debug->die( "Heron's formula - a not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "Heron's formula - b not given", true ); }
-	if( is_null($c) ){ $this->debug->die( "Heron's formula - c not given", true ); }
+	if( is_null($s) ){ die( "Heron's formula - s not given", true ); }
+	if( is_null($a) ){ die( "Heron's formula - a not given", true ); }
+	if( is_null($b) ){ die( "Heron's formula - b not given", true ); }
+	if( is_null($c) ){ die( "Heron's formula - c not given", true ); }
 
 	return sqrt($s * ($s - $a) * ($s - $b) * ($s - $c));
 }
@@ -791,10 +689,8 @@ function heron_formula( $s=null, $a=null, $b=null, $c=null )
 ################################################################################
 function sina_b( $a=null, $b=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "sin(a+b) - a not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "sin(a+b) - b not given", true ); }
-	$this->debug->out();
+	if( is_null($a) ){ die( "sin(a+b) - a not given", true ); }
+	if( is_null($b) ){ die( "sin(a+b) - b not given", true ); }
 
 	return ((sin($a) * cos($b)) + (sin($b) * cos($a)));
 }
@@ -803,10 +699,8 @@ function sina_b( $a=null, $b=null )
 ################################################################################
 function cosa_b( $a=null, $b=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "cos(a+b) - a not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "cos(a+b) - b not given", true ); }
-	$this->debug->out();
+	if( is_null($a) ){ die( "cos(a+b) - a not given", true ); }
+	if( is_null($b) ){ die( "cos(a+b) - b not given", true ); }
 
 	return ((cos($a) * cos($b)) - (sin($a) * sin($b)));
 }
@@ -815,15 +709,13 @@ function cosa_b( $a=null, $b=null )
 ################################################################################
 function tana_b( $a=null, $b=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "tan(a+b) - a not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "tan(a+b) - b not given", true ); }
+	if( is_null($a) ){ die( "tan(a+b) - a not given", true ); }
+	if( is_null($b) ){ die( "tan(a+b) - b not given", true ); }
 
 	$t1 = tan($a) - tan($b);
 	$t2 = 1 + (tab($a) * tab($b));
 
 	if( abs($t2) > 0.0 ){ return $t1 / $t2; }
-	$this->debug->out();
 
 	return false;
 }
@@ -832,9 +724,7 @@ function tana_b( $a=null, $b=null )
 ################################################################################
 function sin2a( $a=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "sin(2a) - a not given", true ); }
-	$this->debug->out();
+	if( is_null($a) ){ die( "sin(2a) - a not given", true ); }
 
 	return (2.0 * sin($a) * cos($a));
 }
@@ -843,9 +733,7 @@ function sin2a( $a=null )
 ################################################################################
 function cos2a( $a=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "cos(2a) - a not given", true ); }
-	$this->debug->out();
+	if( is_null($a) ){ die( "cos(2a) - a not given", true ); }
 
 	return ((cos(a) * cos(a)) - (sin(a) * sin(a)));
 }
@@ -854,13 +742,11 @@ function cos2a( $a=null )
 ################################################################################
 function tan2a( $a=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "tan(2a) - a not given", true ); }
+	if( is_null($a) ){ die( "tan(2a) - a not given", true ); }
 
 	$t1 = 2.0 * tan($a);
 	$t2 = 1.0 - (tan($a) * tan($a));
 	if( abs($t2) > 0.0 ){ return $t1 / $t2; }
-	$this->debug->out();
 
 	return false;
 }
@@ -870,9 +756,7 @@ function tan2a( $a=null )
 ################################################################################
 function sum_angles( $n=null )
 {
-	$this->debug->in();
-	if( is_null($n) ){ $this->debug->die( "Sum of inerior angles of a polygon - n not given", true ); }
-	$this->debug->out();
+	if( is_null($n) ){ die( "Sum of inerior angles of a polygon - n not given", true ); }
 
 	return ($n * 2.0) * 180;
 }
@@ -881,10 +765,9 @@ function sum_angles( $n=null )
 ################################################################################
 function p_t( $a=null, $b=null, $c=null )
 {
-	$this->debug->in();
-	if( is_null($a) ){ $this->debug->die( "Pythagorean theorem - a not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "Pythagorean theorem - b not given", true ); }
-	if( is_null($c) ){ $this->debug->die( "Pythagorean theorem - c not given", true ); }
+	if( is_null($a) ){ die( "Pythagorean theorem - a not given", true ); }
+	if( is_null($b) ){ die( "Pythagorean theorem - b not given", true ); }
+	if( is_null($c) ){ die( "Pythagorean theorem - c not given", true ); }
 
 	if( $a >= $b ){
 		$s1 = $b;
@@ -898,7 +781,6 @@ function p_t( $a=null, $b=null, $c=null )
 			}
 
 	if( (($s1 * $s1) + ($s2 * $s2)) == ($s3 * $s3) ){ return true; }
-	$this->debug->out();
 
 	return false;
 }
@@ -907,12 +789,10 @@ function p_t( $a=null, $b=null, $c=null )
 ################################################################################
 function dist( $x1=null, $x2=null, $y1=null, $y2=null )
 {
-	$this->debug->in();
-	if( is_null($x1) ){ $this->debug->die( "Distance - x1 not given", true ); }
-	if( is_null($x2) ){ $this->debug->die( "Distance - x2 not given", true ); }
-	if( is_null($y1) ){ $this->debug->die( "Distance - y1 not given", true ); }
-	if( is_null($y2) ){ $this->debug->die( "Distance - y2 not given", true ); }
-	$this->debug->out();
+	if( is_null($x1) ){ die( "Distance - x1 not given", true ); }
+	if( is_null($x2) ){ die( "Distance - x2 not given", true ); }
+	if( is_null($y1) ){ die( "Distance - y1 not given", true ); }
+	if( is_null($y2) ){ die( "Distance - y2 not given", true ); }
 
 	return sqrt((($x1 - $x2) * ($x1 - $x2)) + (($y1 - $y2) * ($y1 - $y2)));
 }
@@ -921,12 +801,10 @@ function dist( $x1=null, $x2=null, $y1=null, $y2=null )
 ################################################################################
 function midpoint( $x1=null, $x2=null, $y1=null, $y2=null )
 {
-	$this->debug->in();
-	if( is_null($x1) ){ $this->debug->die( "Distance - x1 not given", true ); }
-	if( is_null($x2) ){ $this->debug->die( "Distance - x2 not given", true ); }
-	if( is_null($y1) ){ $this->debug->die( "Distance - y1 not given", true ); }
-	if( is_null($y2) ){ $this->debug->die( "Distance - y2 not given", true ); }
-	$this->debug->out();
+	if( is_null($x1) ){ die( "Distance - x1 not given", true ); }
+	if( is_null($x2) ){ die( "Distance - x2 not given", true ); }
+	if( is_null($y1) ){ die( "Distance - y1 not given", true ); }
+	if( is_null($y2) ){ die( "Distance - y2 not given", true ); }
 
 	return array((($x1 + $x2) / 2.0), (($y1 + $y2) / 2.0) );
 }
@@ -935,11 +813,9 @@ function midpoint( $x1=null, $x2=null, $y1=null, $y2=null )
 ################################################################################
 function slope( $x=null, $m=null, $b=null )
 {
-	$this->debug->in();
-	if( is_null($x) ){ $this->debug->die( "Distance - x not given", true ); }
-	if( is_null($b) ){ $this->debug->die( "Distance - b not given", true ); }
-	if( is_null($m) ){ $this->debug->die( "Distance - m not given", true ); }
-	$this->debug->out();
+	if( is_null($x) ){ die( "Distance - x not given", true ); }
+	if( is_null($b) ){ die( "Distance - b not given", true ); }
+	if( is_null($m) ){ die( "Distance - m not given", true ); }
 
 	return (($m * $x) + $b);
 }
@@ -956,15 +832,13 @@ function slope( $x=null, $m=null, $b=null )
 ################################################################################
 function eq_plane( $d )
 {
-	$this->debug->in();
 	foreach( $d as $k=>$v ){
-		if( is_null($v) ){ $this->debug->die( "Distance - $k not given", true ); }
+		if( is_null($v) ){ die( "Distance - $k not given", true ); }
 		}
 
 	$x = ( $d['nx'] * ($d['sx'] - $d['ex']) ) + $d['dx'];
 	$y = ( $d['ny'] * ($d['sy'] - $d['ey']) ) + $d['dy'];
 	$z = ( $d['nz'] * ($d['sz'] - $d['ez']) ) + $d['dz'];
-	$this->debug->out();
 
 	return array( $x, $y, $z );
 }
@@ -982,9 +856,8 @@ function eq_plane( $d )
 ################################################################################
 function eq_circle( $d )
 {
-	$this->debug->in();
 	foreach( $d as $k=>$v ){
-		if( is_null($v) ){ $this->debug->die( "Distance - $k not given" ); }
+		if( is_null($v) ){ die( "Distance - $k not given" ); }
 		}
 
 	if( !is_null($d['sx']) ){
@@ -1002,8 +875,6 @@ function eq_circle( $d )
 		}
 		else { $z = null; }
 
-	$this->debug->out();
-
 	return array( $x, $y, $z );
 }
 ################################################################################
@@ -1019,15 +890,13 @@ function eq_circle( $d )
 ################################################################################
 function eq_sphere( $d )
 {
-	$this->debug->in();
 	foreach( $d as $k=>$v ){
-		if( is_null($v) ){ $this->debug->die( "Distance - $k not given", true ); }
+		if( is_null($v) ){ die( "Distance - $k not given", true ); }
 		}
 
 	$x = (($d['sx'] - $d['ex']) * ($d['sx'] - $d['ex'])) + $d['dx'];
 	$y = (($d['sy'] - $d['ey']) * ($d['sy'] - $d['ey'])) + $d['dy'];
 	$z = (($d['sz'] - $d['ez']) * ($d['sz'] - $d['ez'])) + $d['dz'];
-	$this->debug->out();
 
 	return array( $x, $y, $z );
 }
@@ -1044,9 +913,8 @@ function eq_sphere( $d )
 ################################################################################
 function eq_ellipse( $d )
 {
-	$this->debug->in();
 	foreach( $d as $k=>$v ){
-		if( is_null($v) ){ $this->debug->die( "Distance - $k not given" ); }
+		if( is_null($v) ){ die( "Distance - $k not given" ); }
 		}
 
 	if( !is_null($d['x']) ){
@@ -1067,8 +935,6 @@ function eq_ellipse( $d )
 		}
 		else { $z = null; }
 
-	$this->debug->out();
-
 	return array( $x, $y, $z );
 }
 ################################################################################
@@ -1076,10 +942,9 @@ function eq_ellipse( $d )
 ################################################################################
 function marks_square( $x=null, $y=null, $n=null )
 {
-	$this->debug->in();
-	if( is_null($x) ){ $this->debug->die( "Mark's Square - x not given", true ); }
-	if( is_null($y) ){ $this->debug->die( "Mark's Square - y not given", true ); }
-	if( is_null($n) ){ $this->debug->die( "Mark's Square - n not given", true ); }
+	if( is_null($x) ){ die( "Mark's Square - x not given", true ); }
+	if( is_null($y) ){ die( "Mark's Square - y not given", true ); }
+	if( is_null($n) ){ die( "Mark's Square - n not given", true ); }
 
 	$b = [];
 #
@@ -1091,62 +956,7 @@ function marks_square( $x=null, $y=null, $n=null )
 			}
 		}
 
-	$this->debug->out();
-
 	return $b;
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
-	return true;
 }
 ################################################################################
 #	is_even(). Determines if a number is even or odd.
@@ -1154,11 +964,8 @@ function dump( $title=null, $arg=null )
 ################################################################################
 function is_even( $num=null )
 {
-	$this->debug->in();
-
 	if( is_null($num) ){ return -1; }
 
-	$this->debug->out();
 	if( abs($num) % 2 > 0 ){ return false; }
 		else { return true; }
 }
@@ -1168,14 +975,11 @@ function is_even( $num=null )
 ################################################################################
 function collatz( $num=null )
 {
-	$this->debug->in();
-
 	if( is_null($num) ){ return -1; }
 
 	if( ($num % 2) > 0 ){ $num = $num * 3 + 1; }
 		else { $num = ($num / 2); }
 
-	$this->debug->out();
 	return $num;
 }
 ################################################################################
@@ -1184,8 +988,6 @@ function collatz( $num=null )
 ################################################################################
 function hailstones( $num=null )
 {
-	$this->debug->in();
-
 	if( is_null($num) ){ return -1; }
 		else if( $num < 0 ){ return -1; }
 
@@ -1204,7 +1006,6 @@ function hailstones( $num=null )
 	if( $num === 1 ){ $a[] = 1; }
 		else { $a[] = 0; }
 
-	$this->debug->out();
 	return array( $a, $b );
 }
 

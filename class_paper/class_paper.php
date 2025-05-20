@@ -23,13 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -107,7 +100,6 @@
 ################################################################################
 class class_paper
 {
-	public $debug = false;
 	private	$papers = [];
 
 ################################################################################
@@ -144,9 +136,8 @@ class class_paper
 #		there might be changes to these sizes. Thus, the tables are put herein
 #		so you can change them easily.
 ################################################################################
-function __construct( $debug=false )
+function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['paper']) ){
 		return $this->init( func_get_args() );
 		}
@@ -161,8 +152,6 @@ function __construct( $debug=false )
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -779,8 +768,6 @@ EOT;
 			}
 		}
 
-	$this->debug->out();
-
 	return true;
 }
 ################################################################################
@@ -788,8 +775,6 @@ EOT;
 ################################################################################
 public function english( $e )
 {
-	$this->debug->in();
-
 	if( preg_match("/(mi|mile)/i", $e) ){ $ret = 5280 * 12; }					#	Mile
 		else if( preg_match("/in|inch)/i", $e) ){ $ret = 1; }					#	Inch
 		else if( preg_match("/(yd|yard)/i", $e) ){ $ret = 36; }					#	Yard
@@ -807,8 +792,6 @@ public function english( $e )
 			die( $out );
 			}
 
-	$this->debug->out();
-
 	return false;
 }
 ################################################################################
@@ -816,8 +799,6 @@ public function english( $e )
 ################################################################################
 public function other( $o )
 {
-	$this->debug->in();
-
 	if( preg_match("/angstrom/i", $o) ){ $ret = 10**-12 * 100; }			#	Angstrom
 		else if( preg_match("/micron/i", $o) ){ $ret = 10**-6; }			#	Micron
 		else if( preg_match("/x\sunit/i", $o) ){ $ret = 10**-12; }			#	X Unit
@@ -833,8 +814,6 @@ public function other( $o )
 			die( $out );
 			}
 
-	$this->debug->out();
-
 	return false;
 }
 ################################################################################
@@ -842,8 +821,6 @@ public function other( $o )
 ################################################################################
 public function metric( $m )
 {
-	$this->debug->in();
-
 	if( preg_match("/(da|deca)/i", $m) ){ $exp = 1; }				#	Deca
 		else if( preg_match("/(hm|hecto)/i", $m) ){ $exp = 2; }		#	Hecto
 		else if( preg_match("/(km|kilo)/i", $m) ){ $exp = 3; }		#	Kilo
@@ -880,10 +857,7 @@ public function metric( $m )
 #
 	$exp += 3;
 
-	$this->debug->out();
-
 	return 10**$exp;
-
 }
 ################################################################################
 #	name(). Send a paper's name - get the array back.
@@ -892,8 +866,6 @@ public function metric( $m )
 ################################################################################
 public function name( $n )
 {
-	$this->debug->in();
-
 	$paper = $this->papers;
 #
 #	First, make an array to hold everything.
@@ -931,11 +903,8 @@ public function name( $n )
 #	Did we find something? Then send it back. Otherwise - we send FALSE.
 #
 	if( count($info) < 1 ){
-		$this->debug->out();
 		return false;
 		}
-
-	$this->debug->out();
 
 	return $info;
 }
@@ -947,8 +916,6 @@ public function name( $n )
 ################################################################################
 public function sizes( $s )
 {
-	$this->debug->in();
-
 	$paper = $this->papers;
 
 	$args = func_get_args();
@@ -985,8 +952,6 @@ public function sizes( $s )
 			}
 		}
 
-	$this->debug->out();
-
 	return false;
 }
 ################################################################################
@@ -994,8 +959,6 @@ public function sizes( $s )
 ################################################################################
 public function dumpfile( $file=null )
 {
-	$this->debug->in();
-
 	if( is_null($file) ){ $fp = fopen( "./papers.dat", "w" ); }
 		else { $fp = fopen( $file, "w" ); }
 
@@ -1011,61 +974,6 @@ public function dumpfile( $file=null )
 
 	fclose( $fp );
 
-	$this->debug->out();
-
-	return true;
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
 	return true;
 }
 
@@ -1075,16 +983,5 @@ function dump( $title=null, $arg=null )
 	if( !isset($GLOBALS['classes']['paper']) ){
 		$GLOBALS['classes']['paper'] = new class_paper();
 		}
-
-	$a = new class_paper(true);
-	$out = $a->sizes(8.5, 11.0);
-	if( is_array($out) ){ print_r( $out ); }
-		else { echo "GOT FALSE!\n"; }
-
-	$out = $a->name("postcard");
-	if( is_array($out) ){ print_r( $out ); }
-		else { echo "GOT FALSE!\n"; }
-
-	$a->dumpfile();
 
 ?>

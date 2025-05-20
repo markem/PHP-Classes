@@ -24,13 +24,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -84,7 +77,6 @@
 class class_pr
 {
 	public $pipes = null;
-	private	$debug = null;
 	private	$files = null;
 	private $opts = null;
 	private $circuit = null;
@@ -94,7 +86,6 @@ class class_pr
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['pr']) ){
 		return $this->init( func_get_args() );
 		}
@@ -106,11 +97,6 @@ function __construct()
 function init()
 {
 	global $fp;
-
-	$this->cf = $GLOBALS['classes']['files'];
-	$this->debug = $GLOBALS['classes']['debug'];
-
-	$this->debug->in();
 
 	$fp = null;
 
@@ -134,7 +120,6 @@ function init()
 		2 => array("file", "$this->cwd/stderr.txt", "w"),  // stderr is a pipe that the child will write to
 		);
 
-	$this->debug->out();
 	return true;
 }
 #################################################################################
@@ -159,10 +144,16 @@ function set_opts( $opts=null )
 #################################################################################
 function pr( $var=null, $title=null, $ary=false )
 {
-	$this->debug->in();
 	static $tabs = 0;
 	static $spaces = " ";
 	static $line = "";
+#
+#	If $var is null - then the user probably wants a backtrace.
+#
+	if( is_null($var) && ($tabs < 1) ){
+		$var = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT);
+		$title = "Debug Backtrace";
+		}
 
 	$spaces = str_repeat( " ", $this->opts['spaces'] );
 #
@@ -170,7 +161,7 @@ function pr( $var=null, $title=null, $ary=false )
 #	the TITLE - THEN blank it out.
 #
 	if( $this->opts['arylen'] === false ){ $arylen = "(1)"; }
-		else if( is_array($var) ){ $arylen = "(" . (count($var) - 1) . ")"; }
+		else if( is_array($var) ){ $arylen = "(" . count($var) . ")"; }
 
 	if( ($tabs > 0) && ($this->opts['title'] === false) ){
 		$title = "";
@@ -293,7 +284,6 @@ function pr( $var=null, $title=null, $ary=false )
 			echo "$type$title $kind\n";
 			}
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################

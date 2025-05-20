@@ -23,14 +23,7 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		include_once( "$lib/class_files.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
+	include_once( "$lib/class_files.php" );
 ################################################################################
 #BEGIN DOC
 #
@@ -77,7 +70,6 @@
 class class_email
 {
 	private $cf = null;
-	private $debug = null;
 	private $mboxes = null;
 	private $num_mboxes = null;
 	private $temp_dir = null;
@@ -88,7 +80,6 @@ class class_email
 function __construct()
 {
 	$this->cf = $GLOBALS['classes']['files'];
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['email']) ){
 		return $this->init( func_get_args() );
 		}
@@ -100,8 +91,6 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -110,18 +99,16 @@ function init()
 	$this->temp_dir = "c:/temp/mail";
 
 	$this->mboxes = array();
-	$this->debug->out();
 }
 ################################################################################
 #	load(). Load in a mail file and then break it up into messages
 ################################################################################
 function load( $file )
 {
-	$this->debug->in();
 	$c = 0;
 
 	if( !file_exists($file) ){
-		$this->debug->msg( "DIE : The file does NOT exist\nFile : $file" );
+		echo "DIE : The file does NOT exist\nFile : $file\n";
 		}
 
 	$a = file_get_contents( $file );
@@ -145,8 +132,6 @@ function load( $file )
 	if( strlen($msg) > 0 ){ $mboxes[] = $msg; }
 	$this->mboxes = $mboxes;
 	$this->num_mboxes = count( $mboxes );
-
-	$this->debug->out();
 }
 ################################################################################
 #	get(). Return all of the messages in the mbox
@@ -155,19 +140,14 @@ function load( $file )
 ################################################################################
 function get( $num=null )
 {
-	$this->debug->in();
-
   if( !is_null($num) ){
 	  if( ($num < 0) || ($num >= $this->num_mboxes) ){
-		  $this->debug->out();
 		  return false;
 		  }
 
-	  $this->debug->out();
 	  return $this->mboxes[intval($num)];
 	  }
 
-  $this->debug->out();
   return $this->mboxes;
 }
 ################################################################################
@@ -175,14 +155,12 @@ function get( $num=null )
 ################################################################################
 function sep( $num=null )
 {
-	$this->debug->in();
-
 	if( is_null($num) ){
-		$this->debug->msg( "DIE : No message number given" );
+		echo "DIE : No message number given\n";
 		}
 
 	if( ($num < 0) || ($num >= $this->num_mboxes) ){
-		$this->debug->msg( "DIE : Number given is wrong. NUM = $num" );
+		echo "DIE : Number given is wrong. NUM = $num\n";
 		}
 
 	$cmd = "";
@@ -419,7 +397,6 @@ function sep( $num=null )
 #
 #	Because Received is so complex - we are not going to do anything about it.
 #	$this->dump( "Message is = ", $msg );
-	$this->debug->out();
 	return $msg;
 }
 ################################################################################
@@ -687,62 +664,6 @@ function put( $msg )
 {
 	$this->mboxes = array();
 	$this->mboxes[] = $msg;
-	return true;
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "\n--->Entering DUMP\n";
-
-	$opts = array( "function", "line", "file", "class", "object", "type", "args" );
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#	print_r( $dbg ); echo "\n"; exit;
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
 	return true;
 }
 

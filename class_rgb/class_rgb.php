@@ -23,13 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 	include_once( "$lib/class_files.php" );
 
 ################################################################################
@@ -77,7 +70,6 @@
 ################################################################################
 class class_rgb
 {
-	private $debug = null;
 	private $colors = null;
 	private $transparent = null;
 	private $gd = null;
@@ -89,7 +81,6 @@ class class_rgb
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['gd']) ){
 		return $this->init( func_get_args() );
 		}
@@ -100,8 +91,6 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -109,7 +98,6 @@ function init()
 
 	$this->cf = new class_files();
 
-	$this->debug->out();
 	return true;
 }
 ################################################################################
@@ -117,16 +105,12 @@ function init()
 ################################################################################
 function get_ARGB( $c=null )
 {
-	$this->debug->in();
-
 	if( is_null($c) ){ return false; }
 
 	$a = ($c >> 24) & 0xff;
 	$r = ($c >> 16) & 0xff;
 	$g = ($c >> 8) & 0xff;
 	$b = ($c & 0xff);
-
-	$this->debug->out();
 
 	return array( $a, $r, $g, $b );
 }
@@ -135,11 +119,7 @@ function get_ARGB( $c=null )
 ################################################################################
 function get_RGB( $c=null )
 {
-	$this->debug->in();
-
 	list( $a, $r, $g, $b ) = $this->get_ARGB( $c );
-
-	$this->debug->out();
 
 	return array( $r, $g, $b );
 }
@@ -148,9 +128,6 @@ function get_RGB( $c=null )
 ################################################################################
 function put_RGB( $r=null, $g=null, $b=null )
 {
-	$this->debug->in();
-	$this->debug->out();
-
 	return $this->put_ARGB( 0, $r, $g, $b );
 
 }
@@ -159,8 +136,6 @@ function put_RGB( $r=null, $g=null, $b=null )
 ################################################################################
 function put_ARGB( $a=null, $r=null, $g=null, $b=null )
 {
-	$this->debug->in();
-
 	if( is_null($a) || is_null($r) || is_null($g) || is_null($b) ){ return false; }
 
 	$a = (($a & 0xff) << 24);
@@ -168,7 +143,6 @@ function put_ARGB( $a=null, $r=null, $g=null, $b=null )
 	$g = (($g & 0xff) << 8);
 	$b = ($b & 0xff);
 
-	$this->debug->out();
 	return ($a + $r + $g + $b);
 }
 ################################################################################
@@ -176,8 +150,6 @@ function put_ARGB( $a=null, $r=null, $g=null, $b=null )
 ################################################################################
 function argb_DIFF( $c1=null, $c2=null )
 {
-	$this->debug->in();
-
 	if( is_null($c1) || is_null($c2) ){ return false; }
 
 	list( $c1a, $c1r, $c1g, $c1b ) = $this->get_ARGB( $c1 );
@@ -188,7 +160,6 @@ function argb_DIFF( $c1=null, $c2=null )
 	$dg = abs( $c1g - $c2g );
 	$db = abs( $c1b - $c2b );
 
-	$this->debug->out();
 	return array( $da, $dr, $dg, $db );
 }
 ################################################################################
@@ -196,8 +167,6 @@ function argb_DIFF( $c1=null, $c2=null )
 ################################################################################
 function unique_color( $gd=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) || !is_resource($gd) ){ return false; }
 
 	$w = imagesx( $gd );
@@ -224,13 +193,9 @@ function unique_color( $gd=null )
 				else { break; }
 			}
 
-		$this->debug->out();
-
 		$color = $this->put_ARGB( $a, $r, $g, $b );
 		return $color;
 		}
-
-	$this->debug->out();
 
 	return false;
 }
@@ -240,8 +205,6 @@ function unique_color( $gd=null )
 ################################################################################
 function is_trans( $gd=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) || !is_resource($gd) ){ die("***** ERROR : GD is NULL!\n"); }
 
 	$w = imagesx( $gd );
@@ -252,7 +215,6 @@ function is_trans( $gd=null )
 			$color = imagecolorat( $gd, $x, $y );
 			list( $a, $r, $g, $b ) = $this->get_ARGB( $color );
 			if( ($a > 0) && ($a < 128) ){
-				$this->debug->out();
 				return $color;
 				}
 			}
@@ -271,7 +233,6 @@ function is_trans( $gd=null )
 	$trans |= ($g & 0xff) << 8;
 	$trans |= ($b & 0xff);
 
-	$this->debug->out();
 	return $trans;
 }
 ################################################################################
@@ -279,10 +240,10 @@ function is_trans( $gd=null )
 ################################################################################
 function magic_wand( $gd=null, $color=null, $dif=null )
 {
-	if( is_null($gd) || !is_resource($gd) ){ $this->debug->t( "GD is NULL" ); }
-	if( is_null($color) ){ $this->debug->t( "COLOR is NULL" ); }
-	if( is_null($dif) ){ $this->debug->t( "DIF is NULL" ); }
-	if( $dif < 1 ){ $this->debug->t( "DIF is less than one" ); }
+	if( is_null($gd) || !is_resource($gd) ){ echo "GD is NULL\n"; }
+	if( is_null($color) ){ echo "COLOR is NULL\n"; }
+	if( is_null($dif) ){ echo "DIF is NULL\n"; }
+	if( $dif < 1 ){ echo "DIF is less than one\n"; }
 
 	$dif = abs( $dif ) + 1;
 	$trans = imagecolorat( $gd, 0, 0 );
@@ -328,9 +289,7 @@ function magic_wand( $gd=null, $color=null, $dif=null )
 ################################################################################
 function make_cube( $gd, $div=255 )
 {
-	$this->debug->in();
-
-	if( is_null($gd) || !is_resource($gd) ){ $this->debug->t( "GD is NULL" ); }
+	if( is_null($gd) || !is_resource($gd) ){ echo "GD is NULL\n"; }
 	if( abs($div) > 255 ){ $div = abs( $div % 255 ); }
 		else if( abs($div) < 1 ){ $div = 0; }
 
@@ -352,8 +311,6 @@ function make_cube( $gd, $div=255 )
 			}
 		}
 
-	$this->debug->out();
-
 	return $colors;
 }
 ################################################################################
@@ -364,9 +321,7 @@ function make_cube( $gd, $div=255 )
 ################################################################################
 function reduce_colors($gd=null, $div=255)
 {
-	$this->debug->in();
-
-	if( is_null($gd) || !is_resource($gd) ){ $this->debug->t( "GD is NULL" ); }
+	if( is_null($gd) || !is_resource($gd) ){ echo "GD is NULL\n"; }
 	if( abs($div) > 255 ){ $div = abs( $div % 255 ); }
 		else if( abs($div) < 1 ){ $div = 0; }
 
@@ -392,8 +347,6 @@ function reduce_colors($gd=null, $div=255)
 			}
 		}
 
-	$this->debug->out();
-
 	return array( $gd, $colors );
 }
 ################################################################################
@@ -401,8 +354,6 @@ function reduce_colors($gd=null, $div=255)
 ################################################################################
 function trim_left( $gd=null, $color=null, $trim=0 )
 {
-	$this->debug->in();
-
 	if( is_null($gd) || !is_resource($gd) || is_null($color) ){ return false; }
 
 	$w = imagesx( $gd );
@@ -424,8 +375,6 @@ function trim_left( $gd=null, $color=null, $trim=0 )
 	imagecopyresampled( $gd2, $gd, 0, 0, ($left-$trim), 0, $w, $h, $w, $h );
 	imagedestroy( $gd );
 
-	$this->debug->out();
-
 	return $gd2;
 }
 ################################################################################
@@ -433,8 +382,6 @@ function trim_left( $gd=null, $color=null, $trim=0 )
 ################################################################################
 function trim_right( $gd=null, $color=null, $trim=0 )
 {
-	$this->debug->in();
-
 	if( is_null($gd) || !is_resource($gd) || is_null($color) ){ return false; }
 
 	$w = imagesx( $gd );
@@ -456,8 +403,6 @@ function trim_right( $gd=null, $color=null, $trim=0 )
 	imagecopyresampled( $gd2, $gd, 0, 0, $trim, 0, $w, $h, $w, $h );
 	imagedestroy( $gd );
 
-	$this->debug->out();
-
 	return $gd2;
 }
 ################################################################################
@@ -465,8 +410,6 @@ function trim_right( $gd=null, $color=null, $trim=0 )
 ################################################################################
 function trim_top( $gd=null, $color=null, $trim=0 )
 {
-	$this->debug->in();
-
 	if( is_null($gd) || !is_resource($gd) || is_null($color) ){ return false; }
 
 	$w = imagesx( $gd );
@@ -488,8 +431,6 @@ function trim_top( $gd=null, $color=null, $trim=0 )
 	imagecopyresampled( $gd2, $gd, 0, 0, 0, ($top + $trim), $w, $h, $w, $h );
 	imagedestroy( $gd );
 
-	$this->debug->out();
-
 	return $gd2;
 }
 ################################################################################
@@ -497,8 +438,6 @@ function trim_top( $gd=null, $color=null, $trim=0 )
 ################################################################################
 function trim_bot( $gd=null, $color=null, $trim=0 )
 {
-	$this->debug->in();
-
 	if( is_null($gd) || !is_resource($gd) || is_null($color) ){ return false; }
 
 	$w = imagesx( $gd );
@@ -520,8 +459,6 @@ function trim_bot( $gd=null, $color=null, $trim=0 )
 	imagecopyresampled( $gd2, $gd, 0, 0, 0, $trim, $w, $h, $w, $h );
 	imagedestroy( $gd );
 
-	$this->debug->out();
-
 	return $gd2;
 }
 ################################################################################
@@ -529,8 +466,6 @@ function trim_bot( $gd=null, $color=null, $trim=0 )
 ################################################################################
 function trim_image( $gd=null, $color=null )
 {
-	$this->debug->in();
-
 	if( is_null($gd) || !is_resource($gd) || is_null($color) ){ return false; }
 
 	$gd = trim_left( $gd, $color );
@@ -538,7 +473,6 @@ function trim_image( $gd=null, $color=null )
 	$gd = trim_top( $gd, $color );
 	$gd = trim_bot( $gd, $color );
 
-	$this->debug->out();
 	return $gd;
 }
 ################################################################################
@@ -546,8 +480,6 @@ function trim_image( $gd=null, $color=null )
 ################################################################################
 function copy( $gd=null, $top=null, $left=null, $bot=null, $right=null, $opt=false )
 {
-	$this->debug->in();
-
 	if( !is_resource($gd) ){ return false; }
 	if( is_null($top) ){ return false; }
 	if( is_null($bot) ){ return false; }
@@ -564,7 +496,6 @@ function copy( $gd=null, $top=null, $left=null, $bot=null, $right=null, $opt=fal
 
 	if( $opt ){ imagedestroy( $gd ); }
 
-	$this->debug->out();
 	return $gd2;
 }
 ################################################################################
@@ -572,8 +503,6 @@ function copy( $gd=null, $top=null, $left=null, $bot=null, $right=null, $opt=fal
 ################################################################################
 function get_colors( $gd=null, $alpha=true )
 {
-	$this->debug->in();
-
 	if( is_null($gd) ){ $gd = $this->gd; }
 
 	$colors = [];
@@ -596,8 +525,6 @@ function get_colors( $gd=null, $alpha=true )
 			}
 		}
 
-	$this->debug->out();
-
 	return $colors;
 }
 ################################################################################
@@ -605,7 +532,6 @@ function get_colors( $gd=null, $alpha=true )
 ################################################################################
 function fc( $gd, $color )
 {
-	$this->debug->in();
 	$this->colors = [];
 	$this->gd = $gd;
 
@@ -623,7 +549,7 @@ function fc( $gd, $color )
 		}
 
 	$this->gd = null;
-	$this->debug->out();
+
 	return $this->colors;
 }
 ################################################################################
@@ -631,8 +557,6 @@ function fc( $gd, $color )
 ################################################################################
 function fca( $x, $y, $color )
 {
-	$this->debug->in();
-
 	$gd = $this->gd;
 	$w = imagesx( $gd );
 	$h = imagesy( $gd );
@@ -654,8 +578,6 @@ function fca( $x, $y, $color )
 				}
 			}
 		}
-
-	$this->debug->out();
 }
 ################################################################################
 #	split(). Break up an image into it's separate parts.
@@ -664,59 +586,6 @@ function split( $gd )
 {
 	$new_gd = [];
 	$new_gd[] = $gd;
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
-	return true;
 }
 
 }

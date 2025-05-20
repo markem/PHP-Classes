@@ -23,13 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -75,8 +68,6 @@
 ################################################################################
 class class_rnd
 {
-	private $debug_flag = false;
-
 	private $rnd = null;
 	private $seed = null;
 	private $mult = 5432109876.0;
@@ -86,13 +77,10 @@ class class_rnd
 #
 #	Arguments:
 #
-#		d(ebug)	:	Turn on debug
-#		s(ave)	:	Turn on saving the debug info
 #		seed	:	Send a seed over. Usage : seed=<Number>
 ################################################################################
 public function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['rnd']) ){
 		return $this->init( func_get_args() );
 		}
@@ -103,8 +91,6 @@ public function __construct()
 ################################################################################
 private function init()
 {
-	$this->debug->in();
-
 	$seed = $this->seed;
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
@@ -124,15 +110,12 @@ private function init()
 		else if( !is_null($seed) ){ $this->rnd = $seed; }
 
 	$this->seed = $seed;
-	$this->debug->out();
 }
 ################################################################################
 #	rand($seed). Get a pseudo random number.
 ################################################################################
 public function rand()
 {
-	$this->debug->in();
-
 	$this->rnd = abs( sin($this->rnd) * $this->mult );
 	$this->rnd = abs( log10($this->rnd) * $this->mult );
 	$this->rnd = abs( cos($this->rnd) * $this->mult );
@@ -140,7 +123,6 @@ public function rand()
 
 	$this->rnd = abs( $this->rnd - floor($this->rnd) );
 
-	$this->debug->out();
 	return $this->rnd;
 }
 ################################################################################
@@ -148,13 +130,10 @@ public function rand()
 ################################################################################
 public function rnd( $n=null, $low=null, $high=null )
 {
-	$this->debug->in();
-
 	if( is_null($low) ){ $low = PHP_INT_MIN; }
 	if( is_null($high) ){ $high = PHP_INT_MAX; }
 	if( is_null($n) || (!is_null($low) && !is_null($high)) ){ $n = 1; }
 
-	$this->debug->out();
 	return abs(random_int( $low, $high ) % $n);
 }
 ################################################################################
@@ -162,14 +141,11 @@ public function rnd( $n=null, $low=null, $high=null )
 ################################################################################
 public function irnd( $n1=null, $n2=null, $n3=null )
 {
-	$this->debug->in();
-
 	if( is_null($n1) ){ $n = abs(random_int( PHP_INT_MIN, PHP_INT_MAX ) ); }
 		else if( is_null($n2) ){ $n = abs(random_int( PHP_INT_MIN, PHP_INT_MAX ) % $n1 ); }
 		else if( is_null($n3) ){ $n = abs(random_int( PHP_INT_MIN, PHP_INT_MAX ) % $n1 ) + $n2; }
 		else { $n = (abs(random_int( PHP_INT_MIN, PHP_INT_MAX ) % $n1 ) + $n2) * $n3; }
 
-	$this->debug->out();
 	return $n;
 }
 ################################################################################
@@ -177,7 +153,6 @@ public function irnd( $n1=null, $n2=null, $n3=null )
 ################################################################################
 public function frnd( $n1=null, $n2=null )
 {
-	$this->debug->in();
 #
 #	Gives basic 0.0-1.0 number.
 #
@@ -200,7 +175,6 @@ public function frnd( $n1=null, $n2=null )
 				else { $n = $m + $n1; }
 			}
 
-	$this->debug->out();
 	return $n;
 }
 #
@@ -220,14 +194,11 @@ public function frnd( $n1=null, $n2=null )
 ################################################################################
 public function guid( $opt = false )
 {
-	$this->debug->in();
 	if( function_exists('com_create_guid') ){
 		if( $opt ){
-			$this->debug->out();
 			return com_create_guid();
 			}
 			else {
-				$this->debug->out();
 				return trim( com_create_guid(), '{}' );
 				}
 		}
@@ -245,66 +216,11 @@ public function guid( $opt = false )
 				. substr( $charid, 20, 12 )
 				. $right_curly;
 
-			$this->debug->out();
 			return $uuid;
 			}
 
-	$this->debug->out();
 }
 
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
-	return true;
 }
 
 	if( !isset($GLOBALS['classes']) ){ global $classes; }

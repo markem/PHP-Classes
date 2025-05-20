@@ -27,13 +27,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -432,7 +425,6 @@ public function __destruct()
 ################################################################################
 function dump( $title=null, $arg=null )
 {
-	$this->debug->in();
 	echo "--->Entering DUMP\n";
 
 	if( is_null($title) ){ return false; }
@@ -476,7 +468,6 @@ function dump( $title=null, $arg=null )
 		}
 
 	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
 	return true;
 }
 

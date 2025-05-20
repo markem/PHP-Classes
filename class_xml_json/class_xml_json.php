@@ -23,13 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -64,7 +57,6 @@
 ################################################################################
 class xml_json
 {
-	public $debug_flag = false;
 	public $xml_exception = null;
 	public $xml_dir = null;
 	public $xml_fname = null;
@@ -73,12 +65,8 @@ class xml_json
 ################################################################################
 #	__construct(). Make the class.
 ################################################################################
-function __construct( $debug=false )
+function __construct()
 {
-	$this->debug_flag = $debug;
-
-	$this->debug( ">" );
-	$this->debug( "<" );
 }
 ################################################################################
 #	getJSON().  A function to get all of the HTML JSON code.
@@ -87,19 +75,17 @@ function __construct( $debug=false )
 ################################################################################
 function getJSON( $json='json' )
 {
-	$this->debug( ">" );
-
-//
-//	grab JSON data if there...
-//
+#
+#	grab JSON data if there...
+#
 	$params = null;
 	if( isset($_REQUEST[$json]) ){
 		$params =  json_decode( stripslashes($_REQUEST[$json]) );
 		}
 		else {
-//
-//	<-- Have to jump through hoops to get PUT data $raw  = '';
-//
+#
+#	<-- Have to jump through hoops to get PUT data $raw  = '';
+#
 			$raw = "";
 			$httpContent = fopen( 'php://input', 'r' );
 			while( $kb = fread($httpContent, 1024) ){ $raw .= $kb; }
@@ -120,8 +106,6 @@ function getJSON( $json='json' )
 
 	if( is_null($params) ){ $params = array(); }
 
-	$this->debug( "<" );
-
 	return $params;
 }
 ################################################################################
@@ -129,8 +113,6 @@ function getJSON( $json='json' )
 ################################################################################
 function hex_json( $array )
 {
-	$this->debug( ">" );
-
 	foreach( $array as $k=>$v ){
 		if( is_array($v) ){ $array[$k] = hex_json($v); }
 			else {
@@ -140,8 +122,6 @@ function hex_json( $array )
 				}
 		}
 
-	$this->debug( "<" );
-
 	return json_encode( $array );
 }
 ################################################################################
@@ -149,8 +129,6 @@ function hex_json( $array )
 ################################################################################
 function unhex_json( $json )
 {
-	$this->debug( ">" );
-
 	static $first = true;
 	if( $first ){ $array = json_decode( $json ); $first = false; }
 
@@ -158,8 +136,6 @@ function unhex_json( $json )
 		if( is_array($v) ){ $array[$k] = unhex_json($v); }
 			else { $array[$k] = hex2bin( substr($v, 2, strlen($v)) ); }
 		}
-
-	$this->debug( "<" );
 
 	return $array;
 }
@@ -172,8 +148,6 @@ function unhex_json( $json )
 ################################################################################
 function key_encode( $array )
 {
-	$this->debug( ">" );
-
 	foreach( $array as $k=>$v ){
 		if( is_array($v) ){ $array[$k] = key_encode( $v ); }
 		$hex = hin2hex( $k );
@@ -181,8 +155,6 @@ function key_encode( $array )
 		$array[$hex] = $v;
 		unset( $array[$k] );
 		}
-
-	$this->debug( "<" );
 
 	return $array;
 }
@@ -195,16 +167,12 @@ function key_encode( $array )
 ################################################################################
 function key_decode( $array )
 {
-	$this->debug( ">" );
-
 	foreach( $array as $k=>$v ){
 		if( is_array($v) ){ $array[$k] = key_decode( $v ); }
 		$bin = hex2bin( substr($k,2,strlen($k)) );
 		$array[$bin] = $v;
 		unset( $array[$k] );
 		}
-
-	$this->debug( "<" );
 
 	return $array;
 }
@@ -216,11 +184,7 @@ function key_decode( $array )
 ################################################################################
 function is_base64( $data=null )
 {
-	$this->debug( ">" );
-
 	if( preg_match(";^[a-zA-Z0-9/+]*=[0,2]$;", $data) ){ return true; }
-
-	$this->debug( "<" );
 
 	return false;
 }
@@ -229,9 +193,7 @@ function is_base64( $data=null )
 ################################################################################
 function fget_xml( $file=null )
 {
-	$this->debug( ">" );
-
-	if( !file_exists($file) ){ $this->debug( "DIE : No such file - $file", true ); }
+	if( !file_exists($file) ){ die( "DIE : No such file - $file\n" ); }
 
 	try{ $xml = new SimpleXmlIterator( $file, null, true ); }
 	catch( exception $e ){
@@ -241,8 +203,6 @@ function fget_xml( $file=null )
 
 	$this->xml_exception = null;
 
-	$this->debug( "<" );
-
     return $xml;
 }
 ################################################################################
@@ -250,18 +210,14 @@ function fget_xml( $file=null )
 ################################################################################
 function fput_xml( $file=null, $array=null )
 {
-	$this->debug( ">" );
-
 	if( is_null($file) ){ return false; }
-	if( is_null($array) ){ $this->debug( "DIE : Array is NULL", true ); }
+	if( is_null($array) ){ die( "DIE : Array is NULL\n" ); }
 
 	$xml = $this->xml_encode( "<root>", $array );
 
 	$fp = fopen( $file, "w" );
 	fwrite( $fp, $xml );
 	fclose( $fp );
-
-	$this->debug( "<" );
 
 	return true;
 }
@@ -270,7 +226,6 @@ function fput_xml( $file=null, $array=null )
 ################################################################################
 function xml_decode( $xml=null, $opt=null )
 {
-	$this->debug( ">" );
 	if( is_null($xml) ){ return false; }
 	if( is_null($opt) ){ $opt = false; }
 
@@ -321,17 +276,14 @@ function xml_decode( $xml=null, $opt=null )
 ################################################################################
 function xml_encode( $root=null, $array=null )
 {
-	$this->debug( ">" );
 	if( is_null($root) ){ return false; }
-	if( is_null($array) ){ $this->debug( "DIE : Array is NULL", true ); }
+	if( is_null($array) ){ die( "DIE : Array is NULL\n" ); }
 
 	$lt = '<';
 	$gt = '>';
 	$s = "$lt?xml version='1.0' encoding='utf-8'?$gt$lt$root/$gt";
 
 	$xml = $this->xml_add_children(new SimpleXMLElement($s), $array)->asXML();
-
-	$this->debug( "<" );
 
 	return $xml;
 }
@@ -340,10 +292,8 @@ function xml_encode( $root=null, $array=null )
 ################################################################################
 function xml_add_children( $xml=null, $array=null )
 {
-	$this->debug( ">" );
-
 	if( is_null($xml) ){ return false; }
-	if( is_null($array) ){ $this->debug( "DIE : Array is NULL", true ); }
+	if( is_null($array) ){ die( "DIE : Array is NULL\n" ); }
 
     foreach( $array as $key => $value ){
         if( $key[0] == '@' ){
@@ -357,8 +307,6 @@ function xml_add_children( $xml=null, $array=null )
 				}
 		}
 
-	$this->debug( "<" );
-
     return $xml;
 }
 ################################################################################
@@ -371,8 +319,6 @@ function xml_add_children( $xml=null, $array=null )
 ################################################################################
 function fsave_images( $array=null, $dir=null, $fname=null )
 {
-	$this->debug( ">" );
-
 	if( is_null($dir) ){ $dir = "./images"; }
 	if( !is_dir($dir) ){  mkdir( $dir ); }
 	if( is_null($fname) ){ return false; }
@@ -381,8 +327,6 @@ function fsave_images( $array=null, $dir=null, $fname=null )
 	$this->xml_dir = $dir;
 	$this->xml_fname = $fname;
 
-	$this->debug( "<" );
-
 	return $this->fsave_images_child( $array );
 }
 ################################################################################
@@ -390,8 +334,6 @@ function fsave_images( $array=null, $dir=null, $fname=null )
 ################################################################################
 function fsave_images_child( $array=null )
 {
-	$this->debug( ">" );
-
 	static $c = 0;
 	$dir = $this->xml_dir;
 	$fname = $this->xml_fname;
@@ -414,8 +356,6 @@ function fsave_images_child( $array=null )
 				}
 		}
 
-	$this->debug( "<" );
-
 	return true;
 }
 ################################################################################
@@ -424,8 +364,6 @@ function fsave_images_child( $array=null )
 ################################################################################
 function get_ftype( $image )
 {
-	$this->debug( ">" );
-#
 #	First, we need to get the first 1024 bytes from the file.
 #	Nothing else is needed at this point.
 #
@@ -586,8 +524,6 @@ function get_ftype( $image )
 #
 	$id = preg_match( "/ EMF/i", substr($r, 40, 4) );
 	if( $id ){ return "wmf"; }
-
-	$this->debug( "<" );
 #
 #	If we can't figure it out - call it an icon.
 #
@@ -631,8 +567,8 @@ function xml_dump_child( $xml, $title=null )
 ################################################################################
 function ssl_encrypt( $token=null, $key=null )
 {
-	if( is_null($token) ){ $this->debug( "TOKEN is null", true ); }
-	if( is_null($key) ){ $this->debug( "KEY is null", true ); }
+	if( is_null($token) ){ die( "TOKEN is null\n" ); }
+	if( is_null($key) ){ die( "KEY is null\n" ); }
 
 	$cipher_method = 'aes-128-ctr';
 	$enc_key = openssl_digest( $key, 'SHA256', TRUE );
@@ -649,7 +585,7 @@ function ssl_encrypt( $token=null, $key=null )
 ################################################################################
 function ssl_decrypt( $crypted_token=null, $key=null )
 {
-	if( is_null($crypted_token) ){ $this->debug( "CRYPTED_TOKEN is null", true ); }
+	if( is_null($crypted_token) ){ die( "CRYPTED_TOKEN is null\n" ); }
 
 	if( is_null($key) ){
 		list( $crypted_token, $enc_iv ) = explode( "::", $crypted_token );
@@ -668,88 +604,6 @@ function ssl_decrypt( $crypted_token=null, $key=null )
 	unset( $crypted_token, $cipher_method, $enc_key, $enc_iv );
 
 	return $token;
-}
-################################################################################
-#	debug(). Print debug statements.
-################################################################################
-private function debug( $msg=null, $opt=null )
-{
-	if( false || $this->debug_flag ){
-		echo "--->Entering	:	" . $dbg['file'] . " [" . $dbg['class'] . "] " .
-			$dbg['function'] . " # " . $dbg['line'] . "\n";
-		}
-
-	if( $this->debug_flag ){
-		$dbg = debug_backtrace();
-		array_shift( $dbg );
-		$dbg = $dbg[0];
-		if( preg_match("/>/", $msg) ){ $msg = "--->Entering"; }
-			else if( preg_match("/</", $msg) ){ $msg = "<--- Exiting"; }
-
-		$msg = "$msg	:	" . $dbg['file'] . " [" . $dbg['class'] . "] " .
-			$dbg['function'] . " # " . $dbg['line'] . "\n";
-
-		if( $opt ){ die( $msg ); }
-			else { echo $msg; }
-		}
-
-	if( false || $this->debug_flag ){
-		echo "<---Exiting :	" . $dbg['file'] . " [" . $dbg['class'] . "] " .
-			$dbg['function'] . " # " . $dbg['line'] . "\n";
-		}
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
-	return true;
 }
 
 }

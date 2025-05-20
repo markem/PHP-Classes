@@ -23,19 +23,12 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_debug.php") ){
-		include_once( "$lib/class_debug.php" );
-		}
-		else if( !isset($GLOBALS['classes']['debug']) ){
-			die( __FILE__ . ": Can not load CLASS_DEBUG" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
 #-Calling Sequence:
 #
-#	class_db();
+#	class_dbf();
 #
 #-Description:
 #
@@ -76,7 +69,7 @@
 #	---------------------------------------------------------------------------
 #	Please note that _MY_ Legal notice _HERE_ is as follows:
 #
-#		CLASS_DB.PHP. A class to handle working with databases.
+#		CLASS_DBF.PHP. A class to handle working with databases.
 #		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
 #		except for those given by the BSD License.
 #
@@ -84,9 +77,8 @@
 #
 #END DOC
 ################################################################################
-class class_db
+class class_dbf
 {
-	private $debug = false;
 	private $log_file = null;
 
 	private $mysqli = null;
@@ -128,7 +120,6 @@ class class_db
 ################################################################################
 function __construct()
 {
-	$this->debug = $GLOBALS['classes']['debug'];
 	if( !isset($GLOBALS['class']['db']) ){
 		return $this->init( func_get_args() );
 		}
@@ -140,8 +131,6 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->debug->in();
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -183,11 +172,9 @@ function init()
 
 		fclose( $fh );
 
-		$this->msg( "Closing \$this->log_file/mysql.log\n" );
-		$this->debug->die( "MySQL : Could not connect to database - Please try this again.  Thank you." );
+		echo "Closing \$this->log_file/mysql.log\n";
+		die( "MySQL : Could not connect to database - Please try this again.  Thank you." );
 		}
-
-	$this->debug->out();
 }
 ################################################################################
 #	dosql(). Do the SQL command.  Check for {...} strings and replace them.
@@ -195,7 +182,6 @@ function init()
 ################################################################################
 function dosql( $sql, $flag = false )
 {
-	$this->debug->in();
 #
 #	Handle the {...} items
 #
@@ -223,8 +209,8 @@ function dosql( $sql, $flag = false )
 	$res = $this->mysqli->query( "SET SESSION SQL_BIG_SELECTS=1;" );
 	$res = $this->mysqli->query( $sql );
 	if( !$res ){
-		$this->debug->msg( "ERROR : (" .  $this->mysqli->errno . ")\n" . $this->mysqli->error . "\n\n" );
-		$this->debug->msg( "SQL = $sql\n", true );
+		echo "ERROR : (" .  $this->mysqli->errno . ")\n" . $this->mysqli->error . "\n\n";
+		echo "SQL = $sql\n";
 		}
 #
 #	In mysqli - you don't always get the last inserted id number.
@@ -264,14 +250,12 @@ function dosql( $sql, $flag = false )
 						if( preg_match("/id/i", $v['Field']) ){
 							$sql = "select max($v[Field]) as max from $table";
 							$rec = $this->dosql( $sql, true );
-							$this->debug->out();
 							return $rec['max'];
 							}
 						}
 #
 #	Oh well.  We didn't find an ID field.  Just return.
 #
-					$this->debug->out();
 					return null;
 					}
 #
@@ -279,24 +263,20 @@ function dosql( $sql, $flag = false )
 #
 				$sql = "select max($field) as max from $table";
 				$rec = $this->dosql( $sql, true );
-				$this->debug->out();
 				return $rec['max'];
 				}
 			}
 #
 #	Else - just return the id number.
 #
-		$this->debug->out();
 		return $id;
 		}
 
 	if( preg_match("/delete/i", $sql) ){
-		$this->debug->out();
 		return null;
 		}
 
 	if( !is_object($res) ){
-		$this->debug->out();
 		return null;
 		}
 
@@ -309,11 +289,8 @@ function dosql( $sql, $flag = false )
 		}
 
 	if( $flag ){
-		$this->debug->out();
 		return (isset($ary[0]) ? $ary[0] : null);
 		}
-
-	$this->debug->out();
 
 	return $ary;
 }
@@ -322,23 +299,18 @@ function dosql( $sql, $flag = false )
 ################################################################################
 function decrypt( $s )
 {
-	$this->debug->in();
-
 	$cb = chr(2);
 	if( substr($s,0,2) == "3x" ){
 		$a = gzdecode( substr(base64_decode(pack("H*", substr($s,2))), 10, -8 ) );
 #		$a = gzinflate( substr(base64_decode(pack("H*", substr($s,2))), 10, -8 ) );
 		if( preg_match("/$cb/", $a) ){ $a = explode( $cb, $a ); }
-		$this->debug->out();
 		return $a;
 		}
 		else if( substr($s,0,2) == "0x" ){
-			$this->debug->out();
 			return pack("H*", substr($s,2));
 			}
 		else { $this->msg($s); }
 
-	$this->debug->out();
 
 	return null;
 }
@@ -348,12 +320,8 @@ function decrypt( $s )
 ################################################################################
 function encrypt( $s )
 {
-	$this->debug->in();
-
 	$cb = chr(2);
 	if( is_array($s) ){ $s = implode($cb, $s ); }
-
-	$this->debug->out();
 
 	return "3x" . bin2hex( base64_encode(gzencode($s)) );
 }
@@ -365,8 +333,6 @@ function encrypt( $s )
 ################################################################################
 function muck( $len=20, $opt="A:a:n:s", $chars=null )
 {
-	$this->debug->in();
-
 	$s = "";
 	$c = "";
 	$a = explode( ':', ((strlen(trim($opt)) > 0) ? $opt : "A:a:n:s") );
@@ -382,7 +348,7 @@ function muck( $len=20, $opt="A:a:n:s", $chars=null )
 		}
 
 	if( strlen($c) < 1 ){
-		$this->debug->die( "ERROR : Call to function MUCK() with no characters selected." );
+		die( "ERROR : Call to function MUCK() with no characters selected." );
 		}
 #
 #	Was : $j = mt_rand() % 52;	MEM 2021-05-05
@@ -400,8 +366,6 @@ function muck( $len=20, $opt="A:a:n:s", $chars=null )
 		$s .= substr($c, $j, 1);
 		}
 
-	$this->debug->out();
-
 	return $s;
 }
 ################################################################################
@@ -409,8 +373,6 @@ function muck( $len=20, $opt="A:a:n:s", $chars=null )
 ################################################################################
 function parse($action, $string, $string_2=null )
 {
-	$this->debug->in();
-
 	$output = false;
 	$encrypt_method = "AES-256-CBC";
 
@@ -430,13 +392,10 @@ function parse($action, $string, $string_2=null )
 		else if( $action == "compare" ){
 			$output = openssl_decrypt(base64_decode($string), $encrypt_method, $key, 0, $iv);
 			if( trim($output) === trim($string_2) ){
-				$this->debug->out();
 				return true;
 				}
 				else { return false; }
 			}
-
-	$this->debug->out();
 
 	return $output;
 }
@@ -445,23 +404,17 @@ function parse($action, $string, $string_2=null )
 ################################################################################
 function msg( $s,$color='white' )
 {
-	$this->debug->in();
-
 	echo "<span style='font:12pt arial;color:$color;'>$s</span>";
-
-	$this->debug->out();
 }
 ################################################################################
-#	curse() . Convert an array into a bin2hex string.
+#	encode() . Convert an array into a bin2hex string.
 ################################################################################
-function curse( $a )
+function encode( $a )
 {
-	$this->debug->in();
-
 	$s = "";
 	if( is_array($a) ){
 		foreach( $a as $k=>$v ){
-			if( is_array($v) ){ $s .= "a:" . $this->curse( $v ) . ","; }
+			if( is_array($v) ){ $s .= "a:" . $this->encode( $v ) . ","; }
 				else if( is_object($v) ){ $s .= "o:" . base64_encode($v) . ","; }
 				else if( is_float($v) ){ $s .= "f:" . base64_encode($v) . ","; }
 				else if( is_numeric($v) ){ $s .= "n:" . base64_encode($v) . ","; }
@@ -481,16 +434,13 @@ function curse( $a )
 #
 	$s = substr( $s, 0, -1 );
 
-	$this->debug->out();
-
 	return "a:" . bin2hex($s);
 }
 ################################################################################
-#	uncurse().  Convert the bin2hex string back into an array.
+#	decode().  Convert the bin2hex string back into an array.
 ################################################################################
-function uncurse( $a )
+function decode( $a )
 {
-	$this->debug->in();
 #
 #	If this is an array (a:) then...
 #
@@ -500,72 +450,14 @@ function uncurse( $a )
 
 		$s = array();
 		foreach( $b as $k=>$v ){
-			if( substr($v, 0, 1) == "a" ){ $s[] = $this->uncurse( substr($v, 2) ); }
+			if( substr($v, 0, 1) == "a" ){ $s[] = $this->decode( substr($v, 2) ); }
 				else { $s[] = base64_decode( substr($v, 2) ); }
 			}
 		}
 #
 #	else, if this is a string (s:) or an object (o:) then...
 #
-		else {
-			$this->debug->out();
-			return base64_decode(substr($a,2));
-			}
-
-	$this->debug->out();
-}
-################################################################################
-#	dump(). A simple function to dump some information.
-#	Ex:	$this->dump( "NUM", $num );
-################################################################################
-function dump( $title=null, $arg=null )
-{
-	$this->debug->in();
-	echo "--->Entering DUMP\n";
-
-	if( is_null($title) ){ return false; }
-	if( is_null($arg) ){ return false; }
-
-	$title = trim( $title );
-#
-#	Get the backtrace
-#
-	$dbg = debug_backtrace();
-#
-#	Start a loop
-#
-	foreach( $dbg as $k=>$v ){
-		$a = array_pop( $dbg );
-
-		foreach( $a as $k1=>$v1 ){
-			if( !isset($a[$k1]) || is_null($a[$k1]) ){ $a[$k1] = "--NULL--"; }
-			}
-
-		$func = $a['function'];
-		$line = $a['line'];
-		$file = $a['file'];
-		$class = $a['class'];
-		$obj = $a['object'];
-		$type = $a['type'];
-		$args = $a['args'];
-
-		echo "$k ---> $title in $class$type$func @ Line : $line =\n";
-		foreach( $args as $k1=>$v1 ){
-			if( is_array($v1) ){
-				foreach( $v1 as $k2=>$v2 ){
-					echo "	$k " . str_repeat( '=', $k1 + 3 ) ."> " . $title. "[$k1][$k2] = $v2\n";
-					}
-				}
-				else { echo "	$k " . str_repeat( '=', $k1 + 3 ) . "> " . $title . "[$k1] = $v1\n"; }
-			}
-
-#		if( is_array($arg) ){ print_r( $arg ); echo "\n"; }
-#			else { echo "ARG = $arg\n"; }
-		}
-
-	echo "<---Exiting DUMP\n\n";
-	$this->debug->out();
-	return true;
+	return base64_decode(substr($a,2));
 }
 ################################################################################
 #	__destruct(). Close the mysqli link.
@@ -584,7 +476,7 @@ function __destruct()
 
 	if( !isset($GLOBALS['classes']) ){ global $classes; }
 	if( !isset($GLOBALS['classes']['db']) ){
-		$GLOBALS['classes']['db'] = new class_db();
+		$GLOBALS['classes']['db'] = new class_dbf();
 		}
 
 ?>
