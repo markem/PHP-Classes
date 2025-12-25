@@ -105,7 +105,7 @@ class class_serial
 	private $process = null;
 	private $cmd = null;
 	private $circuit = null;
-	public $pipes = null;
+	private $pipes = null;
 	private $dirFile = null;
 	private $env = null;
 	private $length = 8192;
@@ -115,6 +115,8 @@ class class_serial
 	private $cwd = null;
 	private $bas = null;
 	private $exe = null;
+	private $sleep = null;
+	private $errorCodes = null;
 
 #	    Baud:            19200
 #	    Parity:          None
@@ -187,8 +189,12 @@ function __construct()
 ################################################################################
 function init()
 {
-	$this->pr = $pr = new $GLOBALS['classes']['pr'];
-	$this->cf = $cf = new $GLOBALS['classes']['files'];
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
+	$this->pr = $pr = $this->get_class( 'pr' );
+	$this->cf = $cf = $this->get_class( 'files' );
 
 	$bauds = [];
 	$bauds[] = 300;
@@ -215,9 +221,9 @@ function init()
 #
 	$this->settings = [];
 #
-#	Make an array for the processes
+#	Make an array for the processes. You can ONLY HAVE ONE PROCESS.
 #
-	$this->process = [];
+	$this->process = null;
 #
 #	Entries that are in all of the different cases. If you want to change them
 #	then send the information as a KEY=>VALUE. Ex: array("stop bits"=>1).
@@ -287,13 +293,16 @@ function init()
 	$this->cwd = str_replace( "\\", "/", $this->cwd );
 	$this->bas = "com.bas";
 	$this->exe = "com.exe";
+	$this->sleep = 1;
 
-	$this->circuit = array(
+	$circuit = array(
 		0 => array("pipe", "r"),  // stdin is a pipe that the child will read from
 		1 => array("pipe", "w"),  // stdout is a pipe that the child will write to
 		2 => array("pipe", "w"),  // stderr is a pipe that the child will write to
 #		2 => array("file", "c:/tmp/stderr.txt", "w"),  // stderr is a pipe that the child will write to
 		);
+
+	$this->circuit = $circuit;
 
 	if( !file_exists("c:/tmp") ){ mkdir( "c:/tmp" ); }
 
@@ -302,6 +311,8 @@ function init()
 		fwrite( $fp, "Standard Error File\n" );
 		fclose( $fp );
 		}
+
+	$this->errorCodes = $this->errorCodes();
 
 	return true;
 }
@@ -598,6 +609,14 @@ function env( $env=null )
 	return true;
 }
 ################################################################################
+#	sleep(). Set how long to sleep
+################################################################################
+function sleep( $sleep=1 )
+{
+	$this->sleep = $sleep;
+	return true;
+}
+################################################################################
 #	open(). Open up the communications. REMEMBER! You MUST already have
 #		created the com.exe program from the com.bas program and called the
 #		cwd() function and called the exe() function to set up where the
@@ -610,8 +629,9 @@ function open()
 	$pr = $this->pr;
 	$cwd = $this->cwd;
 	$exe = $this->exe;
-	$circuit = $this->circuit;
 	$pipes = $this->pipes;
+	$circuit = $this->circuit;
+
 #$pr->pr( $cwd, "CWD = " );
 #$pr->pr( $exe, "EXE = " );
 
@@ -622,11 +642,9 @@ function open()
 		}
 
 	$cmd = "$dq$cwd/$exe$dq";
-#	$cmd = "con";
-$pr->pr( $cmd, "CMD = " );
-	$this->process[$exe] = proc_open( $cmd, $circuit, $pipes, $cwd, $env );
+	$this->process = proc_open( $cmd, $circuit, $pipes, $cwd, $env );
 
-	if( count($this->process) < 1 ){
+	if( !is_resource($this->process) ){
 		die( "***** ERROR : Could not open a process via PROC_OPEN - aborting.\n" );
 		}
 
@@ -642,19 +660,21 @@ $pr->pr( $cmd, "CMD = " );
 		}
 
 	$this->pipes = $pipes;
-	$this->circuit = $circuit;
-#$pr->pr( $pipes, "Pipes = " );
 #
-#	If this is a communication port - since we are dealing with the pen plotter
-#	we need to send it a return. Otherwise we do nothing more.
-#
-	if( preg_match("/com/i", $this->settings['device']) ){
-		$this->write( "" );
-		$ret = $this->read();
-#$pr->pr( $ret, "ret = " );
-		}
+#	The serial class should not do anything other than just open the
+#	communication line. Whoever is calling this open() function needs
+#	to send a WRITE() command and then read whatever comes back.
+##
+##	If this is a communication port - since we are dealing with the pen plotter
+##	we need to send it a return. Otherwise we do nothing more.
+##
+#	if( preg_match("/com/i", $this->settings['device']) ){
+#		$this->write( "" );
+#		$ret = $this->read();
+##$pr->pr( $ret, "ret = " );
+#		}
 
-	return $ret;
+	return;
 }
 ################################################################################
 #	read(). Read from the serial port.
@@ -664,6 +684,7 @@ $pr->pr( $cmd, "CMD = " );
 function read( $pipe=1 )
 {
 	$pr = $this->pr;
+	$errorCodes = $this->errorCodes;
 
 	if( preg_match("/com/i", $this->settings['device']) ){
 		$cnt = 0;
@@ -671,11 +692,31 @@ function read( $pipe=1 )
 			$fstat = fstat($this->pipes[$pipe]);
 			if( $fstat['size'] > 0 ){ break; }
 			if( $cnt++ > $this->count ){ return false; }
-			echo "Waiting...\n";
+			echo "Reading...\n";
 			sleep( $this->wait );
 			}
 
-		return fread( $this->pipes[$pipe], $this->length );
+		$a = fread( $this->pipes[$pipe], $this->length );
+		$a = explode( "\n", $a );
+		foreach( $a as $k=>$v ){
+			$v = str_replace( "", "", $v );
+			if( strlen(trim($v)) < 1 ){ unset( $a[$k] ); }
+				else if( preg_match("/ok/i", $v) ){ unset( $a[$k] ); }
+				else if( preg_match("/unable/i", $v) ){
+					$pr->pr( "***** ERROR : $v\n" );
+					$pr->pr();
+					exit;
+					}
+				else if( preg_match("/error/i", $v) ){
+					$a = explode( ':', $v );
+					$pr->pr( "***** ERROR : $v\n" . $errorCodes[$a[1]] . "\n" );
+					$pr->pr();
+					exit;
+					}
+			}
+
+		$a = implode( "\n", $a );
+		return $a;
 		}
 #
 #	Because there might be other devices I do not know of - we will
@@ -724,54 +765,72 @@ function write( $info="", $pipe=0 )
 		$info = trim( $info ) . "\r\n";
 		echo "Writing : $info";
 		$ret = fwrite( $this->pipes[$pipe], $info );
-		sleep( 1 );
+		sleep( $this->sleep );
 		return $ret;
 		}
 }
 ################################################################################
 #	close(). Close the connection.
 ################################################################################
-function close()
+function close( $opt=true )
 {
+	$dq = '"';
+	$pr = $this->pr;
+	$exe = $this->exe;
+
 	if( !is_array($this->pipes) ){
-		die( "Finished\n" );
+#		die( "Finished\n" );
 		}
 #
 #	Because we can have several processes - we have to terminate each process
 #	and under Windows - we have to stop each one of these
 #
-	if( count($this->process) > 0 ){
-		echo "Closing Processes\n";
-#		$ret = proc_close( $this->process );
-		foreach( $this->process as $k=>$v ){
-			$ret = proc_terminate( $v );
+	if( is_resource($this->process) ){
+#
+#	First get rid of the pipes
+#
+		if( !is_null($this->pipes[0]) || is_resource($this->pipes[0]) ){
+			echo "Closing pipe #0\n";
+			@fclose( $this->pipes[0] );
+			}
+
+		if( !is_null($this->pipes[1]) || is_resource($this->pipes[1]) ){
+			echo "Closing pipe #1\n";
+			@fclose( $this->pipes[1] );
+			}
+
+		if( !is_null($this->pipes[2]) || isset($this->pipes[2]) && is_resource($this->pipes[2]) ){
+			echo "Closing pipe #2\n";
+			@fclose( $this->pipes[2] );
+			}
+#
+#	We can close the pipes but we must NOT kill the process if we
+#	want to continue doing things.
+#
+		if( $opt ){
+#
+#	Now get rid of the process
+#
+			echo "Closing Processes\n";
+			$ret = proc_terminate( $this->process );
+
+			echo "Proc_terminate returned value = $ret\n";
 #
 #	Under Windows - we have to physically kill the executable.
 #
-			if( preg_match("/win/i", PHP_OS) ){
-				system( "taskkill /IM $v /F" );
+			$cmd = "tasklist /fi " . $dq . "imagename eq $exe" . $dq . '"';
+			exec( $cmd, $output );
+			if( !preg_match("/no tasks/i", $output[0]) ){
+				if( preg_match("/win/i", PHP_OS) ){
+					system( "taskkill /IM $exe /F" );
+					}
 				}
 
-			echo "Return value = $ret\n";
+			$this->process = null;
 			}
 		}
 
-	if( !is_null($this->pipes[0]) || is_resource($this->pipes[0]) ){
-		echo "Closing pipe #0\n";
-		@fclose( $this->pipes[0] );
-		}
-
-	if( !is_null($this->pipes[1]) || is_resource($this->pipes[1]) ){
-		echo "Closing pipe #1\n";
-		@fclose( $this->pipes[1] );
-		}
-
-	if( !is_null($this->pipes[2]) || isset($this->pipes[2]) && is_resource($this->pipes[2]) ){
-		echo "Closing pipe #2\n";
-		@fclose( $this->pipes[2] );
-		}
-
-	return $ret;
+	return;
 }
 ################################################################################
 #	makeFBCom(). Create the Freebasic program for use with this class.
@@ -809,17 +868,21 @@ function close()
 #	'ME' Ignore all errors 
 #	'IRn' IRQ number for COM (only supported (?) on DOS) 
 #
+#	Note : $comPorts should be a string that goes "#,#" like "3,4".
+#		The first number is the main com port to use. The second number is
+#		whatever Windows uses when it forgets the com port and tries to use
+#		a different com port. This is what is happening to me.
+#
 ################################################################################
-function makeFBCom()
+function makeFBCom( $comPorts=null )
 {
 	$basFile = "$this->cwd/$this->bas";
 	$settings = $this->settings;
+	$comPorts = explode( ',', $comPorts );	#	Get the list of com ports used.
 #
 #		open com "com1:9600,n,8,1,cs0,cd0,ds0,rs" as #hfile
 #
 	$baud = is_null($settings['baud']) ? "9600" : $settings['baud'];
-	$device = is_null($settings['device']) ? "com1" : $settings['device'];
-	$device = str_replace( ":", "", $device );
 
 	$parity = is_null($settings['parity']) ? ",n" : "," . substr($settings['parity'],0,1);
 	$data_bits = is_null($settings['data-bits']) ? ",8" : "," . $settings['data-bits'];
@@ -871,11 +934,11 @@ function makeFBCom()
 #	Create the communication setting which will be used in the following
 #	basic program.
 #
-	if( preg_match("/con/i", $device) ){ $com = $device; return; }
-		else {
-			$com = "$device:$baud$parity$data_bits$stop_bits$timeout" .
-					"$csn$cdn$dsn$opn$tbn$rbn$irn$rs$lf$asc$bin$pe$dt$fe$me";
-			}
+	$com1 = strtoupper( "com$comPorts[0]:$baud$parity$data_bits$stop_bits$timeout" .
+			"$csn$cdn$dsn$opn$tbn$rbn$irn$rs$lf$asc$bin$pe$dt$fe$me" );
+
+	$com2 = strtoupper( "com$comPorts[1]:$baud$parity$data_bits$stop_bits$timeout" .
+			"$csn$cdn$dsn$opn$tbn$rbn$irn$rs$lf$asc$bin$pe$dt$fe$me" );
 
 	$code = <<<EOD
 '
@@ -976,7 +1039,7 @@ rem	+---------------------------------------------------------------------------
 '	Taken from :
 '		https://github.com/winder/Universal-G-Code-Sender/issues/1279
 '
-'	Yes, for example send "M3 S50" for pen down and "M3 S500"
+'	Yes, for example send "M3 S1000" for pen down and "M3 S1"
 '	for pen up (or M4).  The correct values for S you need to
 '	figure out.  If the servo needs some time for motion you
 '	may add the command "G4 P1" after pen down/up command for
@@ -986,12 +1049,15 @@ rem	+---------------------------------------------------------------------------
 '
 '	s = "com4:115200,n,8,1,cs0,cd0,ds0,rs"
 '
-	s = "$com"
+	s = "$com1"
 
 '	print "Opening with : " & s
 	If Open Com (s For Binary As #1) <> 0 Then
-		Print "Unable to open the serial port"
-		End
+		s = "$com2"
+		If Open Com (s For Binary As #1) <> 0 Then
+			Print "Unable to open the serial port"
+			End
+			End If
 		End If
 '
 '	Use the INPUT command to give us a place to input the request
@@ -1008,7 +1074,7 @@ rem	+---------------------------------------------------------------------------
 '	Send it to the com port
 '
 '		print "Sending : " & s
-		print #1, s
+		if trim(s) <> "q" then print #1, s
 '
 '	Now wait a few moments before we start checking for outgoing information
 '
@@ -1037,6 +1103,7 @@ rem	+---------------------------------------------------------------------------
 '
 	Close #1
 	end
+
 EOD;
 
 	echo "Now that the file has been made you must compile it with FreeBasic.\n";
@@ -1125,19 +1192,22 @@ EOD;
 #	NOTES :	Remember this ONLY generates the QB64 code THEN you have to
 #		compile it with QB64 and THEN you can use the program to talk to
 #		your serial device.
+#
+#	Note : $comPorts should be a string that goes "#,#" like "3,4".
+#		The first number is the main com port to use. The second number is
+#		whatever Windows uses when it forgets the com port and tries to use
+#		a different com port. This is what is happening to me.
 ################################################################################
-function makeQBCom()
+function makeQBCom( $comPorts=null )
 {
 	$pr = $this->pr;
 	$basFile = "$this->cwd/$this->bas";
 	$settings = $this->settings;
+	$comPorts = explode( ',', $comPorts );	#	Get the list of com ports used.
 #
 #		open com "com1:9600,n,8,1,cs0,cd0,ds0,rs" as #hfile
 #
 	$baud = is_null($settings['baud']) ? "9600" : $settings['baud'];
-	$device = is_null($settings['device']) ? "com1" : $settings['device'];
-	$device = str_replace( ":", "", $device );
-$pr->pr( "Device = $device" );
 
 	$parity = is_null($settings['parity']) ? ",n" : "," .$settings['parity'];
 	$data_bits = is_null($settings['data-bits']) ? ",8" : "," .$settings['data-bits'];
@@ -1200,91 +1270,92 @@ $pr->pr( "Device = $device" );
 #	Create the communication setting which will be used in the following
 #	basic program.
 #
-	if( preg_match("/con/i", $device) ){ $com = $device; return; }
-		else {
-			$com = strtoupper( "$device:$baud$parity$data_bits$stop_bits$timeout" .
-					"$csn$cdn$dsn$opn$tbn$rbn$irn$rs$lf$asc$bin$pe$dt$fe$me" );
-			}
+	$com1 = strtoupper( "com$comPorts[0]:$baud$parity$data_bits$stop_bits$timeout" .
+			"$csn$cdn$dsn$opn$tbn$rbn$irn$rs$lf$asc$bin$pe$dt$fe$me" );
+
+	$com2 = strtoupper( "com$comPorts[1]:$baud$parity$data_bits$stop_bits$timeout" .
+			"$csn$cdn$dsn$opn$tbn$rbn$irn$rs$lf$asc$bin$pe$dt$fe$me" );
 
 	$code = <<<EOD
 rem
 rem Tab Settings are set to 4 (ts=4)
-rem	+--------------------------------------------------------------------------------
-rem	|BEGIN DOC
-rem	|
-rem	|-Calling Sequence:
-rem	|
-rem	|	myCom()
-rem	|
-rem	|-Description:
-rem	|
-rem	|	Taken from : https://qb64phoenix.com/forum/showthread.php?tid=342
-rem	|	User name : mdijkens 
+rem +--------------------------------------------------------------------------------
+rem |BEGIN DOC
 rem |
-rem	|	Although the program presented by mdijkens works - it needed to be
-rem	|	modified by me to work with the VigoTEC Pen Plotter. The first
-rem	|	addition was the small program at the front of this script (ie:
-rem	|	From the "rem \$Debug" to the "end" statement. Secondly, I had to
-rem	|	figure out why the ErrorHandler simply refused to work. THIS problem
-rem	|	was caused by not having the main program mentioned above. Once the
-rem	|	"end" statement was inserted - the error message about the ErrorHandler
-rem	|	disappeared. Note that the one(1) second SLEEP command is VERY necessary
-rem	|	to allow the serial port to respond. Even though, IN MY CASE, it is
-rem	|	opened for 115200 speed - the Pen Plotter itself seems to go at 110 baud
-rem	|	in responding to commands. Last, I found out that the inclusion of a
-rem	|	carriage return (chr$(13)) REALLY had to be there or else some of the
-rem	|	VigoTEC commands just will not function properly. These (so far) are the
-rem	|	"$" and "$$" commands. Without the carriage return the VigoWriter (from
-rem	|	VigoTEC) simply ignores these commands. Also, the LINE INPUT command
-rem	|	does NOT return a carriage return at the end of the command. This is
-rem	|	gobbled up by the LINE INPUT COMMAND and all you get is just the letters
-rem	|	you typed in.
-rem	|
-rem	|	Because the original set of functions is not owned by me - this code can
-rem	|	be used however you want - unlike my FreeBasic code which is restricted
-rem	|	a little bit.
-rem	|
-rem	|-Inputs:
-rem	|
-rem	|	None.
-rem	|
-rem	|-Outputs:
-rem	|
-rem	|	None.
-rem	|-Revisions:
-rem	|
-rem	|	Name					Company					Date
-rem	|	---------------------------------------------------------------------------
-rem	|	Mark Manning			Simulacron I			Tue 04/08/2025 22:56:12.70
-rem	|		Original Program.
-rem	|
-rem	|	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
-rem	|	---------------------------------------------------------------------------
-rem	|		This is now under the BSD Three Clauses Plus Patents License.
-rem	|		See the BSD-3-Patent.txt file.
-rem	|
-rem	|	Mark Manning			Simulacron I			Wed 05/05/2021 16:37:40.51 
-rem	|	---------------------------------------------------------------------------
-rem	|	Please note that _MY_ Legal notice _HERE_ is as follows:
-rem	|
-rem	|		myCom.BAS. A program to handle working with serial ports.
-rem	|		Copyright (C) 2025-NOW.  Mark Manning. All rights reserved
-rem	|		except for those given by the above license. Also, everything
-rem	|		from the ErrorHandler on down belongs to mdijkens and NOT me.
-rem	|
-rem	|	Please place _YOUR_ legal notices _HERE_. Thank you.
-rem	|
-rem	|END DOC
-rem	+--------------------------------------------------------------------------------
-rem	function myCom()
+rem |-Calling Sequence:
+rem |
+rem |   myCom()
+rem |
+rem |-Description:
+rem |
+rem |   Taken from : https://qb64phoenix.com/forum/showthread.php?tid=342
+rem |   User name : mdijkens 
+rem |
+rem |   Although the program presented by mdijkens works - it needed to be
+rem |   modified by me to work with the VigoTEC Pen Plotter. The first
+rem |   addition was the small program at the front of this script (ie:
+rem |   From the "rem \$Debug" to the "end" statement. Secondly, I had to
+rem |   figure out why the ErrorHandler simply refused to work. THIS problem
+rem |   was caused by not having the main program mentioned above. Once the
+rem |   "end" statement was inserted - the error message about the ErrorHandler
+rem |   disappeared. Note that the one(1) second SLEEP command is VERY necessary
+rem |   to allow the serial port to respond. Even though, IN MY CASE, it is
+rem |   opened for 115200 speed - the Pen Plotter itself seems to go at 110 baud
+rem |   in responding to commands. Last, I found out that the inclusion of a
+rem |   carriage return (chr$(13)) REALLY had to be there or else some of the
+rem |   VigoTEC commands just will not function properly. These (so far) are the
+rem |   "$" and "$$" commands. Without the carriage return the VigoWriter (from
+rem |   VigoTEC) simply ignores these commands. Also, the LINE INPUT command
+rem |   does NOT return a carriage return at the end of the command. This is
+rem |   gobbled up by the LINE INPUT COMMAND and all you get is just the letters
+rem |   you typed in.
+rem |
+rem |   Because the original set of functions is not owned by me - this code can
+rem |   be used however you want - unlike my FreeBasic code which is restricted
+rem |   a little bit.
+rem |
+rem |-Inputs:
+rem |
+rem |   None.
+rem |
+rem |-Outputs:
+rem |
+rem |   None.
+rem |-Revisions:
+rem |
+rem |   Name                    Company                 Date
+rem |   ---------------------------------------------------------------------------
+rem |   Mark Manning            Simulacron I            Tue 04/08/2025 22:56:12.70
+rem |       Original Program.
+rem |
+rem |   Mark Manning            Simulacron I            Sat 05/13/2023 17:34:57.07 
+rem |   ---------------------------------------------------------------------------
+rem |       This is now under the BSD Three Clauses Plus Patents License.
+rem |       See the BSD-3-Patent.txt file.
+rem |
+rem |   Mark Manning            Simulacron I            Wed 05/05/2021 16:37:40.51 
+rem |   ---------------------------------------------------------------------------
+rem |   Please note that _MY_ Legal notice _HERE_ is as follows:
+rem |
+rem |       myCom.BAS. A program to handle working with serial ports.
+rem |       Copyright (C) 2025-NOW.  Mark Manning. All rights reserved
+rem |       except for those given by the above license. Also, everything
+rem |       from the ErrorHandler on down belongs to mdijkens and NOT me.
+rem |
+rem |   Please place _YOUR_ legal notices _HERE_. Thank you.
+rem |
+rem |END DOC
+rem +--------------------------------------------------------------------------------
+rem function myCom()
 
-rem \$Debug
-    print ser.open
+    try% = 1
+    ret% = ser.open(try%)
     inp$ = ""
     while inp$ <> "q"
         print "Send: ";
         line input inp$
-        ser.send( inp$ )
+		inp$ = ltrim$( rtrim$(inp$) )
+        if inp$ <> "q" then ser.send( inp$ )
         sleep 1
         print ser.read
         wend
@@ -1292,48 +1363,60 @@ rem \$Debug
     end
 
 ErrorHandler:
-print errorNum
-close #88
+    if try% < 2 then
+        On Error GoTo 0
+        try% = try% + 1
+        ret% = ser.open(try%)
+        resume next
+        end if
 
-Function ser.open%() ' e.g. ser$="COM1:9600"
-	On Error GoTo ErrorHandler
+    print errorNum
+    close #88
+
+
+Function ser.open%(try%) ' e.g. ser$="COM1:9600"
+    On Error GoTo ErrorHandler
 rem
-rem	ser$ = ser$ + ",N,8,1,BIN,CD0,CS0,DS0,RS" ' RS or RB8192
+rem ser$ = ser$ + ",N,8,1,BIN,CD0,CS0,DS0,RS" ' RS or RB8192
 rem
-	ser$ = "$com"
-	Open ser$ For RANDOM As #88
-	If errorNum = 0 Then serBytes$ = ser.read$
-	On Error GoTo 0
-	ser.open% = errorNum
+    if try% = 1 then
+        ser$ = "COM3:115200,N,8,1,CS0,CD0,DS0,RS"
+        else
+            ser$ = "COM4:115200,N,8,1,CS0,CD0,DS0,RS"
+        end if
+
+    Open ser$ For RANDOM As #88
+    If errorNum = 0 Then serBytes$ = ser.read$
+    On Error GoTo 0
+    ser.open% = errorNum
 End Function
 
 Function ser.close$ ()
-	ser.close$ = ser.read$
-	Close #88
+    ser.close$ = ser.read$
+    Close #88
 End Function
 
 Sub ser.send (bytes$)
-	Dim b As String * 1
-	For i% = 1 To Len(bytes$)
-		b = Mid$(bytes$, i%, 1)
-		Put #88, , b
-		Next i%
+    Dim b As String * 1
+    For i% = 1 To Len(bytes$)
+        b = Mid$(bytes$, i%, 1)
+        Put #88, , b
+        Next i%
 
-	byte$ = chr$(13)
-	put #88, , byte$
-	on error goto ErrorHandler
+    byte$ = chr$(13)
+    put #88, , byte$
+    on error goto ErrorHandler
 End Sub
 
 Function ser.read$ ()
-	Dim b As String * 1: resp$ = ""
-	Do While Loc(88)
-		Get #88, , b: resp$ = resp$ + b
-		Loop
+    Dim b As String * 1: resp$ = ""
+    Do While Loc(88)
+        Get #88, , b: resp$ = resp$ + b
+        Loop
 
-	ser.read$ = resp$
-	on error goto ErrorHandler
+    ser.read$ = resp$
+    on error goto ErrorHandler
 End Function
-
 
 EOD;
 
@@ -1388,6 +1471,78 @@ EOD;
 	echo "The source code is in file : $basFile\n";
 
 	return file_put_contents( $basFile, $code );
+}
+################################################################################
+#	errorCodes(). Returns all of the error code meanings.
+#	Notes : Taken from the class_grbl.php file.
+################################################################################
+function errorCodes()
+{
+	$code = <<<EOD
+1	G-code words consist of a letter and a value. Letter was not found.
+2	Numeric value format is not valid or missing an expected value.
+3	Grbl '$' system command was not recognized or supported.
+4	Negative value received for an expected positive value.
+5	Homing cycle is not enabled via settings.
+6	Minimum step pulse time must be greater than 3usec
+7	EEPROM read failed. Reset and restored to default values.
+8	Grbl '$' command cannot be used unless Grbl is IDLE. Ensures smooth operation during a job.
+9	G-code locked out during alarm or jog state
+10	Soft limits cannot be enabled without homing also enabled.
+11	Max characters per line exceeded. Line was not processed and executed.
+12	(Compile Option) Grbl '$' setting value exceeds the maximum step rate supported.
+13	Safety door detected as opened and door state initiated.
+14	(Grbl-Mega Only) Build info or startup line exceeded EEPROM line length limit.
+15	Jog target exceeds machine travel. Command ignored.
+16	Jog command with no '=' or contains prohibited g-code.
+17	Laser mode requires PWM output.
+20	Unsupported or invalid g-code command found in block.
+21	More than one g-code command from same modal group found in block.
+22	Feed rate has not yet been set or is undefined.
+23	G-code command in block requires an integer value.
+24	Two G-code commands that both require the use of the XYZ axis words were detected in the block.
+25	A G-code word was repeated in the block.
+26	A G-code command implicitly or explicitly requires XYZ axis words in the block, but none were detected.
+27	N line number value is not within the valid range of 1 - 9,999,999.
+28	A G-code command was sent, but is missing some required P or L value words in the line.
+29	Grbl supports six work coordinate systems G54-G59. G59.1, G59.2, and G59.3 are not supported.
+30	The G53 G-code command requires either a G0 seek or G1 feed motion mode to be active. A different motion was active.
+31	There are unused axis words in the block and G80 motion mode cancel is active.
+32	A G2 or G3 arc was commanded but there are no XYZ axis words in the selected plane to trace the arc.
+33	The motion command has an invalid target. G2, G3, and G38.2 generates this error, if the arc is impossible to generate or if the probe target is the current position.
+34	A G2 or G3 arc, traced with the radius definition, had a mathematical error when computing the arc geometry. Try either breaking up the arc into semi-circles or quadrants, or redefine them with the arc offset definition.
+35	A G2 or G3 arc, traced with the offset definition, is missing the IJK offset word in the selected plane to trace the arc.
+36	There are unused, leftover G-code words that aren't used by any command in the block.
+37	The G43.1 dynamic tool length offset command cannot apply an offset to an axis other than its configured axis. The Grbl default axis is the Z-axis.
+38	Tool number greater than max supported value.
+EOD;
+
+	$a = [];
+	$b = explode( "\n", $code );
+	foreach( $b as $k=>$v ){
+		$c = explode( "	", $v );
+		$a[$c[0]] = $c[1];
+		}
+
+	return $a;
+}
+################################################################################
+#	get_class(). Returns a class specified on the call line.
+#	Notes:	This is being done because I have too many re-entrant calls to my
+#		classes. So now - you have to make sure you put include the class in
+#		YOUR program so these can work properly.
+################################################################################
+function get_class( $name=null )
+{
+	if( is_null($name) ){
+		die( "***** ERROR : Name is not given at " . __LINE__ . "\n" );
+		}
+
+	$lib = getenv( "my_libs" );
+	$lib = str_replace( "\\", "/", $lib );
+
+	if( isset($GLOBALS['classes'][$name]) ){ return $GLOBALS['classes'][$name]; }
+		else { die( "***** ERROR : You need to include $lib/class_rgb.php\n" ); }
 }
 ################################################################################
 #	__destruct(). Be sure to close everything.

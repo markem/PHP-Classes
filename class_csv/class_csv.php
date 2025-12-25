@@ -91,6 +91,10 @@ function __construct()
 ################################################################################
 function init()
 {
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -99,10 +103,13 @@ function init()
 ################################################################################
 #	@link http://gist.github.com/385876
 ################################################################################
-function fget_csv($filename='', $isTitle=true, $delimiter=',')
+function fget_csv( $filename='', $isTitle=true, $delimiter=',' )
 {
     if(!file_exists($filename) || !is_readable($filename)){
-		die( __FUNCTION__, __LINE__, " >>> The filename is Not there.<br>\n" );
+		$s = "***** ERROR : " . __FUNCTION__ . "@" . __LINE__ .
+			" >>> The filename is Not there.<br>\n";
+
+		die( $s );
 		}
 
 	$data = array();
@@ -137,13 +144,19 @@ function fput_csv($filename='', $array=null, $isTitle=true, $delimiter=',')
 	$c = count( $array );
 
 	if( !isset($array) || is_null($array) || $c < 1 ){
-		die( __FUNCTION__, __LINE__, " >>> The array is blank.<br>\n" );
+		$s = "***** ERROR : " . __FUNCTION__ . "@" . __LINE__ .
+			" >>> The array is blank.<br>\n";
+
+		die( $s );
 		}
 
 	$fh = fopen( $filename, "w" );
 
 	if( $fh == false ){
-		die( __FUNCTION__, __LINE__, " >>> The filename is Not there.<br>\n" );
+		$s = "***** ERROR : " . __FUNCTION__ . "@" . __LINE__ .
+			" >>> The filename is Not there.<br>\n";
+
+		die( $s );
 		}
 
 	if( $isTitle ){

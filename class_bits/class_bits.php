@@ -12,6 +12,14 @@
 
 	ini_set( 'memory_limit', -1 );
 	date_default_timezone_set( "UTC" );
+
+	define( "INT_SIZE", PHP_INT_SIZE * 8 );
+	define( "BIT_NOT", 1 );
+	define( "BIT_ZERO", 2 );
+	define( "BIT_ONE", 3 );
+	define( "BIT_XOR", 4 );
+	define( "BIT_AND", 5 );
+	define( "BIT_OR", 6 );
 #
 #	$lib is where my libraries are located.
 #	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
@@ -34,6 +42,10 @@
 #-Description:
 #
 #	Handle my HEXD code.
+#
+#	Notes:
+#		1. PHP_INT_SIZE = Number of bytes per word (8 = 64, 4 = 32)
+#		2. PHP_INT_MAX = Largest number possible. (2GB = 32, 2PB = 64)
 #
 #-Inputs:
 #
@@ -75,8 +87,6 @@
 ################################################################################
 class class_bits
 {
-	private $reg_a = null;		#	The first register
-	private $reg_b = null;		#	The second register
 	private $bit_length = null;	#	How long is each variable/register
 
 ################################################################################
@@ -99,12 +109,10 @@ function init()
 		$args = array_pop( $args );
 		}
 
-	$this->vars = [];
-	$this->regs = [];
-	$this->bit_length = 32;
+	$this->bit_length = INT_SIZE;
 }
 ################################################################################
-#	set_length(). Set how large the variables/registers are
+#	set_length(). Change the length you want to work with. Done in BITS.
 ################################################################################
 function set_length( $len=32 )
 {
@@ -114,396 +122,285 @@ function set_length( $len=32 )
 ################################################################################
 #	get_length(). Gets how long our variables are
 ################################################################################
-function get_lenght()
+function get_length()
 {
 	return $this->bit_length;
 }
 ################################################################################
-#	puta(). Store the value into the A registry
+#	doit(). Do whatever it is we want to do.
+#	NOTES:
+#		var_1 is what we are testing against
+#		var_2 is what we are going to test against
+#		start is where to start testing
+#		end is where to stop testing (remember the computer is zero based)
+#		opt is optional parameters
+#		ans is the answer. The answer has to be as large as possible.
 ################################################################################
-function puta( $val=null, $opt=false )
+function bit_test( $var_1=null, $start=0, $end=INT_SIZE, $opt=BIT_NOT, $var_2=null )
 {
-	if( is_null($val) ){ $this->dump("***** ERROR : VAL is NULL", true); }
-#
-#	Get the incoming value as a binary value.
-#
-	$str = "0-";
-	$s = decbin( $val );
-	$len = $this->bit_length;
-#
-#	Now convert it to "#-" so we have our binary value
-#	A string will look like this: #-#-#-#-...#-#-#
-#	This means we have a BLANK at both the last and first
-#	entry. This is so when we shift something I can get the
-#	bit that popped off.
-#
-	for( $i=0; $i<$len; $i++ ){
-		$str .= substr( $s, $i, 1 ) . "-";
-		}
+	if( is_null($var_1) ){ die( "***** ERROR : Variable #1 is NULL\n" ); }
 
-	$str .= "0";
+	$buf_1 = [];
+	$format = "%0" . $this->bit_length . "b";
+	$bin = sprintf( $format, $var_1 );
 #
-#	Now save it
+#	First, we have to get the entire variable because otherwise we would muck
+#	up the variable.
 #
-	if( $opt ){ $this->reg_b = $val; }
-		else { $this->reg_a = $val; }
-
-	return true;
-}
-################################################################################
-#	putb(). Store a value into the B registry
-################################################################################
-function putb( $val=null )
-{
-	$this->puta( $val, true );
-}
-################################################################################
-#	add(). Add the two registry's. The result is just returned. YOU must then
-#		store it whereever you want it to go.
-################################################################################
-function add()
-{
-	$a = $this->reg_a;
-	$b = $this->reg_b;
-	$len = $this->bit_length;
-
-	$a = explode( '-', $a );
-	$b = explode( '-', $b );
-
-	$ans = [];
-
-	for( $i=0; $i<$len; $i++ ){
-		$ans[$i] = $a[$i] + $b[$i];
-		}
-
-	for( $i=($len-1); $i>0; $i++ ){
-		if( $ans[$i] > 1 ){
-			$ans[$i] = 0;
-			$ans[$i-1] += 1;
+	for( $i=0; $i<$this->bit_length; $i++ ){ $buf_1[$i] = substr( $bin, $i, 1 ); }
+#
+#	Now do the second variable
+#
+	$buf_2 = [];
+	$bin = sprintf( $format, $var_2 );
+#
+#	First, we have to get the entire variable because otherwise we would muck
+#	up the variable.
+#
+	for( $i=0; $i<$this->bit_length; $i++ ){ $buf_2[$i] = substr( $bin, $i, 1 ); }
+#
+#	Now do the test
+#
+	for( $i=$start; $i<$end; $i++ ){
+		switch( $opt ){
+			case BIT_NOT: !$buf_1[$i]; break;
+			case BIT_ZERO: $buf_1[$i] = 0; break;
+			case BIT_ONE: $buf_1[$i] = 1; break;
+			case BIT_XOR: $buf_1[$i] xor $buf_2[$i]; break;
+			case BIT_AND: $buf_1[$i] and $buf_2[$i]; break;
+			case BIT_OR: $buf_1[$i] or $buf_2[$i]; break;
+			default: die( "***** ERROR : No operation given\n" ); break;
 			}
 		}
 #
-#	Change the number back in to a regular variable
+#	Put it all back together
 #
-	$sign = array_shift( $ans );
-	$last = array_pop( $ans );
-
-	$ans = implode( '-', $ans );
-	$dec = bindec( $ans );
-
-	return array( $sign, $dec, $last );
+	return bindec( implode('', $buf_1) );
 }
-#################################################################################
-#	or(). Do an OR on the two registerys
-#################################################################################
-function or()
+################################################################################
+#	not(). Not bits.
+################################################################################
+function not( $var=null, $start=0, $end=INT_SIZE, $opt=BIT_NORMAL, $bit=null )
 {
-	$a = $this->reg_a;
-	$b = $this->reg_b;
-	$len = $this->bit_length;
-
-	$a = explode( '-', $a );
-	$b = explode( '-', $b );
+	return $this->bit_test( $var, $start, $end, BIT_NOT );
+}
+################################################################################
+#	zeros(). Zero out all or part of a variable.
+################################################################################
+function zeros( $var=null, $start=0, $end=INT_SIZE )
+{
+	return $this->bit_test( $var, $start, $end, BIT_ZERO );
+}
+################################################################################
+#	ones(). Set all or part to ones
+################################################################################
+function ones( $var=null, $start=0, $end=INT_SIZE )
+{
+	return $this->bit_test( $var, $start, $end, BIT_ONE );
+}
+################################################################################
+#	xor(). Set all or part to be exclusively OR'd.
+#		Take the $BIT and XOR it against the bits given.
+#	NOTES : REMEMBER! The $BIT variable is applied against ALL of the bits
+#		given by $start -> to -> $end!!!! So if $start is 13 and $end is 27
+#		BUT $bits is just 1 - you are really going to test against ZERO(0)
+#		because $bits is 00000000000000000000000000000001!!!!!
+#		So if you want to XOR against a one(1). Then FIRST do the following:
+#
+#		#	Create a variable that contains all ones(1).
+#
+#			$xor = $class_bits->ones( 0 );
+#
+#		THEN you can do the XOR command with the new variable.
+#
+#			$ans = $class_bits->xor( $var, $xor );
+################################################################################
+function xor( $var=null, $bit=0, $start=0, $end=INT_SIZE )
+{
+	return $this->bit_test( $var, $start, $end, BIT_ONE, $bit );
+}
+################################################################################
+#	and(). Set all or part to be AND'd together.
+################################################################################
+function and( $var=null, $bit=0, $start=0, $end=INT_SIZE )
+{
+	$this->fb( $var, $start, $end, BIT_AND, $bit );
+}
+################################################################################
+#	or(). Set all or part to be OR'd together.
+################################################################################
+function or( $var=null, $bit=0, $start=0, $end=INT_SIZE )
+{
+	$this->fb( $var, $start, $end, BIT_OR, $bit );
+}
+################################################################################
+#	ls(). Left shift. Returns shifted variable AND what was popped off of the
+#		the end of the variable. The $BIT variable is pushed onto the variable.
+################################################################################
+function ls( $var=null, $bit=0, $start=0; $end=INT_SIZE )
+{
+	if( is_null($var) ){ die( "***** ERROR : VARiable is NULL\n" ); }
+	if( strlen($bit) > 1 ){
+		die( "***** ERROR : BIT is larger than a single digit - $bit\n" );
+		}
 
 	$ans = [];
-
-	for( $i=0; $i<$len; $i++ ){
-		$ans[$i] = $a[$i] | $b[$i];
+	$format = "%0" . INT_SIZE . "b";
+	$bin = sprintf( $format, $var );
+#
+#	First, we have to get the entire variable because otherwise we would muck
+#	up the variable.
+#
+	for( $i=0; $i<INT_SIZE; $i++ ){ $ans[$i] = substr( $bin, $i, 1 ); }
+#
+#	Get the segment of the variable we are going to work with.
+#
+	$seg = [];
+	for( $i=$start; $i<$end; $i++ ){
+		$seg[] = $ans[$i];
 		}
 #
-#	Change the number back in to a regular variable
+#	Now do the shift
 #
-	$sign = array_shift( $ans );
-	$last = array_pop( $ans );
-
-	$ans = implode( '-', $ans );
-	$dec = bindec( $ans );
-
-	return array( $sign, $dec, $last );
+	array_push( $seg, $bit );
+	$bit = array_shift( $seg );
+#
+#	Put it all back
+#
+	$cnt = count( $seg );
+	for( $i=0; $i<$cnt; $i++ ){
+		$ans[$start+$i] = $seg[$i];
+		}
+#
+#	Put it all back together
+#
+	return array( bindec(implode('', $ans)), $bit );
 }
-#################################################################################
-#	and(). Do an OR on the two registerys
-#################################################################################
-function and()
+################################################################################
+#	rs(). Right shift. Returns shifted variable AND what was popped off of the
+#		the end of the variable. The $BIT variable is pushed onto the variable.
+################################################################################
+function rs( $var=null, $bit=0, $start=0; $end=INT_SIZE )
 {
-	$a = $this->reg_a;
-	$b = $this->reg_b;
-	$len = $this->bit_length;
-
-	$a = explode( '-', $a );
-	$b = explode( '-', $b );
+	if( is_null($var) ){ die( "***** ERROR : VARiable is NULL\n" ); }
+	if( strlen($bit) > 1 ){
+		die( "***** ERROR : BIT is larger than a single digit - $bit\n" );
+		}
 
 	$ans = [];
-
-	for( $i=0; $i<$len; $i++ ){
-		$ans[$i] = $a[$i] & $b[$i];
+	$format = "%0" . INT_SIZE . "b";
+	$bin = sprintf( $format, $var );
+#
+#	First, we have to get the entire variable because otherwise we would muck
+#	up the variable.
+#
+	for( $i=0; $i<INT_SIZE; $i++ ){ $ans[$i] = substr( $bin, $i, 1 ); }
+#
+#	Get the segment of the variable we are going to work with.
+#
+	$seg = [];
+	for( $i=$start; $i<$end; $i++ ){
+		$seg[] = $ans[$i];
 		}
 #
-#	Change the number back in to a regular variable
+#	Move things around
 #
-	$sign = array_shift( $ans );
-	$last = array_pop( $ans );
-
-	$ans = implode( '-', $ans );
-	$dec = bindec( $ans );
-
-	return array( $sign, $dec, $last );
+	array_unshift( $seg, $bit );
+	$bit = array_pop( $seg );
+#
+#	Now move everything back to the answer ($ANS).
+#
+	$cnt = count( $seg );
+	for( $i=0; $i<$cnt; $i++ ){
+		$ans[$start+$i] = $seg[$i];
+		}
+#
+#	Put it all back together
+#
+	return array( bindec(implode('', $ans)), $bit );
 }
-#################################################################################
-#	xor(). Do an OR on the two registerys
-#################################################################################
-function xor()
+################################################################################
+#	lcs(). Left circular shift.
+#	NOTES:	This does a circular shift ON the variable. So if you had 1100 and
+#		you called this routine - then you'd get back 1001.
+################################################################################
+function lcs( $var=null, $start=0; $end=INT_SIZE )
 {
-	$a = $this->reg_a;
-	$b = $this->reg_b;
-	$len = $this->bit_length;
-
-	$a = explode( '-', $a );
-	$b = explode( '-', $b );
+	if( is_null($var) ){ die( "***** ERROR : VARiable is NULL\n" ); }
 
 	$ans = [];
-
-	for( $i=0; $i<$len; $i++ ){
-		$ans[$i] = $a[$i] ^ $b[$i];
+	$format = "%0" . INT_SIZE . "b";
+	$bin = sprintf( $format, $var );
+#
+#	First, we have to get the entire variable because otherwise we would muck
+#	up the variable.
+#
+	for( $i=0; $i<INT_SIZE; $i++ ){ $ans[$i] = substr( $bin, $i, 1 ); }
+#
+#	Get the segment of the variable we are going to work with.
+#
+	$seg = [];
+	for( $i=$start; $i<$end; $i++ ){
+		$seg[] = $ans[$i];
 		}
 #
-#	Change the number back in to a regular variable
+#	Do the left circular shift
 #
-	$sign = array_shift( $ans );
-	$last = array_pop( $ans );
-
-	$ans = implode( '-', $ans );
-	$dec = bindec( $ans );
-
-	return array( $sign, $dec, $last );
+	array_push( $seg, array_shift($seg) );
+#
+#	Now move everything back to the answer ($ANS).
+#
+	$cnt = count( $seg );
+	for( $i=0; $i<$cnt; $i++ ){
+		$ans[$start+$i] = $seg[$i];
+		}
+#
+#	Put it all back together
+#
+	return bindec( implode('', $ans) );
 }
-#################################################################################
-#	flip(). Do an OR on the two registerys
-#################################################################################
-function flipa( $opt=false )
+################################################################################
+#	rcs(). Right circular shift.
+#	NOTES:	This does a circular shift ON the variable. So if you had 1100 and
+#		you called this routine - then you'd get back 0110.
+################################################################################
+function rcs( $var=null, $start=0; $end=INT_SIZE )
 {
-	if( $opt ){ $var = $this->reg_b; }
-		else { $var = $this->reg_a; }
-
-	$var = explode( '-', $var );
-	$len = $this->bit_length;
+	if( is_null($var) ){ die( "***** ERROR : VARiable is NULL\n" ); }
+	if( strlen($bit) > 1 ){
+		die( "***** ERROR : BIT is larger than a single digit - $bit\n" );
+		}
 
 	$ans = [];
-
-	for( $i=0; $i<$len; $i++ ){
-		$ans[$i] = ($var[$i] + 1) % 2;
+	$format = "%0" . INT_SIZE . "b";
+	$bin = sprintf( $format, $var );
+#
+#	First, we have to get the entire variable because otherwise we would muck
+#	up the variable.
+#
+	for( $i=0; $i<INT_SIZE; $i++ ){ $ans[$i] = substr( $bin, $i, 1 ); }
+#
+#	Get the segment of the variable we are going to work with.
+#
+	$seg = [];
+	for( $i=$start; $i<$end; $i++ ){
+		$seg[] = $ans[$i];
 		}
 #
-#	Change the number back in to a regular variable
+#	Do the right circular shift
 #
-	$sign = array_shift( $ans );
-	$last = array_pop( $ans );
-
-	$ans = implode( '-', $ans );
-	$dec = bindec( $ans );
-
-	return array( $sign, $dec, $last );
-}
-#################################################################################
-#	csr(). Do a Circular Shift Right for the A registry
-#	NOTE : You can turn off saving the new value back into the A registry
-#		by setting $SAVE to FALSE. Default is TRUE.
+	array_unshift( $seg, array_pop($seg) );
 #
-#	Example:
-#				Original Number Store in $reg_a
-#				L-#-#-#-#-R
-#				0-0-1-0-1-0
+#	Now move everything back to the answer ($ANS).
 #
-#				Number shifted to the RIGHT
-#				>->->->->->
-#				L-#-#-#-#-R
-#				0-0-0-1-0-1
-#
-#				Then we move the RIGHT bit to the lowest number (ie: L+1 location)
-#				L-#-#-#-#-R
-#				0-1-0-1-0-1
-#
-#				Finally we clear the RIGHT bit
-#				L-#-#-#-#-R
-#				0-1-0-1-0-0
-#
-#	NOTES:
-#		Note that the LEFT bit does NOT change. This is because we are going
-#		that (->) way with the bits.
-#
-#		Note also that the RIGHT bit is ALWAYS set to zero(0) AFTER we are
-#		through doing the CSR.
-#
-#		Last, but not least, the "L" stands for LEFT and the "R" stands for RIGHT.
-#
-#################################################################################
-function csra( $save=true, $opt=false )
-{
-	if( $opt ){ $var = $this->reg_b; }
-		else { $var = $this->reg_a; }
-
-	$var = explode( '-', $var );
-	$len = $this->bit_length;
-
-	$ans = [];
-#
-#	First slide everything over by one to the right.
-#
-	for( $i=$len-1; $i>1; $i-- ){
-		$ans[$i] = $var[$i-1];
+	$cnt = count( $seg );
+	for( $i=0; $i<$cnt; $i++ ){
+		$ans[$start+$i] = $seg[$i];
 		}
 #
-#	Now put whatever is in the last position to the first
-#	position in the answer and clear the last position.
+#	Put it all back together
 #
-	$ans[1] = $var[$len-2];
-#
-#	Clear out the RIGHT bit
-#
-	$ans[$len-1] = 0;
-#
-#	Now save the answer into the correct registry area
-#
-	$var = implode( '-', $ans );
-	if( $opt ){ $this->reg_b = $var; }
-		else { $this->reg_a = $var; }
-#
-#	Change the number back in to a regular variable
-#
-	$left_bit = array_shift( $ans );
-	$right_bit = array_pop( $ans );
-
-	$dec = implode( '', $ans );
-	$dec = bindec( $dec );
-
-	return array( $left_bit, $dec, $right_bit );
-}
-#################################################################################
-#	csrb(). Do a Circular Shift Right for the B registry
-#################################################################################
-function csrb( $save=true )
-{
-	$this->csra( $save, true );
-}
-#################################################################################
-#	csl(). Do a Circular Shift Left for the A registry
-#
-#	Example:
-#				Original Number Store in $reg_a
-#				L-#-#-#-#-R
-#				0-1-0-1-0-0
-#
-#				Number shifted to the left
-#				L-#-#-#-#-R
-#				1-0-1-0-0-0
-#
-#				Then we move the L)eft bit to the $LEN-2 position.
-#				L-#-#-#-#-R
-#				1-0-1-0-1-0 <--$LEN
-#						^ ^
-#						| +-> $LEN-1
-#						+---> $LEN-2
-#
-#	NOTES	:	PHP array numbers start at ZERO. The COUNT() function returns
-#		however many entries there are in the array counting from one(1).
-#		This might seem stupid but is actually very smart.
-#
-#		Note that the SIGN bit stays however it winds up from this operation.
-#		That is because we are going that (<-) way. So the SIGN bit changes
-#		over time and can make your resulting DECIMAL number be negative.
-#
-#		Also note that whatever the SIGN bit WAS - it is lost as the second
-#		bit writes over it.
-#
-#		Last, but not least, the "L" stands for LEFT and the "R" stands for RIGHT.
-#
-#################################################################################
-function csla( $save=true, $opt=false )
-{
-	if( $opt ){ $var = $this->reg_b; }
-		else { $var = $this->reg_a; }
-
-	$var = explode( '-', $var );
-	$len = $this->bit_length;
-
-	$ans = [];
-#
-#	First slide everything over by one to the left.
-#
-	for( $i=0; $i<$len-1; $i++ ){
-		$ans[$i] = $var[$i+1];
-		}
-#
-#	Now get the bit that slid off the end and put it back on.
-#
-	$ans[$len-2] = $ans[0];
-#
-#	Clear the RIGHT bit
-#
-	$ans[$len-1] = 0;
-#
-#	Now save the answer into the correct registry area
-#
-	$var = implode( '-', $ans );
-	if( $opt ){ $this->reg_b = $var; }
-		else { $this->reg_a = $var; }
-#
-#	Change the number back in to a regular variable
-#
-	$left_bit = array_shift( $ans );
-	$right_bit = array_pop( $ans );
-
-	$dec = implode( '', $ans );
-	$dec = bindec( $dec );
-
-	return array( $left_bit, $dec, $right_bit );
-}
-#################################################################################
-#	cslb(). Do a Circular Shift Left for the B registry
-#################################################################################
-function cslb( $save=true )
-{
-	$this->csla( $save, true );
-}
-#################################################################################
-#	multi_csla(). Call the csla() function multiple times.
-#################################################################################
-function multi_csla( $num=null, $save=true, $opt=false )
-{
-	if( is_null($num) ){ $num = 1; }
-
-	for( $i=0; $i<$num; $i++ ){
-		$ret = $this->csla( $save, $opt );
-		}
-
-	return $ret;
-}
-#################################################################################
-#	multi_cslb(). Call the csla() function multiple times.
-#################################################################################
-function multi_cslb( $num=null, $save=true )
-{
-	return $this->multi_csla( $num, $save, true );
-}
-#################################################################################
-#	multi_csra(). Call the csra() function multiple times.
-#################################################################################
-function multi_csra( $num=null, $save=true, $opt=false )
-{
-	if( is_null($num) ){ $num = 1; }
-
-	for( $i=0; $i<$num; $i++ ){
-		$ret = $this->csra( $save, $opt );
-		}
-
-	return $ret;
-}
-#################################################################################
-#	multi_csrb(). Call the csra() function multiple times.
-#################################################################################
-function multi_csrb( $num=null, $save=true )
-{
-	return $this->multi_csra( $num, $save, true );
+	return array( bindec(implode('', $ans)), $bit );
 }
 
 }

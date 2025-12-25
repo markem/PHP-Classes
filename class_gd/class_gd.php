@@ -23,11 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	include_once( "$lib/class_rgb.php" );
-	include_once( "$lib/class_files.php" );
-	include_once( "$lib/class_color.php" );
-	include_once( "$lib/class_misc.php" );
-
 ################################################################################
 #BEGIN DOC
 #
@@ -87,6 +82,7 @@
 ################################################################################
 class class_gd
 {
+	private $pr = null;
 	private $cr = null;
 	private $cf = null;
 	private $cc = null;
@@ -130,6 +126,10 @@ function __construct()
 ################################################################################
 function init()
 {
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -140,20 +140,9 @@ function init()
 		$this->gd = $args;
 		}
 
-	$gd = $this->gd;
-	if( is_resource($gd) ){
-		$w = imagesx( $gd );
-		$h = imagesy( $gd );
-		}
-		else {
-			$w = 1000;
-			$h = 1000;
-			$gd = imagecreatetruecolor( $w, $h );
-			imagealphablending( $gd, false );
-			imagesavealpha( $gd, true );
-			}
-
-	$this->gd = $gd;
+	$gd = $this->make_gd();
+	$w = imagesx( $gd );
+	$h = imagesy( $gd );
 
 	$this->w = $w;
 	$this->h = $h;
@@ -161,33 +150,6 @@ function init()
 	$this->left = 0;
 	$this->bot = $h;
 	$this->right = $w;
-#
-#	Get the CLASS_RGB file and the CLASS_FILES file.
-#
-	$this->cr = $GLOBALS['classes']['rgb'];
-	$this->cf = $GLOBALS['classes']['files'];
-	$this->cc = $GLOBALS['classes']['color'];
-	$this->cm = $GLOBALS['classes']['misc'];
-#
-#	We always make a TRUE color image. This means it will always
-#	have the alpha channel (transparency). The weird thing about
-#	transparency is that only the numbers between zero(0) and
-#	127 affect the alpha/transparency set.
-#
-	$this->black = imagecolorallocate( $gd, 0, 0, 0 );
-	$this->white = imagecolorallocate( $gd, 255, 255, 255 );
-
-	imagefilledrectangle($gd, 0, 0, $w, $h, $this->black);
-#
-#	First, get all of the colors in this image
-#
-	$this->colors = $this->cr->get_colors( $gd );
-#
-#	Now find a transparent color in case we need it.
-#
-	$this->trans = $this->cf->unique_color( $gd );
-	list( $a, $r, $g, $b ) = $this->cr->get_ARGB( $this->trans );
-	$this->trans = $this->cr->put_ARGB( 127, $r, $g, $b );
 #
 #	Known graphic file extensions.
 #
@@ -206,9 +168,35 @@ function init()
 ################################################################################
 function make_gd( $w=1024, $h=1024 )
 {
+	$cf = $this->get_class( 'files' );
+	$cr = $this->get_class( 'rgb' );
+
 	$gd = imagecreatetruecolor( $w, $h );
 	imagealphablending($gd, false);
 	imagesavealpha($gd, true);
+
+	$trans = $cf->unique_color( $gd );
+	list( $a, $r, $g, $b ) = $cr->get_ARGB( $this->trans );
+	$trans = $cr->put_ARGB( 127, $r, $g, $b );
+
+	imagefilledrectangle($gd, 0, 0, $w, $h, $trans );
+#
+#	We always make a TRUE color image. This means it will always
+#	have the alpha channel (transparency). The weird thing about
+#	transparency is that only the numbers between zero(0) and
+#	127 affect the alpha/transparency set.
+#
+	$this->black = imagecolorallocate( $gd, 0, 0, 0 );
+	$this->white = imagecolorallocate( $gd, 255, 255, 255 );
+
+	imagefilledrectangle($gd, 0, 0, $w, $h, $this->black);
+#
+#	First, get all of the colors in this image
+#
+	$this->cr = $cr = $this->get_class( 'rgb' );
+	$this->colors = $this->cr->get_colors( $gd );
+
+	$this->trans = $trans;
 
 	return $gd;
 }
@@ -451,7 +439,7 @@ function greyscale( $gd=null )
 		for( $y=0; $y<$h; $y++ ){
             $color = imagecolorat( $gd, $x, $y );
 			list( $a, $r, $g, $b ) = $this->cr->get_ARGB( $color );
-			$val = round(.299*$r + .587*$g + .114*$b);
+			$val = round( (0.299*$r) + (0.587*$g) + (0.114*$b) );
 #			$val = round( ($r + $g + $b) / 3 );
 			$grey = $this->cr->put_ARGB( $a, $val, $val, $val );
 			imagesetpixel( $gd, $x, $y, $grey );
@@ -487,8 +475,8 @@ function split_image( $gd=null, $path=null, $dir=null, $trans=null )
 	global $high_h, $high_s, $high_l;
 
 	$dq = '"';
-	$cf = $this->cf;
-	$cr = $this->cr;
+	$cr = $this->get_class( 'rgb' );
+	$cf = $this->get_class( 'files' );
 #
 #	Set a magic_wand up.
 #
@@ -587,7 +575,7 @@ function find_image( $x=null, $y=null, $cnt=0 )
 #	$this->dump( "Entering---->", "X = $x, Y = $y, CNT = $cnt" );
 #	echo "Memory Usage = " . $this->show_memory() . "\n";
 
-	$cr = $this->cr;
+	$cr = $this->get_class( 'rgb' );
 
     $w = $width;
     $h = $height;
@@ -908,7 +896,8 @@ function darken( $old_gd=null, $percent=null, $old_colors=null, $del=true )
 #
 #	If there is only one color make it into an array.
 #
-	$cr = $this->cr;
+	$cr = $this->get_class( 'rgb' );
+
 	if( (count($old_colors) < 2) && !is_array($old_colors) ){
 		$a = $old_colors;
 		unset($old_colors);
@@ -988,7 +977,8 @@ function extract( $old_gd=null, $old_color=null, $default=null )
 #
 #	Convert string to array.
 #
-	$cr = $this->cr;
+	$cr = $this->get_class( 'rgb' );
+
 	$a = explode( ";", $default );
 #
 #	Make sure the ALPHA is only 0-127. Anything else gets set to zero(0).
@@ -1058,12 +1048,12 @@ function sign( $n=0 ){ return ($n > 0) - ($n < 0); }
 function color_atol( $color1=null, $color2=null, $tolerance=35 )
 {
 	if( is_null($color1) ){ die("COLOR_TOL:COLOR #1 is NULL" ); }
-	if( is_null($color2) ){ die("COLOR_TOL:COLOR #1 is NULL" ); }
-	if( is_null($tolerance) ){ die("COLOR_TOL:TOLERANCE is NULL" ); }
+	if( is_null($color2) ){ die("COLOR_TOL:COLOR #2 is NULL" ); }
 #
 #	Break up the colors
 #
-	$cr = $this->cr;
+	$cr = $this->get_class( 'rgb' );
+
 	list( $a1, $r1, $g1, $b1 ) = $cr->get_ARGB( $color1 );
 	list( $a2, $r2, $g2, $b2 ) = $cr->get_ARGB( $color2 );
 #
@@ -1403,6 +1393,7 @@ function hsv2rgb( $h=null, $s=null, $v=null )
 #	NOTES	:	If you leave W and H off, they are taken from the current info.
 #				If you leave X and Y off, they are taken from the old values.
 #				REMEMBER! CALL SET() FIRST! THEN USE THESE ROUTINES.
+#			$opt = outline or filled rectangle
 ################################################################################
 function rect( $gd=null, $color=null, $x=null, $y=null, $w=null, $h=null, $opt=TRUE )
 {
@@ -1454,7 +1445,7 @@ function fsize( $filename=null, $opt=TRUE )
 		die( "Unknown type of FILENAME ($filename)" );
 		}
 
-	$JPGAPP = [];
+	$jpgapp = [];
 	if( $opt ){ $info = $this->gd->getimagesize( $filename, $jpgapp ); }
 		else { $info = $this->gd->getimagesizefromstring( $filename, $jpgapp ); }
 	$info[] = $jpgapp;
@@ -1539,17 +1530,17 @@ function plot( $gd=null, $color=null, $x=null, $y=null, $flip=null )
 #-------------------------------------------------------------------------------
 function pixel( $gd=null, $x=null, $y=null, $color=null, $flip=false )
 {
-	return $this->plot( $gd, $x, $y, $color );
+	return $this->plot( $gd, $color, $x, $y, $flip );
 }
 #-------------------------------------------------------------------------------
 function point( $gd=null, $x=null, $y=null, $color=null, $flip=false )
 {
-	return $this->plot( $gd, $x, $y, $color );
+	return $this->plot( $gd, $color, $x, $y, $flip );
 }
 #-------------------------------------------------------------------------------
 function dot( $gd=null, $x=null, $y=null, $color=null, $flip=false )
 {
-	return $this->plot( $gd, $x, $y, $color );
+	return $this->plot( $gd, $color, $x, $y, $flip );
 }
 ################################################################################
 #	plots(). Plots as many points as you send over.
@@ -1576,8 +1567,8 @@ function plots( $gd=null, $array=null, $color=null, $size=null )
 				else { $flip = $v1; }
 			}
 
-		if( !is_null($size) ){ $return[] = $this->plot( $c, $x, $y ); }
-			else { $return[] = $this->ellipsef( $c, $x, $y, $size ); }
+		if( !is_null($size) ){ $return[] = $this->plot( $gd, $c, $x, $y ); }
+			else { $return[] = $this->ellipsef( $gd, $c, $x, $y, $size ); }
 		}
 
 	return $return;
@@ -1788,7 +1779,7 @@ function get_topright( $gd=null )
 	return array( $ret_x, $ret_y );
 }
 ################################################################################
-#	get_right(). Returns the right most pixel of an image.
+#	get_botright(). Returns the right most pixel of an image.
 #		First color is used to help find where the top of the image is.
 #	NOTES	:	Just because get_bot gives you an X location - that DOES NOT
 #				mean that THAT location is the right most pixel. Think of a STAR.
@@ -1848,7 +1839,7 @@ function get_bb( $gd=null )
 #--------------------------------------------------------------------------------
 function get_bounding_box( $gd=null ){ return $this->get_bb( $gd ); }
 ################################################################################
-#	string(). Print a string
+#	string(). Print a string - horizontal
 ################################################################################
 function string( $gd=null, $font=null, $x=null, $y=null, $string=null, $color=null )
 {
@@ -1866,7 +1857,7 @@ function string( $gd=null, $font=null, $x=null, $y=null, $string=null, $color=nu
 	return imagestring( $gd, $font, $x, $y, $string, $color );
 }
 ################################################################################
-#	stringUp(). Print a string
+#	stringUp(). Print a string - vertical
 ################################################################################
 function stringUp( $gd=null, $font=null, $x=null, $y=null, $string=null, $color=null )
 {
@@ -1954,7 +1945,9 @@ function oneTrans( $gd=null )
 
 	$w = imagesx( $gd );
 	$h = imagesy( $gd );
-	$cr = $this->cr;
+
+	$cr = $this->get_class( 'rgb' );
+
 	$cf = $this->cf;
 #
 #	Get a single transparent color for the whole image
@@ -2369,6 +2362,24 @@ function show_memory()
 	return $s;
  }
 ################################################################################
+#	get_class(). Returns a class specified on the call line.
+#	Notes:	This is being done because I have too many re-entrant calls to my
+#		classes. So now - you have to make sure you put include the class in
+#		YOUR program so these can work properly.
+################################################################################
+function get_class( $name=null )
+{
+	if( is_null($name) ){
+		die( "***** ERROR : Name is not given at " . __LINE__ . "\n" );
+		}
+
+	$lib = getenv( "my_libs" );
+	$lib = str_replace( "\\", "/", $lib );
+
+	if( isset($GLOBALS['classes'][$name]) ){ return $GLOBALS['classes'][$name]; }
+		else { die( "***** ERROR : You need to include $lib/class_rgb.php\n" ); }
+}
+################################################################################
 #	__destruct(). Do the clean-up necessary.
 ################################################################################
 function __destruct()
@@ -2382,4 +2393,6 @@ function __destruct()
 	if( !isset($GLOBALS['classes']['gd']) ){
 		$GLOBALS['classes']['gd'] = new class_gd();
 		}
+
+$a = $GLOBALS['classes']['gd'];
 ?>

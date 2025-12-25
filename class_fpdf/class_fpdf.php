@@ -96,6 +96,10 @@ function __construct()
 ################################################################################
 function init()
 {
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );

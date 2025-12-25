@@ -67,6 +67,28 @@ class xml_json
 ################################################################################
 function __construct()
 {
+	if( !isset($GLOBALS['class']['gd']) ){
+		return $this->init( func_get_args() );
+		}
+		else { return $GLOBALS['class']['gd']; }
+}
+################################################################################
+#	init(). A function to start the entire thing over again.
+################################################################################
+function init()
+{
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
+	$args = func_get_args();
+	while( is_array($args) && (count($args) > 2) ){
+		$args = array_pop( $args );
+		}
+
+	$this->cf = $this->get_class( 'files' );
+
+	return true;
 }
 ################################################################################
 #	getJSON().  A function to get all of the HTML JSON code.
@@ -604,6 +626,24 @@ function ssl_decrypt( $crypted_token=null, $key=null )
 	unset( $crypted_token, $cipher_method, $enc_key, $enc_iv );
 
 	return $token;
+}
+################################################################################
+#	get_class(). Returns a class specified on the call line.
+#	Notes:	This is being done because I have too many re-entrant calls to my
+#		classes. So now - you have to make sure you put include the class in
+#		YOUR program so these can work properly.
+################################################################################
+function get_class( $name=null )
+{
+	if( is_null($name) ){
+		die( "***** ERROR : Name is not given at " . __LINE__ . "\n" );
+		}
+
+	$lib = getenv( "my_libs" );
+	$lib = str_replace( "\\", "/", $lib );
+
+	if( isset($GLOBALS['classes'][$name]) ){ return $GLOBALS['classes'][$name]; }
+		else { die( "***** ERROR : You need to include $lib/class_rgb.php\n" ); }
 }
 
 }

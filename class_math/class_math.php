@@ -148,6 +148,10 @@ function __construct()
 ################################################################################
 function init()
 {
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -223,7 +227,7 @@ function init()
 ################################################################################
 function area_square( $w=null, $h=null )
 {
-	if( is_null($w) ){ die( "Area of a square - no side given", true ); }
+	if( is_null($w) ){ die( "Area of a square - no side given\n" ); }
 	if( is_null($h) ){ $h = $w; }
 
 	return ($w * $h);
@@ -248,8 +252,8 @@ function area_triangle( $b=null, $h=null )
 ################################################################################
 function area_rhombus( $D=null, $d=null )
 {
-	if( is_null($D) ){ die( "Area of a rhombus - D not given", true ); }
-	if( is_null($d) ){ die( "Area of a rhombus - d not given", true ); }
+	if( is_null($D) ){ die( "Area of a rhombus - D not given\n" ); }
+	if( is_null($d) ){ die( "Area of a rhombus - d not given\n" ); }
 
 	return (($D * $d) / 2.0);
 }
@@ -258,9 +262,9 @@ function area_rhombus( $D=null, $d=null )
 ################################################################################
 function area_trapezoid( $B=null, $b=null, $h=null )
 {
-	if( is_null($B) ){ die( "Area of a trapezoid - B not given", true ); }
-	if( is_null($b) ){ die( "Area of a trapezoid - b not given", true ); }
-	if( is_null($h) ){ die( "Area of a trapezoid - h not given", true ); }
+	if( is_null($B) ){ die( "Area of a trapezoid - B not given\n" ); }
+	if( is_null($b) ){ die( "Area of a trapezoid - b not given\n" ); }
+	if( is_null($h) ){ die( "Area of a trapezoid - h not given\n" ); }
 
 	return (($B + $b) / 2.0) * $h;
 }
@@ -270,8 +274,8 @@ function area_trapezoid( $B=null, $b=null, $h=null )
 ################################################################################
 function area_polygon( $P=null, $a=null )
 {
-	if( is_null($P) ){ die( "Area of a polygon - P not given", true ); }
-	if( is_null($a) ){ die( "Area of a polygon - a not given", true ); }
+	if( is_null($P) ){ die( "Area of a polygon - P not given\n" ); }
+	if( is_null($a) ){ die( "Area of a polygon - a not given\n" ); }
 
 	return ($P / 2.0) * $a;
 }
@@ -280,7 +284,7 @@ function area_polygon( $P=null, $a=null )
 ################################################################################
 function area_circle( $r=null )
 {
-	if( is_null($r) ){ die( "Area of a circle - r not given", true ); }
+	if( is_null($r) ){ die( "Area of a circle - r not given\n" ); }
 
 	return (($r * $r) * $this->PI );
 }
@@ -289,7 +293,7 @@ function area_circle( $r=null )
 ################################################################################
 function area_perimeter( $r=null )
 {
-	if( is_null($r) ){ die( "Area of a circles perimeter - r not given", true ); }
+	if( is_null($r) ){ die( "Area of a circles perimeter - r not given\n" ); }
 
 	return (2.0 * $this->PI * $r);
 }
@@ -298,8 +302,8 @@ function area_perimeter( $r=null )
 ################################################################################
 function area_cone( $r=null, $s=null )
 {
-	if( is_null($r) ){ die( "Area of a cone - r not given", true ); }
-	if( is_null($s) ){ die( "Area of a cone - s not given", true ); }
+	if( is_null($r) ){ die( "Area of a cone - r not given\n" ); }
+	if( is_null($s) ){ die( "Area of a cone - s not given\n" ); }
 
 	return ($this->PI * $r) * $s;
 }
@@ -308,7 +312,7 @@ function area_cone( $r=null, $s=null )
 ################################################################################
 function area_sphere( $r )
 {
-	if( is_null($r) ){ die( "Area of a sphere - r not given", true ); }
+	if( is_null($r) ){ die( "Area of a sphere - r not given\n" ); }
 
 	return (4.0 * $this->PI * ($r * $r));
 }
@@ -317,7 +321,7 @@ function area_sphere( $r )
 ################################################################################
 function vol_cube( $w=null, $h=null )
 {
-	if( is_null($w) ){ die( "Volume of a cube - w not given", true ); }
+	if( is_null($w) ){ die( "Volume of a cube - w not given\n" ); }
 	if( is_null($h) ){ $h = $w; }
 
 	return ( $w * $h * $w );
@@ -327,9 +331,9 @@ function vol_cube( $w=null, $h=null )
 ################################################################################
 function vol_parallelepiped( $l=null, $w=null, $h=null )
 {
-	if( is_null($l) ){ die( "Volume of a parallelepiped - l not given", true ); }
-	if( is_null($w) ){ die( "Volume of a parallelepiped - w not given", true ); }
-	if( is_null($h) ){ die( "Volume of a parallelepiped - h not given", true ); }
+	if( is_null($l) ){ die( "Volume of a parallelepiped - l not given\n" ); }
+	if( is_null($w) ){ die( "Volume of a parallelepiped - w not given\n" ); }
+	if( is_null($h) ){ die( "Volume of a parallelepiped - h not given\n" ); }
 
 	return ($l * $w * $h);
 }
@@ -345,8 +349,8 @@ function vol_ppp( $l=null, $w=null, $h=null )
 ################################################################################
 function vol_prism( $b=null, $h=null )
 {
-	if( is_null($b) ){ die( "Volume of a prism - b not given", true ); }
-	if( is_null($h) ){ die( "Volume of a prism - h not given", true ); }
+	if( is_null($b) ){ die( "Volume of a prism - b not given\n" ); }
+	if( is_null($h) ){ die( "Volume of a prism - h not given\n" ); }
 
 	return ($b * $h);
 }
@@ -355,8 +359,8 @@ function vol_prism( $b=null, $h=null )
 ################################################################################
 function volume_cylinder( $r=null, $h=null )
 {
-	if( is_null($r) ){ die( "Volume of a cylinder - r not given", true ); }
-	if( is_null($h) ){ die( "Volume of a cylinder - h not given", true ); }
+	if( is_null($r) ){ die( "Volume of a cylinder - r not given\n" ); }
+	if( is_null($h) ){ die( "Volume of a cylinder - h not given\n" ); }
 
 	return ($this->PI * ($r * $r)) * $h;
 }
@@ -365,8 +369,8 @@ function volume_cylinder( $r=null, $h=null )
 ################################################################################
 function volume_cone( $b=null, $h=null )
 {
-	if( is_null($b) ){ die( "Volume of a cone - b not given", true ); }
-	if( is_null($h) ){ die( "Volume of a cone - h not given", true ); }
+	if( is_null($b) ){ die( "Volume of a cone - b not given\n" ); }
+	if( is_null($h) ){ die( "Volume of a cone - h not given\n" ); }
 
 	return ($b * $h) / 3.0;
 }
@@ -375,7 +379,7 @@ function volume_cone( $b=null, $h=null )
 ################################################################################
 function volume_sphere( $r=null )
 {
-	if( is_null($r) ){ die( "Volume of a sphere - r not given", true ); }
+	if( is_null($r) ){ die( "Volume of a sphere - r not given\n" ); }
 
 	return (($r * $r * $r) * $this->PI) * (4.0 / 3.0);
 }
@@ -384,9 +388,9 @@ function volume_sphere( $r=null )
 ################################################################################
 function eq_dp( $x=null, $y=null, $k=null )
 {
-	if( is_null($x) ){ die( "Equation - Directly Proportional - x not given", true ); }
-	if( is_null($y) ){ die( "Equation - Directly Proportional - y not given", true ); }
-	if( is_null($k) ){ die( "Equation - Directly Proportional - k not given", true ); }
+	if( is_null($x) ){ die( "Equation - Directly Proportional - x not given\n" ); }
+	if( is_null($y) ){ die( "Equation - Directly Proportional - y not given\n" ); }
+	if( is_null($k) ){ die( "Equation - Directly Proportional - k not given\n" ); }
 
 	if( ($y == ($k * $x)) && ($k == ($y / $x)) ){ return true; }
 
@@ -397,9 +401,9 @@ function eq_dp( $x=null, $y=null, $k=null )
 ################################################################################
 function eq_ip( $x=null, $y=null, $k=null )
 {
-	if( is_null($x) ){ die( "Equation - Inversely Proportional - x not given", true ); }
-	if( is_null($y) ){ die( "Equation - Inversely Proportional - y not given", true ); }
-	if( is_null($k) ){ die( "Equation - Inversely Proportional - k not given", true ); }
+	if( is_null($x) ){ die( "Equation - Inversely Proportional - x not given\n" ); }
+	if( is_null($y) ){ die( "Equation - Inversely Proportional - y not given\n" ); }
+	if( is_null($k) ){ die( "Equation - Inversely Proportional - k not given\n" ); }
 
 	if( ($y == ($k / $x)) && ($k = ($y * $x)) ){ return true; }
 
@@ -410,9 +414,9 @@ function eq_ip( $x=null, $y=null, $k=null )
 ################################################################################
 function eq_quadratic( $a=null, $b=null, $c=null )
 {
-	if( is_null($a) ){ die( "Equation - Quadratic formula - a not given", true ); }
-	if( is_null($b) ){ die( "Equation - Quadratic formula - b not given", true ); }
-	if( is_null($c) ){ die( "Equation - Quadratic formula - c not given", true ); }
+	if( is_null($a) ){ die( "Equation - Quadratic formula - a not given\n" ); }
+	if( is_null($b) ){ die( "Equation - Quadratic formula - b not given\n" ); }
+	if( is_null($c) ){ die( "Equation - Quadratic formula - c not given\n" ); }
 
 	if( $a !== 0.0 ){
 		$d = sqrt(($b * $b) - (4.0 * $a * $c));
@@ -428,10 +432,10 @@ function eq_quadratic( $a=null, $b=null, $c=null )
 ################################################################################
 function eq_line( $a=null, $b=null, $c=null, $x=null )
 {
-	if( is_null($a) ){ die( "Equation of a line - a not given", true ); }
-	if( is_null($b) ){ die( "Equation of a line - b not given", true ); }
-	if( is_null($c) ){ die( "Equation of a line - c not given", true ); }
-	if( is_null($x) ){ die( "Equation of a line - x not given", true ); }
+	if( is_null($a) ){ die( "Equation of a line - a not given\n" ); }
+	if( is_null($b) ){ die( "Equation of a line - b not given\n" ); }
+	if( is_null($c) ){ die( "Equation of a line - c not given\n" ); }
+	if( is_null($x) ){ die( "Equation of a line - x not given\n" ); }
 
 	return ($a * ($x * $x)) + ($b * $x) + $c;
 }
@@ -445,9 +449,9 @@ function eq_line( $a=null, $b=null, $c=null, $x=null )
 ################################################################################
 function eq_concavity( $a=null, $b=null, $c=null, $x=null )
 {
-	if( is_null($a) ){ die( "Equation - Concavity - a not given", true ); }
-	if( is_null($b) ){ die( "Equation - Concavity - b not given", true ); }
-	if( is_null($c) ){ die( "Equation - Concavity - c not given", true ); }
+	if( is_null($a) ){ die( "Equation - Concavity - a not given\n" ); }
+	if( is_null($b) ){ die( "Equation - Concavity - b not given\n" ); }
+	if( is_null($c) ){ die( "Equation - Concavity - c not given\n" ); }
 
 	if( $a > 0.0 ){ return "up"; }
 		else if( $a < 0.0 ){ return "down"; }
@@ -459,9 +463,9 @@ function eq_concavity( $a=null, $b=null, $c=null, $x=null )
 ################################################################################
 function eq_discriminant( $a=null, $b=null, $c=null )
 {
-	if( is_null($a) ){ die( "Equation - Discriminant - a not given", true ); }
-	if( is_null($b) ){ die( "Equation - Discriminant - b not given", true ); }
-	if( is_null($c) ){ die( "Equation - Discriminant - c not given", true ); }
+	if( is_null($a) ){ die( "Equation - Discriminant - a not given\n" ); }
+	if( is_null($b) ){ die( "Equation - Discriminant - b not given\n" ); }
+	if( is_null($c) ){ die( "Equation - Discriminant - c not given\n" ); }
 
 	return (($b * $b) - (4.0 * $a * $c));
 }
@@ -471,9 +475,9 @@ function eq_discriminant( $a=null, $b=null, $c=null )
 ################################################################################
 function eq_vertex_parabola( $a=null, $b=null, $c=null )
 {
-	if( is_null($a) ){ die( "Equation - Vertex of a parabola - a not given", true ); }
-	if( is_null($b) ){ die( "Equation - Vertex of a parabola - b not given", true ); }
-	if( is_null($c) ){ die( "Equation - Vertex of a parabola - c not given", true ); }
+	if( is_null($a) ){ die( "Equation - Vertex of a parabola - a not given\n" ); }
+	if( is_null($b) ){ die( "Equation - Vertex of a parabola - b not given\n" ); }
+	if( is_null($c) ){ die( "Equation - Vertex of a parabola - c not given\n" ); }
 
 	$delta = $this->eq_discriminant( $a, $b, $c );
 	$v1 = (-$b) / (2.0 * $a);
@@ -487,9 +491,9 @@ function eq_vertex_parabola( $a=null, $b=null, $c=null )
 ################################################################################
 function eq_parabola( $a=null, $h=null, $k=null, $x=null )
 {
-	if( is_null($a) ){ die( "Equation - parabola - a not given", true ); }
-	if( is_null($h) ){ die( "Equation - parabola - h not given", true ); }
-	if( is_null($k) ){ die( "Equation - parabola - k not given", true ); }
+	if( is_null($a) ){ die( "Equation - parabola - a not given\n" ); }
+	if( is_null($h) ){ die( "Equation - parabola - h not given\n" ); }
+	if( is_null($k) ){ die( "Equation - parabola - k not given\n" ); }
 	if( is_null($x) ){ $x = 1.0; }
 
 	return ($a * ($x - ($h * $h))) + $k;
@@ -499,8 +503,8 @@ function eq_parabola( $a=null, $h=null, $k=null, $x=null )
 ################################################################################
 function vertex_parabola( $h=null, $k=null )
 {
-	if( is_null($h) ){ die( "Equation - vertex of parabola - h not given", true ); }
-	if( is_null($k) ){ die( "Equation - vertex of parabola - k not given", true ); }
+	if( is_null($h) ){ die( "Equation - vertex of parabola - h not given\n" ); }
+	if( is_null($k) ){ die( "Equation - vertex of parabola - k not given\n" ); }
 
 	return $this->eq_vertex_parabola( $h, $k );
 }
@@ -509,8 +513,8 @@ function vertex_parabola( $h=null, $k=null )
 ################################################################################
 function eq_diff2sqr( $a=null, $b=null )
 {
-	if( is_null($a) ){ die( "Equation - Difference of two squares - a not given", true ); }
-	if( is_null($b) ){ die( "Equation - Difference of two squares - b not given", true ); }
+	if( is_null($a) ){ die( "Equation - Difference of two squares - a not given\n" ); }
+	if( is_null($b) ){ die( "Equation - Difference of two squares - b not given\n" ); }
 
 	return ($a * $a) - ($b * $b);
 }
@@ -519,8 +523,8 @@ function eq_diff2sqr( $a=null, $b=null )
 ################################################################################
 function eq_pst( $a=null, $b=null )
 {
-	if( is_null($a) ){ die( "Equation - Perfect square trinomial - a not given", true ); }
-	if( is_null($b) ){ die( "Equation - Perfect square trinomial - b not given", true ); }
+	if( is_null($a) ){ die( "Equation - Perfect square trinomial - a not given\n" ); }
+	if( is_null($b) ){ die( "Equation - Perfect square trinomial - b not given\n" ); }
 
 	return ($a * $a) + (2.0 * $a * $b) + ($b * $b);
 }
@@ -529,8 +533,8 @@ function eq_pst( $a=null, $b=null )
 ################################################################################
 function eq_binominal_theorem( $x=null, $y=null, $n=null )
 {
-	if( is_null($x) ){ die( "Equation - Binomial Theorem - x not given", true ); }
-	if( is_null($y) ){ die( "Equation - Binomial Theorem - y not given", true ); }
+	if( is_null($x) ){ die( "Equation - Binomial Theorem - x not given\n" ); }
+	if( is_null($y) ){ die( "Equation - Binomial Theorem - y not given\n" ); }
 
 	$c = 0;
 	for( $i=0; $i<=$k; $i++ ){
@@ -553,9 +557,9 @@ function eq_bith( $x=null, $y=null, $n=null )
 ################################################################################
 function do_prod1( $a=null, $m=null, $n=null )
 {
-	if( is_null($a) ){ die( "Equation - Do Product #1 - a not given", true ); }
-	if( is_null($m) ){ die( "Equation - Do Product #1 - m not given", true ); }
-	if( is_null($n) ){ die( "Equation - Do Product #1 - n not given", true ); }
+	if( is_null($a) ){ die( "Equation - Do Product #1 - a not given\n" ); }
+	if( is_null($m) ){ die( "Equation - Do Product #1 - m not given\n" ); }
+	if( is_null($n) ){ die( "Equation - Do Product #1 - n not given\n" ); }
 
 	return ($a ** ($m + $n));
 }
@@ -564,9 +568,9 @@ function do_prod1( $a=null, $m=null, $n=null )
 ################################################################################
 function do_prod2( $a=null, $b=null, $m=null )
 {
-	if( is_null($a) ){ die( "Equation - Do Product #2 - a not given", true ); }
-	if( is_null($b) ){ die( "Equation - Do Product #2 - b not given", true ); }
-	if( is_null($m) ){ die( "Equation - Do Product #2 - m not given", true ); }
+	if( is_null($a) ){ die( "Equation - Do Product #2 - a not given\n" ); }
+	if( is_null($b) ){ die( "Equation - Do Product #2 - b not given\n" ); }
+	if( is_null($m) ){ die( "Equation - Do Product #2 - m not given\n" ); }
 
 	return ($a * $b) ** $m;
 }
@@ -575,9 +579,9 @@ function do_prod2( $a=null, $b=null, $m=null )
 ################################################################################
 function do_quot1( $a=null, $m=null, $n=null )
 {
-	if( is_null($a) ){ die( "Equation - Do Quotient #1 - a not given", true ); }
-	if( is_null($m) ){ die( "Equation - Do Quotient #1 - m not given", true ); }
-	if( is_null($n) ){ die( "Equation - Do Quotient #1 - n not given", true ); }
+	if( is_null($a) ){ die( "Equation - Do Quotient #1 - a not given\n" ); }
+	if( is_null($m) ){ die( "Equation - Do Quotient #1 - m not given\n" ); }
+	if( is_null($n) ){ die( "Equation - Do Quotient #1 - n not given\n" ); }
 
 	return ($a ** ($m - $n));
 }
@@ -586,9 +590,9 @@ function do_quot1( $a=null, $m=null, $n=null )
 ################################################################################
 function do_quot2( $a=null, $b=null, $m=null )
 {
-	if( is_null($a) ){ die( "Equation - Do Quotient #2 - a not given", true ); }
-	if( is_null($b) ){ die( "Equation - Do Quotient #2 - b not given", true ); }
-	if( is_null($m) ){ die( "Equation - Do Quotient #2 - m not given", true ); }
+	if( is_null($a) ){ die( "Equation - Do Quotient #2 - a not given\n" ); }
+	if( is_null($b) ){ die( "Equation - Do Quotient #2 - b not given\n" ); }
+	if( is_null($m) ){ die( "Equation - Do Quotient #2 - m not given\n" ); }
 
 	if( abs($b) > 0.0 ){ return ($a / $b) ** $m; }
 
@@ -599,9 +603,9 @@ function do_quot2( $a=null, $b=null, $m=null )
 ################################################################################
 function do_pop( $a=null, $m=null, $p=null )
 {
-	if( is_null($a) ){ die( "Equation - Do Power of Power - a not given", true ); }
-	if( is_null($m) ){ die( "Equation - Do Power of Power - m not given", true ); }
-	if( is_null($p) ){ die( "Equation - Do Power of Power - p not given", true ); }
+	if( is_null($a) ){ die( "Equation - Do Power of Power - a not given\n" ); }
+	if( is_null($m) ){ die( "Equation - Do Power of Power - m not given\n" ); }
+	if( is_null($p) ){ die( "Equation - Do Power of Power - p not given\n" ); }
 
 	return $a ** ($m * $p);
 }
@@ -610,8 +614,8 @@ function do_pop( $a=null, $m=null, $p=null )
 ################################################################################
 function do_nexp( $a=null, $n=null )
 {
-	if( is_null($a) ){ die( "Equation - Do Negative Exponents - a not given", true ); }
-	if( is_null($n) ){ die( "Equation - Do Negative Exponents - n not given", true ); }
+	if( is_null($a) ){ die( "Equation - Do Negative Exponents - a not given\n" ); }
+	if( is_null($n) ){ die( "Equation - Do Negative Exponents - n not given\n" ); }
 
 	return (1.0 / $a) ** $n;
 }
@@ -620,9 +624,9 @@ function do_nexp( $a=null, $n=null )
 ################################################################################
 function do_fexp( $a=null, $p=null, $q=null )
 {
-	if( is_null($a) ){ die( "Equation - Do Fractional Exponents - a not given", true ); }
-	if( is_null($p) ){ die( "Equation - Do Fractional Exponents - p not given", true ); }
-	if( is_null($q) ){ die( "Equation - Do Fractional Exponents - q not given", true ); }
+	if( is_null($a) ){ die( "Equation - Do Fractional Exponents - a not given\n" ); }
+	if( is_null($p) ){ die( "Equation - Do Fractional Exponents - p not given\n" ); }
+	if( is_null($q) ){ die( "Equation - Do Fractional Exponents - q not given\n" ); }
 
 	return ($a ** $p) ** (1.0 / $q);
 }
@@ -631,7 +635,7 @@ function do_fexp( $a=null, $p=null, $q=null )
 ################################################################################
 function magic_square1( $n=null )
 {
-	if( is_null($n) ){ die( "Equation - Magic Square #1 - n not given", true ); }
+	if( is_null($n) ){ die( "Equation - Magic Square #1 - n not given\n" ); }
 
 	return (0.5 * $n)(($n * $n) + 1.0);
 }
@@ -640,9 +644,9 @@ function magic_square1( $n=null )
 ################################################################################
 function magic_square2( $n=null, $a=null, $d=null )
 {
-	if( is_null($n) ){ die( "Equation - Magic Square #2 - n not given", true ); }
-	if( is_null($a) ){ die( "Equation - Magic Square #2 - a not given", true ); }
-	if( is_null($d) ){ die( "Equation - Magic Square #2 - d not given", true ); }
+	if( is_null($n) ){ die( "Equation - Magic Square #2 - n not given\n" ); }
+	if( is_null($a) ){ die( "Equation - Magic Square #2 - a not given\n" ); }
+	if( is_null($d) ){ die( "Equation - Magic Square #2 - d not given\n" ); }
 
 	return ($n * 0.5)(($a * 2.0) + ($d * (($n * $n) - 1.0)));
 }
@@ -651,7 +655,7 @@ function magic_square2( $n=null, $a=null, $d=null )
 ################################################################################
 function d2r( $n=null )
 {
-	if( is_null($n) ){ die( "Degrees to Radians - n not given", true ); }
+	if( is_null($n) ){ die( "Degrees to Radians - n not given\n" ); }
 	if( preg_match("/(\.|\d)+d/", $n) || is_numeric($n) ){ $n = deg2rad( substr($n, 0, -1) ); }
 	if( preg_match("/(\.|\d)+r/", $n) ){ $n = substr( $n, 0, -1 ); }
 
@@ -664,9 +668,9 @@ function d2r( $n=null )
 ################################################################################
 function law_cos( $b=null, $c=null, $a=null )
 {
-	if( is_null($b) ){ die( "Law of Cosine - b not given", true ); }
-	if( is_null($c) ){ die( "Law of Cosine - c not given", true ); }
-	if( is_null($a) ){ die( "Law of Cosine - a not given", true ); }
+	if( is_null($b) ){ die( "Law of Cosine - b not given\n" ); }
+	if( is_null($c) ){ die( "Law of Cosine - c not given\n" ); }
+	if( is_null($a) ){ die( "Law of Cosine - a not given\n" ); }
 
 	$a = $this->d2r( $a );
 
@@ -677,10 +681,10 @@ function law_cos( $b=null, $c=null, $a=null )
 ################################################################################
 function heron_formula( $s=null, $a=null, $b=null, $c=null )
 {
-	if( is_null($s) ){ die( "Heron's formula - s not given", true ); }
-	if( is_null($a) ){ die( "Heron's formula - a not given", true ); }
-	if( is_null($b) ){ die( "Heron's formula - b not given", true ); }
-	if( is_null($c) ){ die( "Heron's formula - c not given", true ); }
+	if( is_null($s) ){ die( "Heron's formula - s not given\n" ); }
+	if( is_null($a) ){ die( "Heron's formula - a not given\n" ); }
+	if( is_null($b) ){ die( "Heron's formula - b not given\n" ); }
+	if( is_null($c) ){ die( "Heron's formula - c not given\n" ); }
 
 	return sqrt($s * ($s - $a) * ($s - $b) * ($s - $c));
 }
@@ -689,8 +693,8 @@ function heron_formula( $s=null, $a=null, $b=null, $c=null )
 ################################################################################
 function sina_b( $a=null, $b=null )
 {
-	if( is_null($a) ){ die( "sin(a+b) - a not given", true ); }
-	if( is_null($b) ){ die( "sin(a+b) - b not given", true ); }
+	if( is_null($a) ){ die( "sin(a+b) - a not given\n" ); }
+	if( is_null($b) ){ die( "sin(a+b) - b not given\n" ); }
 
 	return ((sin($a) * cos($b)) + (sin($b) * cos($a)));
 }
@@ -699,8 +703,8 @@ function sina_b( $a=null, $b=null )
 ################################################################################
 function cosa_b( $a=null, $b=null )
 {
-	if( is_null($a) ){ die( "cos(a+b) - a not given", true ); }
-	if( is_null($b) ){ die( "cos(a+b) - b not given", true ); }
+	if( is_null($a) ){ die( "cos(a+b) - a not given\n" ); }
+	if( is_null($b) ){ die( "cos(a+b) - b not given\n" ); }
 
 	return ((cos($a) * cos($b)) - (sin($a) * sin($b)));
 }
@@ -709,8 +713,8 @@ function cosa_b( $a=null, $b=null )
 ################################################################################
 function tana_b( $a=null, $b=null )
 {
-	if( is_null($a) ){ die( "tan(a+b) - a not given", true ); }
-	if( is_null($b) ){ die( "tan(a+b) - b not given", true ); }
+	if( is_null($a) ){ die( "tan(a+b) - a not given\n" ); }
+	if( is_null($b) ){ die( "tan(a+b) - b not given\n" ); }
 
 	$t1 = tan($a) - tan($b);
 	$t2 = 1 + (tab($a) * tab($b));
@@ -724,7 +728,7 @@ function tana_b( $a=null, $b=null )
 ################################################################################
 function sin2a( $a=null )
 {
-	if( is_null($a) ){ die( "sin(2a) - a not given", true ); }
+	if( is_null($a) ){ die( "sin(2a) - a not given\n" ); }
 
 	return (2.0 * sin($a) * cos($a));
 }
@@ -733,7 +737,7 @@ function sin2a( $a=null )
 ################################################################################
 function cos2a( $a=null )
 {
-	if( is_null($a) ){ die( "cos(2a) - a not given", true ); }
+	if( is_null($a) ){ die( "cos(2a) - a not given\n" ); }
 
 	return ((cos(a) * cos(a)) - (sin(a) * sin(a)));
 }
@@ -742,7 +746,7 @@ function cos2a( $a=null )
 ################################################################################
 function tan2a( $a=null )
 {
-	if( is_null($a) ){ die( "tan(2a) - a not given", true ); }
+	if( is_null($a) ){ die( "tan(2a) - a not given\n" ); }
 
 	$t1 = 2.0 * tan($a);
 	$t2 = 1.0 - (tan($a) * tan($a));
@@ -756,7 +760,7 @@ function tan2a( $a=null )
 ################################################################################
 function sum_angles( $n=null )
 {
-	if( is_null($n) ){ die( "Sum of inerior angles of a polygon - n not given", true ); }
+	if( is_null($n) ){ die( "Sum of inerior angles of a polygon - n not given\n" ); }
 
 	return ($n * 2.0) * 180;
 }
@@ -765,9 +769,9 @@ function sum_angles( $n=null )
 ################################################################################
 function p_t( $a=null, $b=null, $c=null )
 {
-	if( is_null($a) ){ die( "Pythagorean theorem - a not given", true ); }
-	if( is_null($b) ){ die( "Pythagorean theorem - b not given", true ); }
-	if( is_null($c) ){ die( "Pythagorean theorem - c not given", true ); }
+	if( is_null($a) ){ die( "Pythagorean theorem - a not given\n" ); }
+	if( is_null($b) ){ die( "Pythagorean theorem - b not given\n" ); }
+	if( is_null($c) ){ die( "Pythagorean theorem - c not given\n" ); }
 
 	if( $a >= $b ){
 		$s1 = $b;
@@ -789,10 +793,10 @@ function p_t( $a=null, $b=null, $c=null )
 ################################################################################
 function dist( $x1=null, $x2=null, $y1=null, $y2=null )
 {
-	if( is_null($x1) ){ die( "Distance - x1 not given", true ); }
-	if( is_null($x2) ){ die( "Distance - x2 not given", true ); }
-	if( is_null($y1) ){ die( "Distance - y1 not given", true ); }
-	if( is_null($y2) ){ die( "Distance - y2 not given", true ); }
+	if( is_null($x1) ){ die( "Distance - x1 not given\n" ); }
+	if( is_null($x2) ){ die( "Distance - x2 not given\n" ); }
+	if( is_null($y1) ){ die( "Distance - y1 not given\n" ); }
+	if( is_null($y2) ){ die( "Distance - y2 not given\n" ); }
 
 	return sqrt((($x1 - $x2) * ($x1 - $x2)) + (($y1 - $y2) * ($y1 - $y2)));
 }
@@ -801,10 +805,10 @@ function dist( $x1=null, $x2=null, $y1=null, $y2=null )
 ################################################################################
 function midpoint( $x1=null, $x2=null, $y1=null, $y2=null )
 {
-	if( is_null($x1) ){ die( "Distance - x1 not given", true ); }
-	if( is_null($x2) ){ die( "Distance - x2 not given", true ); }
-	if( is_null($y1) ){ die( "Distance - y1 not given", true ); }
-	if( is_null($y2) ){ die( "Distance - y2 not given", true ); }
+	if( is_null($x1) ){ die( "Distance - x1 not given\n" ); }
+	if( is_null($x2) ){ die( "Distance - x2 not given\n" ); }
+	if( is_null($y1) ){ die( "Distance - y1 not given\n" ); }
+	if( is_null($y2) ){ die( "Distance - y2 not given\n" ); }
 
 	return array((($x1 + $x2) / 2.0), (($y1 + $y2) / 2.0) );
 }
@@ -813,9 +817,9 @@ function midpoint( $x1=null, $x2=null, $y1=null, $y2=null )
 ################################################################################
 function slope( $x=null, $m=null, $b=null )
 {
-	if( is_null($x) ){ die( "Distance - x not given", true ); }
-	if( is_null($b) ){ die( "Distance - b not given", true ); }
-	if( is_null($m) ){ die( "Distance - m not given", true ); }
+	if( is_null($x) ){ die( "Distance - x not given\n" ); }
+	if( is_null($b) ){ die( "Distance - b not given\n" ); }
+	if( is_null($m) ){ die( "Distance - m not given\n" ); }
 
 	return (($m * $x) + $b);
 }
@@ -833,7 +837,7 @@ function slope( $x=null, $m=null, $b=null )
 function eq_plane( $d )
 {
 	foreach( $d as $k=>$v ){
-		if( is_null($v) ){ die( "Distance - $k not given", true ); }
+		if( is_null($v) ){ die( "Distance - $k not given\n" ); }
 		}
 
 	$x = ( $d['nx'] * ($d['sx'] - $d['ex']) ) + $d['dx'];
@@ -891,7 +895,7 @@ function eq_circle( $d )
 function eq_sphere( $d )
 {
 	foreach( $d as $k=>$v ){
-		if( is_null($v) ){ die( "Distance - $k not given", true ); }
+		if( is_null($v) ){ die( "Distance - $k not given\n" ); }
 		}
 
 	$x = (($d['sx'] - $d['ex']) * ($d['sx'] - $d['ex'])) + $d['dx'];
@@ -942,9 +946,9 @@ function eq_ellipse( $d )
 ################################################################################
 function marks_square( $x=null, $y=null, $n=null )
 {
-	if( is_null($x) ){ die( "Mark's Square - x not given", true ); }
-	if( is_null($y) ){ die( "Mark's Square - y not given", true ); }
-	if( is_null($n) ){ die( "Mark's Square - n not given", true ); }
+	if( is_null($x) ){ die( "Mark's Square - x not given\n" ); }
+	if( is_null($y) ){ die( "Mark's Square - y not given\n" ); }
+	if( is_null($n) ){ die( "Mark's Square - n not given\n" ); }
 
 	$b = [];
 #

@@ -123,6 +123,10 @@ public function __construct()
 public function init( $min_x=null, $max_x=null, $min_y=null, $max_y=null,
 	$scale_x=null, $scale_y=null, $div_x=null, $div_y=null )
 {
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
 #
 #	Default items
 #
@@ -307,7 +311,6 @@ public function add()
 						}
 					}
 				}
-			}
 #
 #	If the incoming information is NOT an array, then we have to check
 #	to see if it is numeric. If so - again - see about setting the high
@@ -325,6 +328,7 @@ public function add()
 #	that something like "ABCD" would become whatever the hex value is
 #	and THAT becomes the high-low values.
 			else { $cnt++; }
+			}
 		}
 #
 #	Ok. The ARGS variable now has all of the data sent here.

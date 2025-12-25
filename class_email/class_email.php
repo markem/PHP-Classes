@@ -23,7 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	include_once( "$lib/class_files.php" );
 ################################################################################
 #BEGIN DOC
 #
@@ -69,7 +68,6 @@
 ################################################################################
 class class_email
 {
-	private $cf = null;
 	private $mboxes = null;
 	private $num_mboxes = null;
 	private $temp_dir = null;
@@ -91,6 +89,10 @@ function __construct()
 ################################################################################
 function init()
 {
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );

@@ -25,13 +25,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	if( file_exists("$lib/class_files.php") ){
-		include_once( "$lib/class_files.php" );
-		}
-		else if( !isset($GLOBALS['classes']['files']) ){
-			die( __FILE__ . ": Can not load CLASS_FILES" );
-			}
-
 ################################################################################
 #BEGIN DOC
 #
@@ -88,9 +81,6 @@
 ################################################################################
 class class_tar
 {
-	private $cf = null;
-	private $cd = null;
-
 	private $in_fp = null;
 	private $out_fp = null;
 	private $dump_fp = null;
@@ -123,6 +113,10 @@ function __construct()
 ################################################################################
 function init()
 {
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -151,8 +145,6 @@ function init()
 	$this->in_file_loc = 0;
 	$this->out_file_loc = 0;
 	$this->dump_file = "$this->cwd/tar-output.dat";
-
-	$this->cf = $GLOBALS['classes']['files'];
 #
 #	tar Header Block, from POSIX 1003.1-1990.  
 #
@@ -817,6 +809,24 @@ function hex( $i=null )
 
 	$i = hex2bin( $i );
 	return $this->dec( $i );
+}
+################################################################################
+#	get_class(). Returns a class specified on the call line.
+#	Notes:	This is being done because I have too many re-entrant calls to my
+#		classes. So now - you have to make sure you put include the class in
+#		YOUR program so these can work properly.
+################################################################################
+function get_class( $name=null )
+{
+	if( is_null($name) ){
+		die( "***** ERROR : Name is not given at " . __LINE__ . "\n" );
+		}
+
+	$lib = getenv( "my_libs" );
+	$lib = str_replace( "\\", "/", $lib );
+
+	if( isset($GLOBALS['classes'][$name]) ){ return $GLOBALS['classes'][$name]; }
+		else { die( "***** ERROR : You need to include $lib/class_rgb.php\n" ); }
 }
 ################################################################################
 #	__destruct(). Ending of the class function. Be sure to close all files.

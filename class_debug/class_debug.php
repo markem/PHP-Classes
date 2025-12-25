@@ -142,6 +142,10 @@ function __construct()
 ################################################################################
 public function init()
 {
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
 	$debug = $save = false;
 
 	$args = func_get_args();

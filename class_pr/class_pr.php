@@ -98,6 +98,10 @@ function init()
 {
 	global $fp;
 
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
 	$fp = null;
 
 	$this->opts = [];

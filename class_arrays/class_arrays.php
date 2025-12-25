@@ -84,6 +84,10 @@ function __construct()
 ################################################################################
 function init()
 {
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -129,6 +133,65 @@ function array_isearch( $needles=null, $haystack=null )
 	if( $flag ){ return $ary; }
 
 	return fales;
+}
+################################################################################
+#	make_array(). This function will create an array.
+#	NOTES:	$options is a TWO DIMENSIONAL ARRAY. It goes like this:
+#
+#		Each entry is made like this:
+#
+#			0 = Where to start the array
+#			1 = How far this part of the array goes
+#			2 = The value to put into the array. (NOTE : ONLY on the last array)
+#
+#		For each entry - the array adds another array to the maximum of three
+#		levels.
+#
+#		array( 0, 5, '*' );	array[]
+#		array( array(0,5), array(0,36,'+') );	array[][]
+#		array( array(0,5), array(0,42), array(0,5,'=') ); Array[][][]
+################################################################################
+function make_array( $options=null )
+{
+	$cnt = count( $options );
+	if( $cnt == 1 ){
+		return $this->array_fill( $options[0], $options[1], $options[2] );
+		}
+		else if( $cnt == 2 ){
+			$ary_1 = $this->array_fill( $options[0][0], $options[0][1], array() );
+			for( $i=$options[0][0]; $i<$options[0][1]; $i++ ){
+				$ary_1[$i] =
+					$this->array_fill( $options[1][0], $options[1][1], $options[1][2] );
+				}
+			}
+		else if( $cnt == 3 ){
+			$ary_1 = $this->array_fill( $options[0][0], $options[0][1], array() );
+			for( $i=$options[0][0]; $i<$options[0][1]; $i++ ){
+				$ary_1[$i] =
+					$this->array_fill( $options[1][0], $options[1][1], array() );
+				for( $j=$options[1][0]; $j<$options[1][1]; $j++ ){
+					$ary_1[$i][$j] =
+						$this->array_fill( $options[2][0], $options[2][1], $options[2][2] );
+					}
+				}
+			}
+		else {
+			die( "***** ERROR : Too many arrays to make - aborting.\n" );
+			}
+
+	return $ary_1;
+}
+################################################################################
+#	array_fill(). Fill a ONE dimensional array with something
+################################################################################
+function array_fill( $start=null, $end=null, $mixed=null )
+{
+	$ary = [];
+	for( $i=$start, $i<$end, $i++ ){
+		$ary[$i] = $mixed;
+		}
+
+	return $ary;
 }
 ################################################################################
 #	__destruct(). The class destruct function.

@@ -23,8 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	include_once( "$lib/class_files.php" );
-
 ################################################################################
 #BEGIN DOC
 #
@@ -91,12 +89,16 @@ function __construct()
 ################################################################################
 function init()
 {
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
 	$args = func_get_args();
-	while( is_array($args) && (count($args) < 2) ){
+	while( is_array($args) && (count($args) > 2) ){
 		$args = array_pop( $args );
 		}
 
-	$this->cf = new class_files();
+	$this->cf = $this->get_class( "files" );
 
 	return true;
 }
@@ -580,12 +582,22 @@ function fca( $x, $y, $color )
 		}
 }
 ################################################################################
-#	split(). Break up an image into it's separate parts.
+#	get_class(). Returns a class specified on the call line.
+#	Notes:	This is being done because I have too many re-entrant calls to my
+#		classes. So now - you have to make sure you put include the class in
+#		YOUR program so these can work properly.
 ################################################################################
-function split( $gd )
+function get_class( $name=null )
 {
-	$new_gd = [];
-	$new_gd[] = $gd;
+	if( is_null($name) ){
+		die( "***** ERROR : Name is not given at " . __LINE__ . "\n" );
+		}
+
+	$lib = getenv( "my_libs" );
+	$lib = str_replace( "\\", "/", $lib );
+
+	if( isset($GLOBALS['classes'][$name]) ){ return $GLOBALS['classes'][$name]; }
+		else { die( "***** ERROR : You need to include $lib/class_rgb.php\n" ); }
 }
 
 }

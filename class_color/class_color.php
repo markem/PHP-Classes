@@ -23,8 +23,6 @@
 	$lib = str_replace( "\\", "/", $lib );
 	if( !file_exists($lib) ){ $lib = ".."; }
 
-	include_once( "$lib/class_rgb.php" );
-
 ################################################################################
 #BEGIN DOC
 #
@@ -71,7 +69,6 @@
 class class_color
 {
 	private	$color_table = array();
-	private	$crgb = null;
 
 ################################################################################
 #BEGIN DOC
@@ -114,6 +111,10 @@ function __construct()
 ################################################################################
 function init()
 {
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -1191,7 +1192,7 @@ function init()
 		'1067' => array( 'name' => 'yellowgreen', 'red' => '154', 'green' => '205', 'blue' => '50', 'hex' => '9ACD32' )
 		);
 
-	$this->crgb = new class_rgb();
+	$this->crgb = $this->get_class( 'rgb' );
 }
 
 ################################################################################
@@ -1553,6 +1554,7 @@ function rgb2cmyk( $gd=null, $opt=true )
 #
 #	Get the transparent color
 #
+	$crgb = $this->get_class( "rgb" );
 	$trans = $crgb->is_trans( $cmyk );
 #
 #	Make the image separation colors. 0=c, 1=m, 2=y, 3=k
@@ -1658,6 +1660,7 @@ function cmyk2rgb( $cmyk=null, $opt=true )
 #
 #	Get the transparent color
 #
+	$crgb = $this->get_class( "rgb" );
 	$trans = $crgb->is_trans( $cmyk[0] );
 #
 #	Make the image separation colors. 0=c, 1=m, 2=y, 3=k
@@ -1707,6 +1710,24 @@ function cmyk2rgb( $cmyk=null, $opt=true )
 		}
 
 	return $gd;
+}
+################################################################################
+#	get_class(). Returns a class specified on the call line.
+#	Notes:	This is being done because I have too many re-entrant calls to my
+#		classes. So now - you have to make sure you put include the class in
+#		YOUR program so these can work properly.
+################################################################################
+function get_class( $name=null )
+{
+	if( is_null($name) ){
+		die( "***** ERROR : Name is not given at " . __LINE__ . "\n" );
+		}
+
+	$lib = getenv( "my_libs" );
+	$lib = str_replace( "\\", "/", $lib );
+
+	if( isset($GLOBALS['classes'][$name]) ){ return $GLOBALS['classes'][$name]; }
+		else { die( "***** ERROR : You need to include $lib/class_rgb.php\n" ); }
 }
 ################################################################################
 #	__destruct(). Do the clean-up necessary.

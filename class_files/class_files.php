@@ -7,6 +7,7 @@
 #	Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
+#		throw new ErrorException($errstring, $errno, 0, $errfile, $errline);
 		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
 		});
 
@@ -102,6 +103,10 @@ function __construct()
 ################################################################################
 function init()
 {
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
@@ -144,14 +149,15 @@ function init()
 ################################################################################
 function get_files( $top_dir=null, $regexp=null, $opt=null, $print=false )
 {
+	$pr = $this->get_class( "pr" );
+#
 #	$this->dump( "Top_dir", $top_dir );
-
+#
 	if( is_null($top_dir) ){ $top_dir = "./"; }
 	if( is_null($regexp) ){ $regexp = "/.*/"; }
 	if( is_null($opt) ){ $opt = true; }
 	if( !preg_match(";/;", $regexp) ){ $regexp = "/" . $regexp . "/"; }
 
-	echo "Here : " . __LINE__ . "\n";
 	$dirs[] = $top_dir;
 	$bad = array();
 	$files = array();
@@ -221,34 +227,46 @@ function get_files( $top_dir=null, $regexp=null, $opt=null, $print=false )
 		if( ($dh = @opendir($dir)) !== false ){
 			if( !is_resource($dh) ){ continue; }
 			while( ($file = readdir($dh)) !== false ){
+				if( ($file == '.') || ($file == '..') ){ continue; }
 				$curfile = "$dir/$file";
 				if( $print){ echo "Looking at : $curfile\n"; }
 
 				$a = explode( '/', $curfile );
-				$count = 0;
-				while( count($a) > 0 ){
-					$b = array_shift( $a );
-					if( preg_match("/application\s+data/i", $b) ){ $count++; }
+				$is_link = is_link( $curfile );
+				$is_readable = is_readable( $curfile );
+
+				if( $is_link ){ continue; }
+				if( $is_readable ){
+					try { $filestat = @lstat( $curfile ); }
+						catch( exception $e ){ }
 					}
 
-				if( $count > 1 ){
-					if( $print ){ echo "Double Application Data link...skipping\n"; }
+				if( $filestat['nlink'] > 1 ){
+					echo "Looking at $curfile\n";
+					echo "Found a link - skipping it\n";
 					continue;
 					}
-
-				if( $file != "." && $file != ".." ){
-					if( is_dir("$dir/$file") && $opt == true){ $dirs[] = "$dir/$file"; }
-						else if( is_link($file) ){ continue; }
-						else if( preg_match($regexp, $file) ){ $files[] = "$dir/$file"; }
-						else { $bad[] = "$dir/$file"; }
-					}
-					else { echo "Discarding '.' or '..'\n"; }
+#
+#				$count = 0;
+#				while( count($a) > 0 ){
+#					$b = array_shift( $a );
+#					if( preg_match("/application\s+data/i", $b) ){ $count++; }
+#					}
+#
+#				if( $count > 1 ){
+#					if( $print ){ echo "Double Application Data link...skipping\n"; }
+#					continue;
+#					}
+#
+				if( is_dir("$dir/$file") && $opt == true){ $dirs[] = "$dir/$file"; }
+					else if( preg_match($regexp, $file) ){ $files[] = "$dir/$file"; }
+					else { $bad[] = "$dir/$file"; }
 				}
 
 			closedir( $dh );
 			}
 			else {
-				echo "Directory : $dir\nCan not be opened...skipping\n";
+#				$pr->pr( "Directory : $dir\nCan not be opened...skipping" );
 				continue;
 				}
 		}
@@ -463,9 +481,10 @@ function get_stats( $file=null, $opt=null, $print=false )
 }
 ################################################################################
 #	get_image(). A function to load in an image. Returns GD as a true color
-#		with transparecy kept. This routine makes use of Erwin Bon's
+#		with transparecy kept. This routine originally used Erwin Bon's
 #		ConvertBMP2GD() set of functions which will write a BMP file out to
-#		a GD file and then immediately read it back in.
+#		a GD file and then immediately read it back in. But GD was expanded to
+#		be able to read a BMP file. So just calling the GD routine now.
 #
 #		No copyright infringement is meant by using the above named routines.
 #		The software still belongs to the original authors. Just using them
@@ -548,6 +567,7 @@ function get_image( $file )
 #	Get a unique color for the transparent color
 #
 	$transparent = $this->unique_color( $gd );
+
 	$ta = ($color >> 24) & 0xff;
 	$tr = ($color >> 16) & 0xff;
 	$tg = ($color >> 8) & 0xff;
@@ -588,7 +608,8 @@ function rem_iccp( $dir )
 ################################################################################
 #	put_image(). A function to save an image.
 #		old_imagebmp() is taken from the PHP documentation website and is written
-#			by shd at earthling dot net.
+#			by shd at earthling dot net. It is no longer used since GD now
+#			includes a way to save a BMP file.
 #
 #		No copyright infringement is meant by using the above named routines.
 #		The software still belongs to the original authors. Just using them
@@ -599,17 +620,6 @@ function put_image( $gd, $file, $del=true )
 	$ret = null;
 	$file = trim( $file );
 
-	$flag = false;
-	if( file_exists($file) ){
-		$flag = true;
-		$base = basename( $file );
-		$tmp = explode( '.', $base );
-		$path = dirname( $file );
-		$old_file = $file;
-		$string = bin2hex(openssl_random_pseudo_bytes(10)); // 20 chars
-		$file = "$path/$string.$tmp[1]";
-		}
-
 	if( preg_match("/gif$/i", $file) ){ $ret = imagegif($gd, $file); }
 		else if( preg_match("/gd$/i", $file) ){ $ret = imagegd($gd, $file); }
 		else if( preg_match("/gd2$/i", $file) ){ $ret = imagegd2($gd, $file); }
@@ -619,9 +629,8 @@ function put_image( $gd, $file, $del=true )
 		else if( preg_match("/xbm$/i", $file) ){ $ret = imagexbm($gd, $file); }
 		else if( preg_match("/(web|webp)$/i", $file) ){ $ret = imagewebp($gd, $file); }
 		else if( preg_match("/png$/i", $file) ){ $ret = imagepng($gd, $file); }
-		else { echo "Unknown file format....aborting\n"; }
+		else { echo "Unknown file format : $file....aborting\n"; }
 
-	if( $flag ){ rename( $file, $old_file ); }
 	if( $del ){ imagedestroy( $gd ); }
 
 	return $ret;
@@ -2190,6 +2199,24 @@ function pathinfo( $path=null, $fromString=null, $toString=null )
 		}
 
 	return $pathinfo;
+}
+################################################################################
+#	get_class(). Returns a class specified on the call line.
+#	Notes:	This is being done because I have too many re-entrant calls to my
+#		classes. So now - you have to make sure you put include the class in
+#		YOUR program so these can work properly.
+################################################################################
+function get_class( $name=null )
+{
+	if( is_null($name) ){
+		die( "***** ERROR : Name is not given at " . __LINE__ . "\n" );
+		}
+
+	$lib = getenv( "my_libs" );
+	$lib = str_replace( "\\", "/", $lib );
+
+	if( isset($GLOBALS['classes'][$name]) ){ return $GLOBALS['classes'][$name]; }
+		else { die( "***** ERROR : You need to include $lib/class_$name.php\n" ); }
 }
 
 }

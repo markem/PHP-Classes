@@ -197,6 +197,10 @@ function __construct()
 ################################################################################
 function init()
 {
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
 #
 #	Arguments are looked at HERE. Don't put them in!
 #
@@ -204,7 +208,6 @@ function init()
 		echo "Closing all pipes\n";
 		$this->close();
 		}
-
 
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){

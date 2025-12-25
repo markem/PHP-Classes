@@ -99,6 +99,10 @@ function __construct()
 ################################################################################
 function init()
 {
+	static $newInstance = 0;
+
+	if( $newInstance++ > 1 ){ return; }
+
 	$this->enums = array();
 	$this->clear_flag = false;
 	$this->last_value = 0;
