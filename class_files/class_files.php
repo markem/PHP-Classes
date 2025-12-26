@@ -258,7 +258,7 @@ function get_files( $top_dir=null, $regexp=null, $opt=null, $print=false )
 #					continue;
 #					}
 #
-				if( is_dir("$dir/$file") && $opt == true){ $dirs[] = "$dir/$file"; }
+				if( is_dir("$dir/$file") && ($opt == true)){ $dirs[] = "$dir/$file"; }
 					else if( preg_match($regexp, $file) ){ $files[] = "$dir/$file"; }
 					else { $bad[] = "$dir/$file"; }
 				}

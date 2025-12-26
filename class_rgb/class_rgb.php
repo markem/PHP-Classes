@@ -103,6 +103,27 @@ function init()
 	return true;
 }
 ################################################################################
+#	get_pixel(). Gets a pixel at the coordinate and maybe do something to the
+#		pixel.
+################################################################################
+function get_pixel( $gd=null, $x=null, $y=null, $opt=null )
+{
+	$color = imagecolorat( $gd, $x, $y );
+#
+#	ARGB option
+#
+	if( preg_match("/a[rgb]*/i", $opt) ){ 
+		list( $a, $r, $g, $b ) = $this->get_ARGB( $color );
+		return array( $color, $a, $r, $g, $b );
+		}
+		else if( preg_match("/r[gb]*/i", $opt) ){ 
+			list( $a, $r, $g, $b ) = $this->get_ARGB( $color );
+			return array( $color, $r, $g, $b );
+			}
+
+	return $color;
+}
+################################################################################
 #	get_ARGB(). Get the A-R-G-B elements out of a color.
 ################################################################################
 function get_ARGB( $c=null )
