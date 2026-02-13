@@ -4,25 +4,41 @@
 #
 	if( !defined("[]") ){ define( "[]", "array[]" ); }
 #
-#	Standard error function
+#	  Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
-		});
+#		throw new ErrorException($errstring, $errno, 0, $errfile, $errline);
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n"
+		); });
 
 	ini_set( 'memory_limit', -1 );
 	date_default_timezone_set( "UTC" );
 #
-#	$lib is where my libraries are located.
+#	$libs is where my libraries are located.
 #	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
 #	because of my UNIX background. So I used the following to find them
 #	no matter where I was. I created an environment variable called "my_libs"
 #	and then it could find my classes. IF YOU SET THINGS UP DIFFERENTLY then
 #	you will have to modify the following.
 #
-	$lib = getenv( "my_libs" );
-	$lib = str_replace( "\\", "/", $lib );
-	if( !file_exists($lib) ){ $lib = ".."; }
+	spl_autoload_register(function ($class){
+#
+#	This might seem stupid but it works. If X is there - get rid of it and then put
+#	X onto the string. If X is not there - just put it onto the string. Get it?
+#
+		$class = str_ireplace( ".php", "", $class ) . ".php";
+
+		$libs = getenv( "my_libs" );
+		$libs = str_replace( "\\", "/", $libs );
+
+		if( file_exists("./$class") ){ $libs = "."; }
+			else if( file_exists("../$class") ){ $libs = ".."; }
+			else if( !file_exists("$libs/$class") ){
+				die( "Can't find $libs/$class - aborting\n" );
+				}
+
+		include "$libs/$class";
+		});
 
 ################################################################################
 #BEGIN DOC
@@ -86,10 +102,7 @@ class class_pr
 ################################################################################
 function __construct()
 {
-	if( !isset($GLOBALS['class']['pr']) ){
-		return $this->init( func_get_args() );
-		}
-		else { return $GLOBALS['class']['pr']; }
+	return $this->init( func_get_args() );
 }
 ################################################################################
 #	init(). Used instead of __construct() so you can re-init() if necessary.
@@ -148,9 +161,41 @@ function set_opts( $opts=null )
 #################################################################################
 function pr( $var=null, $title=null, $ary=false )
 {
+	$e = new Exception();
+	$trace = explode( "\n", $e->getTraceAsString() );
+	$trace = explode( ':', $trace[0] );
+	$trace = explode( '(', $trace[1] );
+	$path = explode( "\\", $trace[0] );
+
+	$a = array_pop( $path );
+	$a = explode( '.', $a );
+
+	$file = $a[0];
+	$line = $trace[1] = substr( $trace[1], 0, -1 );
+#
+#	echo str_repeat( "-", 80 ) . "\n";
+#	echo "Path = "; print_r( $path ); echo "\n";
+#	echo "File = "; print_r( $file ); echo "\n";
+#	echo "Line = "; print_r( $line ); echo "\n";
+#	print_r( $trace );
+#
+	$files = [];
+	$lines = [];
+	$classes = [];
+	$functions = [];
+
 	static $tabs = 0;
 	static $spaces = " ";
 	static $line = "";
+	$opts = $this->opts;
+	if( is_null($opts) ){
+		$this->opts = [];
+		$this->opts['type'] = true;
+		$this->opts['title'] = true;
+		$this->opts['arylen'] = true;
+		$this->opts['strlen'] = true;
+		$this->opts['spaces'] = 1;
+		}
 #
 #	If $var is null - then the user probably wants a backtrace.
 #
@@ -166,37 +211,50 @@ function pr( $var=null, $title=null, $ary=false )
 #
 	if( $this->opts['arylen'] === false ){ $arylen = "(1)"; }
 		else if( is_array($var) ){ $arylen = "(" . count($var) . ")"; }
-
-	if( ($tabs > 0) && ($this->opts['title'] === false) ){
-		$title = "";
-		$line = "";
-		}
-		else {
 #
 #	Get the line number. Taken from the DUMP() function
 #
-			$dbg = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT);
-			$count = count( $dbg ) - 1;
+	$dbg = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT);
+#
+#	Get all of the info
+#
+	foreach( $dbg as $k=>$v ){
+		$p = explode( "\\", $v['file'] );
+		$a = array_pop( $p );
+		$a = explode( '.', $a );
+		$files[] = $a[0];
 
-			if( isset($dbg[$count]['class']) ){ $class = $dbg[$count]['class']; }
-				else { $class = ""; }
+		$lines[] = $v['line'];
+		$classes[] = $v['class'];
+		$functions[] = $v['function'];
+		}
 
-			if( isset($dbg[$count]['function']) ){ $function = $dbg[$count]['function']; }
-				else { $function = ""; }
-
-			if( $count > 0 ){
-				$line = "LINE(" . $dbg[$count-1]['line'] . ") @ ";
-				}
-				else {
-					$line = "LINE(" . $dbg[$count]['line'] . ") @ ";
-					}
-			}
+#	print_r( $dbg ); echo "\n";
+#
+#	Get the path for the lines
+#
+	$lines = array_reverse( $lines );
+	$line = implode( '->', $lines );
+	$line = "LINE(" . $line . ") @ ";
+#
+#	Then get the path of the files that have been called
+#
+	$files = array_reverse( $files );
+	$file = implode( '->', $files );
+#
+#	Then get the list of classes that have been called
+#
+	$class = array_shift( $classes );
+#
+#	Then get the list of functions that have been called
+#
+	$function = array_pop( $functions );
 
 	if( strlen($title) < 1 ){ $title = ""; }
 		else { $title = trim( $title ); }
 
 	if( is_array($var) ){
-		echo str_repeat( $spaces, $tabs) . $line . "<$class>[$function] - $title Array$arylen->{\n";
+		echo str_repeat( $spaces, $tabs) . $line . "$file::$class->$function - $title Array$arylen->{\n";
 		$tabs += 2;
 		foreach( $var as $k=>$v ){ $this->pr( $v, "[$k]", true ); }
 		echo str_repeat( $spaces, $tabs) . "}\n";
@@ -204,7 +262,7 @@ function pr( $var=null, $title=null, $ary=false )
 		return;
 		}
 		else {
-			echo str_repeat( $spaces, $tabs) . $line . "<$class>[$function] - ";
+			echo str_repeat( $spaces, $tabs) . $line . "$file::$class->$function - ";
 			}
 #
 #	Check the title
@@ -249,7 +307,25 @@ function pr( $var=null, $title=null, $ary=false )
 				$kind = "STRING";
 				if( $this->opts['type'] == true ){ $type = "[$kind]"; }
 
-				echo "$type$title$strlen $var\n";
+				echo "$type$title$strlen ";
+				if( strlen($var) > 15 ){
+					echo "\n";
+					$tabs++;
+					if( strlen($var) < 76 ){
+						echo str_repeat( $spaces, $tabs) . "	=>$var\n\n";
+						}
+						else {
+							$cmd = $this->wordwrap( $var );
+							foreach( $cmd as $k=>$v ){
+								echo str_repeat( $spaces, $tabs ) . "	=>$v\n";
+								}
+
+							echo "\n";
+							}
+
+					$tabs--;
+					}
+					else { echo "$var\n"; }
 				}
 		}
 		else if( is_object($var) ){
@@ -289,6 +365,21 @@ function pr( $var=null, $title=null, $ary=false )
 			}
 
 	return true;
+}
+################################################################################
+#	wordwrap(). My version of wordwrap.
+################################################################################
+function wordwrap( $var, $len=70 )
+{
+	$ret = [];
+	while( strlen($var) > $len ){
+		$ret[] = substr( $var, 0, $len );
+		$var = substr( $var, $len, strlen($var) );
+		}
+
+	if( strlen($var) > 0 ){ $ret[] = $var; }
+
+	return $ret;
 }
 ################################################################################
 #	ask(). Print out a statement and get an answer.

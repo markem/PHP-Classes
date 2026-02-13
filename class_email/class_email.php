@@ -4,24 +4,41 @@
 #
 	if( !defined("[]") ){ define( "[]", "array[]" ); }
 #
-#	Standard error function
+#	  Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
-		});
+#		throw new ErrorException($errstring, $errno, 0, $errfile, $errline);
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n"
+		); });
 
+	ini_set( 'memory_limit', -1 );
 	date_default_timezone_set( "UTC" );
 #
-#	$lib is where my libraries are located.
+#	$libs is where my libraries are located.
 #	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
 #	because of my UNIX background. So I used the following to find them
 #	no matter where I was. I created an environment variable called "my_libs"
 #	and then it could find my classes. IF YOU SET THINGS UP DIFFERENTLY then
 #	you will have to modify the following.
 #
-	$lib = getenv( "my_libs" );
-	$lib = str_replace( "\\", "/", $lib );
-	if( !file_exists($lib) ){ $lib = ".."; }
+	spl_autoload_register(function ($class){
+#
+#	This might seem stupid but it works. If X is there - get rid of it and then put
+#	X onto the string. If X is not there - just put it onto the string. Get it?
+#
+		$class = str_ireplace( ".php", "", $class ) . ".php";
+
+		$libs = getenv( "my_libs" );
+		$libs = str_replace( "\\", "/", $libs );
+
+		if( file_exists("./$class") ){ $libs = "."; }
+			else if( file_exists("../$class") ){ $libs = ".."; }
+			else if( !file_exists("$libs/$class") ){
+				die( "Can't find $libs/$class - aborting\n" );
+				}
+
+		include "$libs/$class";
+		});
 
 ################################################################################
 #BEGIN DOC
@@ -71,13 +88,13 @@ class class_email
 	private $mboxes = null;
 	private $num_mboxes = null;
 	private $temp_dir = null;
+	private $pr = null;
 
 ################################################################################
 #	__construct(). Constructor.
 ################################################################################
 function __construct()
 {
-	$this->cf = $GLOBALS['classes']['files'];
 	if( !isset($GLOBALS['class']['email']) ){
 		return $this->init( func_get_args() );
 		}
@@ -89,15 +106,12 @@ function __construct()
 ################################################################################
 function init()
 {
-	static $newInstance = 0;
-
-	if( $newInstance++ > 1 ){ return; }
-
 	$args = func_get_args();
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
 		}
 
+	$this->pr = new class_pr();
 	$this->temp_dir = "c:/temp/mail";
 
 	$this->mboxes = array();
@@ -108,6 +122,7 @@ function init()
 function load( $file )
 {
 	$c = 0;
+	$pr = $this->pr;
 
 	if( !file_exists($file) ){
 		echo "DIE : The file does NOT exist\nFile : $file\n";
@@ -116,7 +131,7 @@ function load( $file )
 	$a = file_get_contents( $file );
 	$b = explode( "\n", $a );
 	unset( $a );
-#	$this->dump( "Contents of $file", $b );
+#	$pr->pr( "Contents of $file", $b );
 
 	$msg = "";
 	$mboxes = array();
@@ -157,6 +172,8 @@ function get( $num=null )
 ################################################################################
 function sep( $num=null )
 {
+	$pr = $this->pr;
+
 	if( is_null($num) ){
 		echo "DIE : No message number given\n";
 		}
@@ -185,12 +202,13 @@ function sep( $num=null )
 		if( (!$body && preg_match("/^Message-Id:/i", $v)) ){
 			if( !isset($msg['From:']) ){ $msg['From:'] = []; }
 			$cmd = explode( ' ', $v );
-			$msg['From:'][] = $cmd[1];
+			if( count($cmd) > 1 ){ $msg['From:'][] = $cmd[1]; }
+				else { $msg['From:'][] = ""; }
 			}
 
 		if( !$body && preg_match("/^\w+(-\w+)*:\s*/", $v) ){
 			$cmd = preg_replace( "/^(\w+(-\w+)*:\s*)(.*$)/", "$1", $v );
-#			$this->dump( "CMD = ", $cmd );
+#			$pr->pr( "CMD = ", $cmd );
 			$cmd = trim( $cmd );
 			$msg[$cmd][] = $v;
 			}
@@ -213,7 +231,7 @@ function sep( $num=null )
 				$cmd = "body";
 				if( !isset($msg[$cmd]) ){ $msg[$cmd] = array(); $cnt = 0; }
 					else if( is_array($msg[$cmd]) ){
-#						$this->dump( $cmd, $msg[$cmd] );
+#						$pr->pr( $cmd, $msg[$cmd] );
 						$cnt = count( $msg[$cmd] ) - 1;
 						}
 
@@ -265,7 +283,7 @@ function sep( $num=null )
 #	If there STILL isn't a Reply-To: - try the In-Reply-To:
 #	ALWAYS use the last entry. There might be more than one '<'.
 #
-	$this->dump( "From: ", $msg['From:'] );
+	$pr->pr( $msg['From:'], "From =" );
 	if( !isset($msg["Reply-To:"]) ){
 		if( preg_match("/</", $msg['From:'][0]) ){
 			$a = explode( '<', $msg['From:'][0] );
@@ -289,7 +307,7 @@ function sep( $num=null )
 		$msg['Reply-To:'] = array( "Reply-To: <" . $a[count($a)-1] );
 		}
 
-	$this->dump( "Reply-To:", $msg['Reply-To:'] );
+	$pr->pr( $msg['Reply-To:'], "Reply-To:" );
 #
 #	Ok, now we have to look and see if the From: has no '<' or '>'.
 #	Make a $from variable to do all of these tests.
@@ -395,10 +413,10 @@ function sep( $num=null )
 			$msg['Return-Path:'] = array( "Return-Path: <" . $a[count($a)-1] );
 			}
 
-#	$this->dump( "Return-Path is NOW: ", $msg['Return-Path:'] );
+#	$pr->pr( "Return-Path is NOW: ", $msg['Return-Path:'] );
 #
 #	Because Received is so complex - we are not going to do anything about it.
-#	$this->dump( "Message is = ", $msg );
+#	$pr->pr( "Message is = ", $msg );
 	return $msg;
 }
 ################################################################################
@@ -503,6 +521,7 @@ function search( $file=null, $preg=null )
 function rem_dup_msgs( $dir )
 {
 	if( is_null($dir) || !file_exists($dir) ){ return false; }
+	$pr = $this->pr;
 #
 #	Get the files
 #
@@ -566,7 +585,7 @@ function rem_dup_msgs( $dir )
 				}
 		}
 #
-#	$this->dump( "Max_Files", $max_files ); exit;
+#	$pr->pr( "Max_Files", $max_files ); exit;
 #
 
 #
@@ -596,7 +615,7 @@ function rem_dup_msgs( $dir )
 #
 #	Ok - so now we need to delete the extra files
 #
-#	$this->dump( "Certs", $certs );
+#	$pr->pr( "Certs", $certs );
 	$del_cnt = 0;
 	$kep_cnt = 0;
 	foreach( $certs as $k=>$v ){
@@ -635,10 +654,10 @@ function rem_dup_msgs( $dir )
 			echo "Path = $path\n";
 
 			sort( $list );
-			$this->dump( "list", $list );
+			$pr->pr( $list, "list" );
 
 			$new_list = array_flip( $list );
-			$this->dump( "New List", $new_list );
+			$pr->pr( $new_list, "New List" );
 
 			foreach( $new_list as $k2=>$v2 ){
 				$v2++;

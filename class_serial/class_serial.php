@@ -4,28 +4,41 @@
 #
 	if( !defined("[]") ){ define( "[]", "array[]" ); }
 #
-#	Standard error function
+#	  Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
-		});
+#		throw new ErrorException($errstring, $errno, 0, $errfile, $errline);
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n"
+		); });
 
 	ini_set( 'memory_limit', -1 );
 	date_default_timezone_set( "UTC" );
 #
-#	$lib is where my libraries are located.
+#	$libs is where my libraries are located.
 #	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
 #	because of my UNIX background. So I used the following to find them
 #	no matter where I was. I created an environment variable called "my_libs"
 #	and then it could find my classes. IF YOU SET THINGS UP DIFFERENTLY then
 #	you will have to modify the following.
 #
-	$lib = getenv( "my_libs" );
-	$lib = str_replace( "\\", "/", $lib );
-	if( !file_exists($lib) ){ $lib = ".."; }
+	spl_autoload_register(function ($class){
+#
+#	This might seem stupid but it works. If X is there - get rid of it and then put
+#	X onto the string. If X is not there - just put it onto the string. Get it?
+#
+		$class = str_ireplace( ".php", "", $class ) . ".php";
 
-	include_once( "$lib/class_files.php" );
-	include_once( "$lib/class_pr.php" );
+		$libs = getenv( "my_libs" );
+		$libs = str_replace( "\\", "/", $libs );
+
+		if( file_exists("./$class") ){ $libs = "."; }
+			else if( file_exists("../$class") ){ $libs = ".."; }
+			else if( !file_exists("$libs/$class") ){
+				die( "Can't find $libs/$class - aborting\n" );
+				}
+
+		include "$libs/$class";
+		});
 
 ################################################################################
 #BEGIN DOC
@@ -193,8 +206,8 @@ function init()
 
 	if( $newInstance++ > 1 ){ return; }
 
-	$this->pr = $pr = $this->get_class( 'pr' );
-	$this->cf = $cf = $this->get_class( 'files' );
+	$this->pr = $pr = new class_pr();
+	$this->cf = $cf = new class_files();
 
 	$bauds = [];
 	$bauds[] = 300;
@@ -1427,7 +1440,7 @@ EOD;
 	return file_put_contents( $basFile, $code );
 }
 ################################################################################
-#	makeQBKey(). Make the FreeBasic program to handle getting keys from the
+#	makeQBKey(). Make the QB64 program to handle getting keys from the
 #		console.
 ################################################################################
 function makeQBKey()
@@ -1465,7 +1478,7 @@ function makeQBKey()
 
 EOD;
 
-	echo "Now that the file has been made you must compile it with FreeBasic.\n";
+	echo "Now that the file has been made you must compile it with QB64.\n";
 	echo "AFTER COMPILING, you should wind up with something like 'inkey.exe'\n";
 	echo "What >I< wind up with is inkey32.exe\n";
 	echo "The source code is in file : $basFile\n";
@@ -1525,24 +1538,6 @@ EOD;
 		}
 
 	return $a;
-}
-################################################################################
-#	get_class(). Returns a class specified on the call line.
-#	Notes:	This is being done because I have too many re-entrant calls to my
-#		classes. So now - you have to make sure you put include the class in
-#		YOUR program so these can work properly.
-################################################################################
-function get_class( $name=null )
-{
-	if( is_null($name) ){
-		die( "***** ERROR : Name is not given at " . __LINE__ . "\n" );
-		}
-
-	$lib = getenv( "my_libs" );
-	$lib = str_replace( "\\", "/", $lib );
-
-	if( isset($GLOBALS['classes'][$name]) ){ return $GLOBALS['classes'][$name]; }
-		else { die( "***** ERROR : You need to include $lib/class_rgb.php\n" ); }
 }
 ################################################################################
 #	__destruct(). Be sure to close everything.

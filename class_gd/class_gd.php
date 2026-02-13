@@ -4,24 +4,41 @@
 #
 	if( !defined("[]") ){ define( "[]", "array[]" ); }
 #
-#	Standard error function
+#	  Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
-		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
-		});
+#		throw new ErrorException($errstring, $errno, 0, $errfile, $errline);
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n"
+		); });
 
+	ini_set( 'memory_limit', -1 );
 	date_default_timezone_set( "UTC" );
 #
-#	$lib is where my libraries are located.
+#	$libs is where my libraries are located.
 #	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
 #	because of my UNIX background. So I used the following to find them
 #	no matter where I was. I created an environment variable called "my_libs"
 #	and then it could find my classes. IF YOU SET THINGS UP DIFFERENTLY then
 #	you will have to modify the following.
 #
-	$lib = getenv( "my_libs" );
-	$lib = str_replace( "\\", "/", $lib );
-	if( !file_exists($lib) ){ $lib = ".."; }
+	spl_autoload_register(function ($class){
+#
+#	This might seem stupid but it works. If X is there - get rid of it and then put
+#	X onto the string. If X is not there - just put it onto the string. Get it?
+#
+		$class = str_ireplace( ".php", "", $class ) . ".php";
+
+		$libs = getenv( "my_libs" );
+		$libs = str_replace( "\\", "/", $libs );
+
+		if( file_exists("./$class") ){ $libs = "."; }
+			else if( file_exists("../$class") ){ $libs = ".."; }
+			else if( !file_exists("$libs/$class") ){
+				die( "Can't find $libs/$class - aborting\n" );
+				}
+
+		include "$libs/$class";
+		});
 
 ################################################################################
 #BEGIN DOC
@@ -168,8 +185,8 @@ function init()
 ################################################################################
 function make_gd( $w=1024, $h=1024 )
 {
-	$cf = $this->get_class( 'files' );
-	$cr = $this->get_class( 'rgb' );
+	$cf = new class_files();
+	$cr = new class_rgb();
 
 	$gd = imagecreatetruecolor( $w, $h );
 	imagealphablending($gd, false);
@@ -193,7 +210,7 @@ function make_gd( $w=1024, $h=1024 )
 #
 #	First, get all of the colors in this image
 #
-	$this->cr = $cr = $this->get_class( 'rgb' );
+	$this->cr = $cr;
 	$this->colors = $this->cr->get_colors( $gd );
 
 	$this->trans = $trans;
@@ -475,8 +492,8 @@ function split_image( $gd=null, $path=null, $dir=null, $trans=null )
 	global $high_h, $high_s, $high_l;
 
 	$dq = '"';
-	$cr = $this->get_class( 'rgb' );
-	$cf = $this->get_class( 'files' );
+	$cr = new class_rgb();
+	$cf = new class_files();
 #
 #	Set a magic_wand up.
 #
@@ -575,7 +592,7 @@ function find_image( $x=null, $y=null, $cnt=0 )
 #	$this->dump( "Entering---->", "X = $x, Y = $y, CNT = $cnt" );
 #	echo "Memory Usage = " . $this->show_memory() . "\n";
 
-	$cr = $this->get_class( 'rgb' );
+	$cr = new class_rgb();
 
     $w = $width;
     $h = $height;
@@ -896,7 +913,7 @@ function darken( $old_gd=null, $percent=null, $old_colors=null, $del=true )
 #
 #	If there is only one color make it into an array.
 #
-	$cr = $this->get_class( 'rgb' );
+	$cr = new class_rgb();
 
 	if( (count($old_colors) < 2) && !is_array($old_colors) ){
 		$a = $old_colors;
@@ -977,7 +994,7 @@ function extract( $old_gd=null, $old_color=null, $default=null )
 #
 #	Convert string to array.
 #
-	$cr = $this->get_class( 'rgb' );
+	$cr = new class_rgb();
 
 	$a = explode( ";", $default );
 #
@@ -1052,7 +1069,7 @@ function color_atol( $color1=null, $color2=null, $tolerance=35 )
 #
 #	Break up the colors
 #
-	$cr = $this->get_class( 'rgb' );
+	$cr = new class_rgb();
 
 	list( $a1, $r1, $g1, $b1 ) = $cr->get_ARGB( $color1 );
 	list( $a2, $r2, $g2, $b2 ) = $cr->get_ARGB( $color2 );
@@ -1946,7 +1963,7 @@ function oneTrans( $gd=null )
 	$w = imagesx( $gd );
 	$h = imagesy( $gd );
 
-	$cr = $this->get_class( 'rgb' );
+	$cr = new class_rgb();
 
 	$cf = $this->cf;
 #
@@ -2355,29 +2372,11 @@ function get_mask( $maskDir )
 #		using xelozz -at- gmailcom's code
 ################################################################################
 function show_memory()
- {
+{
 	$size = memory_get_usage( true );
     $unit=array('b','kb','mb','gb','tb','pb');
     $s = @round($size/pow(1024,($i=floor(log($size,1024)))),2).' '.$unit[$i];
 	return $s;
- }
-################################################################################
-#	get_class(). Returns a class specified on the call line.
-#	Notes:	This is being done because I have too many re-entrant calls to my
-#		classes. So now - you have to make sure you put include the class in
-#		YOUR program so these can work properly.
-################################################################################
-function get_class( $name=null )
-{
-	if( is_null($name) ){
-		die( "***** ERROR : Name is not given at " . __LINE__ . "\n" );
-		}
-
-	$lib = getenv( "my_libs" );
-	$lib = str_replace( "\\", "/", $lib );
-
-	if( isset($GLOBALS['classes'][$name]) ){ return $GLOBALS['classes'][$name]; }
-		else { die( "***** ERROR : You need to include $lib/class_rgb.php\n" ); }
 }
 ################################################################################
 #	__destruct(). Do the clean-up necessary.

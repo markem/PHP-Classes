@@ -4,26 +4,41 @@
 #
 	if( !defined("[]") ){ define( "[]", "array[]" ); }
 #
-#	Standard error function
+#	  Standard error function
 #
 	set_error_handler(function($errno, $errstring, $errfile, $errline ){
 #		throw new ErrorException($errstring, $errno, 0, $errfile, $errline);
-		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n" );
-		});
+		die( "Error #$errno IN $errfile @$errline\nContent: " . $errstring. "\n"
+		); });
 
 	ini_set( 'memory_limit', -1 );
 	date_default_timezone_set( "UTC" );
 #
-#	$lib is where my libraries are located.
+#	$libs is where my libraries are located.
 #	>I< have all of my libraries in one directory called "<NAME>/PHP/libs"
 #	because of my UNIX background. So I used the following to find them
 #	no matter where I was. I created an environment variable called "my_libs"
 #	and then it could find my classes. IF YOU SET THINGS UP DIFFERENTLY then
 #	you will have to modify the following.
 #
-	$lib = getenv( "my_libs" );
-	$lib = str_replace( "\\", "/", $lib );
-	if( !file_exists($lib) ){ $lib = ".."; }
+	spl_autoload_register(function ($class){
+#
+#	This might seem stupid but it works. If X is there - get rid of it and then put
+#	X onto the string. If X is not there - just put it onto the string. Get it?
+#
+		$class = str_ireplace( ".php", "", $class ) . ".php";
+
+		$libs = getenv( "my_libs" );
+		$libs = str_replace( "\\", "/", $libs );
+
+		if( file_exists("./$class") ){ $libs = "."; }
+			else if( file_exists("../$class") ){ $libs = ".."; }
+			else if( !file_exists("$libs/$class") ){
+				die( "Can't find $libs/$class - aborting\n" );
+				}
+
+		include "$libs/$class";
+		});
 
 ################################################################################
 #BEGIN DOC
@@ -149,7 +164,7 @@ function init()
 ################################################################################
 function get_files( $top_dir=null, $regexp=null, $opt=null, $print=false )
 {
-	$pr = $this->get_class( "pr" );
+	$pr = new class_pr();
 #
 #	$this->dump( "Top_dir", $top_dir );
 #
@@ -1761,7 +1776,7 @@ function fget_csv( $file=null, $sep=',' )
 	if( ($fp = fopen( $file, "r" )) !== FALSE ){
 		while( ($data = fgetcsv($fp, $fileSize, $sep)) !== FALSE ){ $array[] = $data; }
 		}
-		else { echo "Could not read $file\n"; }
+		else { echo "Could not read from $file\n"; }
 
 	fclose( $fp );
 
@@ -1778,7 +1793,7 @@ function fput_csv( $file=null, $array=null, $sep=',' )
 	if( ($fp = fopen( $file, "w" )) !== FALSE ){
 		foreach( $array as $k=>$v ){ fputcsv( $fp, $v, $sep ); }
 		}
-		else { echo "Could not read $file\n"; }
+		else { echo "Could not write to $file\n"; }
 
 	fclose( $fp );
 }
@@ -2199,24 +2214,6 @@ function pathinfo( $path=null, $fromString=null, $toString=null )
 		}
 
 	return $pathinfo;
-}
-################################################################################
-#	get_class(). Returns a class specified on the call line.
-#	Notes:	This is being done because I have too many re-entrant calls to my
-#		classes. So now - you have to make sure you put include the class in
-#		YOUR program so these can work properly.
-################################################################################
-function get_class( $name=null )
-{
-	if( is_null($name) ){
-		die( "***** ERROR : Name is not given at " . __LINE__ . "\n" );
-		}
-
-	$lib = getenv( "my_libs" );
-	$lib = str_replace( "\\", "/", $lib );
-
-	if( isset($GLOBALS['classes'][$name]) ){ return $GLOBALS['classes'][$name]; }
-		else { die( "***** ERROR : You need to include $lib/class_$name.php\n" ); }
 }
 
 }
