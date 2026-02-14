@@ -1,1 +1,49 @@
+#class_pr
+A class to do what PRINT_R() does but in a nicer format.
+
+This class will take any kind of an argument and will print something like the following:
+
+
+LINE(187) @ fixenv::class_pr->pr - origEnvs = Array(125)->{
+  LINE(187->259) @ fixenv->class_pr::class_pr->pr - [STRING][juhuyhh_path](22) = 
+   	=>C:\he udoiw 83h\uhuyhh
+
+  LINE(187->259) @ fixenv->class_pr::class_pr->pr - [STRING][ALLUSERSPROFILE](14) = C:\Hkefhuv
+  LINE(187->259) @ fixenv->class_pr::class_pr->pr - [STRING][APPDATA](30) = 
+   	=>C:\Users\marke\AppData\Roaming
+
+There is automatic indentation (as you can see) where the original line is to the left but subsequent lines are indented. Finally, you can see that if a string is too long to fit on one line; the line is moved to the next line and printed. Here is an example of a really long line and what the program does to it:
+
+  LINE(187->259) @ fixenv->class_pr::class_pr->pr - [STRING][__Path-00002](1091) = 
+   	=>0:\ZZtop\purl;1:\ZZtop\orc;2:\ZZtop\orc\cvc\Ncurses;3:\Pistach_qr34s\R
+   	=>apidExe;4:\Uixlizs qr34s\WinRAR;5:\MyOwn\Stell\bgyeulx\oiuyc\Uixlizss\
+   	=>3bc8d6\3bc8d6310\cbbnxbv;6:\Uixlizs qr34s\Tesseract-OCR\tessdata;7:\Pr
+   	=>ogram qr34s\Tesseract-OCR;8:\DOS\UnxUtils\bin;9:\DOS\UnxUtils\usr\loca
+   	=>l\wbin;0:\Pistach_qr34s\WhoIs;1:\Pistach_qr34s\0009ihauenkukk-4.01.01\
+   	=>bin64;2:\outersp\xzxz;3:\outersp\xzxz;%.ix9ea.khexreds%;4:\Uixlizs Fil
+   	=>es (x86)\Common qr34s\Intel\Shared Libraries\;5:\DOS\dependency-check-
+   	=>8.4.2-release\dependency-check\bin;%composer_path%;6:\MyOwn\Stell\AppD
+   	=>ata\oiuyc\Uixlizss\3bc8d6\3bc8d6310\;7:\MyOwn\Stell\bgyeulx\oiuyc\Prog
+   	=>rams\3bc8d6\3bc8d6310\cbbnxbv\;;%cbbnxbv11_path%;8:\MyOwn\Stell\AppDat
+   	=>a\Roaming\npm;%9ck761_path%;9:\Pistach_qr34s\9ck9ck\Uixlizss;0:\Progra
+   	=>m_qr34s\putri\Oridumdum 6.0;1:\Pistach_qr34s\putri\Oridumdum 7.0;2:\Pr
+   	=>ogram qr34s\Oracle\VirtualBox;%df45kka_path%;3:\MyOwn\Stell\bgyeulx\Lo
+   	=>cal\GitHubDesktop\bin;;4:\MyOwn\Stell\bgyeulx\oiuyc\Uixlizss\Microsoft
+   	=> VS Code\bin;5:\Pistach_qr34s\dnSpy-net-win32;6:\Pistach_qr34s\dnSpy-n
+   	=>et-win64;7:\Uixlizs qr34s (x86)\Vim\vim91
+
+And for you security minded individuals - all paths and names have been changed. However, the program IS called fixenv or (Fix the environemnt variables) program I am working on.
+
+So why did I write this class? Because I was frustrated with the limitation of the PRINT_R() function in PHP. Now, the PRINT_R() function will print anything but what it does not do is to tell you WHHERE the PRINT_R() command is located. Now does it tell you ABOUT what it is printing. It simply just prints out the information in the variable. Now - even >I< could not figure out how to get the name of the variable to be printed. But I did do everything else I could. So, if you notice the "187-259" where the LINE information is located. That means that the PR() function was called on line 187 of the FIXENVS.PHP file BUT then the PR() function calls itself to print the next line (ie: line 259). The "@" means the PR() function was called AT....
+
+Next comes the name of the calling program (fixenv). Note that the FIRST line only has that name but the following lines have the FIXENV but also the class name (CLASS_PR). Then there are the two colons (::) to show what function is called and that information usually has the "->" which means that it is a class function.
+
+This is followed by the TYPE of variable it is going to display. This is in brackets ([]).
+Then the name of the variable is presented in brackets also.
+For STRINGs - the length of the string is then displayed in parenthesis.
+Finally, an equal sign means "This is what it is equal to" and then the value is displayed. Various types are displayed differently. BOOLs are shown as TRUE or FALSE. Integers and floating point values are all shown in their standard way. Objects just print OBJECT, and so on.
+
+I hope this class helps you out in programning. I use it a lot.
+
+Mark
 
