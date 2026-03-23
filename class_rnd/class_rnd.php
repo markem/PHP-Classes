@@ -244,8 +244,5 @@ public function guid( $opt = false )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['rnd']) ){ $GLOBALS['classes']['rnd'] = new class_rnd(); }
-
 ?>
 

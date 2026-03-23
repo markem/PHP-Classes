@@ -804,9 +804,4 @@ function save( $js=null )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['js']) ){
-		$GLOBALS['classes']['js'] = new class_js();
-		}
-
 ?>

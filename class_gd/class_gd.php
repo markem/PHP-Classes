@@ -2388,10 +2388,4 @@ function __destruct()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['gd']) ){
-		$GLOBALS['classes']['gd'] = new class_gd();
-		}
-
-$a = $GLOBALS['classes']['gd'];
 ?>

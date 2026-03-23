@@ -219,9 +219,4 @@ function __destruct()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['arrays']) ){
-		$GLOBALS['classes']['arrays'] = new class_arrays();
-		}
-
 ?>

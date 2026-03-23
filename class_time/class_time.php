@@ -145,9 +145,4 @@ public function getTimestamp()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['MicroDateTime']) ){
-		$GLOBALS['classes']['MicroDateTime'] = new class_MicroDateTime();
-		}
-
 ?>

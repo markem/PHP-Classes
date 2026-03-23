@@ -2218,9 +2218,4 @@ function pathinfo( $path=null, $fromString=null, $toString=null )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['files']) ){
-		$GLOBALS['classes']['files'] = new class_files();
-		}
-
 ?>

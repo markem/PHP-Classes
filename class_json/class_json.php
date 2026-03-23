@@ -249,9 +249,4 @@ function errmsg( $func, $line, $msg )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['json']) ){
-		$GLOBALS['classes']['json'] = new class_json();
-		}
-
 ?>

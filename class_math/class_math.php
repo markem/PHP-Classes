@@ -1032,6 +1032,4 @@ function hailstones( $num=null )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['math']) ){ $GLOBALS['classes']['math'] = new class_math(); }
 ?>

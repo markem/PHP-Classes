@@ -472,9 +472,4 @@ function __destruct()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['pr']) ){
-		$GLOBALS['classes']['pr'] = new class_pr();
-		}
-
 ?>

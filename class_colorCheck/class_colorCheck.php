@@ -312,10 +312,5 @@ public function pythDiff( $c1=null, $c2=null )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['colorCheck']) ){
-		$GLOBALS['classes']['colorCheck'] = new class_colorCheck();
-		}
-
 ?>
 

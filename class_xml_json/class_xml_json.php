@@ -647,9 +647,4 @@ function ssl_decrypt( $crypted_token=null, $key=null )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['xml_json']) ){
-		$GLOBALS['classes']['xml_json'] = new xml_json();
-		}
-
 ?>

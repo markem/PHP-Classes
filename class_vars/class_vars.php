@@ -346,7 +346,4 @@ public function __destruct()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['vars']) ){ $GLOBALS['classes']['vars'] = new class_vars(); }
-
 ?>

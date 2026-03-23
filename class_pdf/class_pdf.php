@@ -192,9 +192,4 @@ function pdf_info( $file=null )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['pdf']) ){
-		$GLOBALS['classes']['pdf'] = new class_pdf();
-		}
-
 ?>

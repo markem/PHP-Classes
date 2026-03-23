@@ -4195,9 +4195,4 @@ function __destruct()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['ansi']) ){
-		$GLOBALS['classes']['ansi'] = new class_ansi();
-		}
-
 ?>

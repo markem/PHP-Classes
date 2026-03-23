@@ -324,8 +324,4 @@ function __destruct()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['enums']) ){
-		$GLOBALS['classes']['enums'] = new class_enums();
-		}
 ?>

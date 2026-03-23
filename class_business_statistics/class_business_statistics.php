@@ -1058,9 +1058,4 @@ function pd( $Mu=null, $x=null ){ $this->poisson_distrubution( $Mu, $x ); }
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['business_statistics']) ){
-		$GLOBALS['classes']['business_statistics'] = new class_business_statistics();
-		}
-
 ?>

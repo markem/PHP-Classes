@@ -836,9 +836,4 @@ function __destruct()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['tar']) ){
-		$GLOBALS['classes']['tar'] = new class_tar();
-		}
-
 ?>

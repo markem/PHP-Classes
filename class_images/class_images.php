@@ -212,9 +212,4 @@ function getcmds( $file=null )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['images']) ){
-		$GLOBALS['classes']['images'] = new class_images();
-		}
-
 ?>

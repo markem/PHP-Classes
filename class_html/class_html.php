@@ -140,14 +140,4 @@ function linkExtractor( $html )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['files']) ){
-		$GLOBALS['classes']['files'] = new class_files();
-		}
-
-if( false ){
-$c = new class_files();
-$c->splitFile( "J:/Images/Backup-w5-2024-11-13-1346.TBI", "R:/2024-12-07", "100gb" );
-}
-
 ?>

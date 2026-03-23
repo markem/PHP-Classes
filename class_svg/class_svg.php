@@ -587,9 +587,4 @@ public function print()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['svg']) ){
-		$GLOBALS['classes']['svg'] = new class_svg();
-		}
-
 ?>

@@ -1050,10 +1050,5 @@ function list()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['htmlref']) ){
-		$GLOBALS['classes']['htmlref'] = new class_htmlref();
-		}
-
 ?>
 

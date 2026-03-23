@@ -1738,8 +1738,4 @@ function __destruct()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['color']) ){
-		$GLOBALS['classes']['color'] = new class_color();
-		}
 ?>

@@ -421,9 +421,4 @@ function rcs( $var=null, $start=0; $end=INT_SIZE )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['bits']) ){
-		$GLOBALS['classes']['bits'] = new class_bits();
-		}
-
 ?>

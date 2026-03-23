@@ -622,9 +622,4 @@ function fca( $x, $y, $color )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['rgb']) ){
-		$GLOBALS['classes']['rgb'] = new class_rgb();
-		}
-
 ?>

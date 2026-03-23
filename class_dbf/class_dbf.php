@@ -495,10 +495,5 @@ function __destruct()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['db']) ){
-		$GLOBALS['classes']['db'] = new class_dbf();
-		}
-
 ?>
 

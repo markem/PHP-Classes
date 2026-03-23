@@ -1000,9 +1000,4 @@ public function dumpfile( $file=null )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['paper']) ){
-		$GLOBALS['classes']['paper'] = new class_paper();
-		}
-
 ?>

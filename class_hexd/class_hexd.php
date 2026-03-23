@@ -457,9 +457,4 @@ function decrypt( $str=null )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['hexd']) ){
-		$GLOBALS['classes']['hexd'] = new class_hexd();
-		}
-
 ?>

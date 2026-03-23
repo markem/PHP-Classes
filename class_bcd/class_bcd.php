@@ -127,9 +127,4 @@ function init()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['bcd']) ){
-		$GLOBALS['classes']['bcd'] = new class_bcd();
-		}
-
 ?>

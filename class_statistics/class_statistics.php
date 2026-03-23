@@ -317,11 +317,6 @@ function test()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['statistics']) ){
-		$GLOBALS['classes']['statistics'] = new class_statistics();
-		}
-
 ?>
 
 

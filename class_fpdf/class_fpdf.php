@@ -392,9 +392,4 @@ function px2mm($px)
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['fpdf']) ){
-		$GLOBALS['classes']['fpdf'] = new class_fpdf();
-		}
-
 ?>

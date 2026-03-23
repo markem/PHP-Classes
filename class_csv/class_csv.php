@@ -192,9 +192,4 @@ function fput_csv($filename='', $array=null, $isTitle=true, $delimiter=',')
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['csv']) ){
-		$GLOBALS['classes']['csv'] = new class_csv();
-		}
-
 ?>

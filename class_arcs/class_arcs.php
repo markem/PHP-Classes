@@ -879,9 +879,4 @@ function __destruct()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['arcs']) ){
-		$GLOBALS['classes']['arcs'] = new class_arcs();
-		}
-
 ?>

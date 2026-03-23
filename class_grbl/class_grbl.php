@@ -1503,12 +1503,4 @@ function __destruct()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['grbl']) ){
-		$GLOBALS['classes']['grbl'] = new class_grbl();
-		}
-
-function d()
-{
-}
 ?>

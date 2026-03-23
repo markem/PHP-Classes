@@ -690,9 +690,4 @@ function put( $msg )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['email']) ){
-		$GLOBALS['classes']['email'] = new class_email();
-		}
-
 ?>

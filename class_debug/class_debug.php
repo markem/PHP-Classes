@@ -490,9 +490,4 @@ function dump( $title=null, $arg=null )
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['debug']) ){
-		$GLOBALS['classes']['debug'] = new class_debug();
-		}
-
 ?>

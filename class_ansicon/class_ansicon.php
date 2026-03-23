@@ -3726,11 +3726,4 @@ function __destruct()
 
 }
 
-	if( !isset($GLOBALS['classes']) ){ global $classes; }
-	if( !isset($GLOBALS['classes']['ansicon']) ){
-		$GLOBALS['classes']['ansicon'] = new class_ansicon();
-		}
-
-	$ca = new class_ansicon();
-	$ca->test();
 ?>
