@@ -2,7 +2,7 @@
 #
 #	Defines
 #
-	if( !defined("[]") ){ define( "[]", "array[]" ); }
+	if( !defined("[]") ){ define( "[]", "array()" ); }
 #
 #	  Standard error function
 #
@@ -27,17 +27,40 @@
 #	X onto the string. If X is not there - just put it onto the string. Get it?
 #
 		$class = str_ireplace( ".php", "", $class ) . ".php";
+#
+#	Set up LIBS so we can check whereever the class is located
+#	Put in the standard stuff
+#
+		$libs = [];
+		$libs[] = ".";
+		$libs[] = "..";
+#
+#	Now get the environment information - IF it is there
+#
+		$env = getenv( "my_libs" );
+		if( !is_null($env) ){
+			$libs[] = $env;
+			}
+#
+#	Now insert all of the other locations to look in
+#
+		$libs[] = "C:\xampp\php\usr\fpdf186";
+		$libs[] = "C:\xampp\php\usr\setasign";
+		$libs[] = "C:\xampp\php\usr\simplehtmldom_1_9_1";
+		$libs[] = "C:\xampp\php\usr";
 
-		$libs = getenv( "my_libs" );
-		$libs = str_replace( "\\", "/", $libs );
+		foreach( $libs as $k=>$v ){
+			$libs[$k] = str_replace( "\\", "/", $v );
+			}
 
-		if( file_exists("./$class") ){ $libs = "."; }
-			else if( file_exists("../$class") ){ $libs = ".."; }
-			else if( !file_exists("$libs/$class") ){
-				die( "Can't find $libs/$class - aborting\n" );
-				}
+		$flag = true;
+		foreach( $libs as $k=>$v ){
+			if( file_exists("$v/$class") ) { $lib = $v; $flag = false; }
+			}
 
-		include "$libs/$class";
+		if( $flag ){ die( "Can't find $class - aborting\n" ); }
+
+		include_once "$lib/$class";
 		});
 
 ################################################################################
@@ -485,8 +508,10 @@ function init()
 			"CAPTION, IFRAME, OBJECT, HR, DIV, APPLET, IMG, INPUT, LEGEND, TABLE, H1H6, P" ],
 		[ "align-content", "Specifies the alignment of flexible container's items within " .
 			"the flex container.", 1, true, "" ],
-		[ "align-items", "Specifies the default alignment for items within the flex container.", 1, true, "" ],
-		[ "align-self", "Specifies the alignment for selected items within the flex container.", 1, true, "" ],
+		[ "align-items", "Specifies the default alignment for items within the flex container.",
+			1, true, "" ],
+		[ "align-self", "Specifies the alignment for selected items within the flex container.",
+			1, true, "" ],
 		[ "alink", "A:active {color:}", 4, false, "BODY" ],
 		[ "alt", "OBJECT element TITLE attribute", 4, false, "APPLET" ],
 		[ "animation", "Specifies the keyframe-based animations.", 1, true, "" ],
@@ -500,79 +525,104 @@ function init()
 			"Specifies how a CSS animation should apply styles to its target before and " .
 			"after it is executing.", 1, true, "" ],
 		[ "animation-iteration-count",
-			"Specifies the number of times an animation cycle should be played before stopping.", 1, true, "" ],
+			"Specifies the number of times an animation cycle should be played before stopping.",
+			1, true, "" ],
 		[ "animation-name",
 			"Specifies the name of @keyframes defined animations that should be applied " .
 			"to the selected element.", 1, true, "" ],
-		[ "animation-play-state", "Specifies whether the animation is running or paused.", 1, true, "" ],
+		[ "animation-play-state", "Specifies whether the animation is running or paused.",
+			1, true, "" ],
 		[ "animation-timing-function",
-			"Specifies how a CSS animation should progress over the duration of each cycle.", 1, true, "" ],
+			"Specifies how a CSS animation should progress over the duration of each cycle.",
+			1, true, "" ],
 		[ "archive", "OBJECT element ARCHIVE attribute", 4, false, "APPLET" ],
 		[ "backface-visibility",
 			"Specifies whether or not the 'back' side of a transformed element is visible " .
 			"when facing the user.", 1, true, "" ],
-		[ "background", "Defines a variety of background properties within one declaration.", 1, true, "" ],
+		[ "background", "Defines a variety of background properties within one declaration.",
+			1, true, "" ],
 		[ "background", "background style attribute", 4, false, "BODY" ],
 		[ "background-attachment", "Specify whether the background image is fixed in the " .
 			"viewport or scrolls.", 1, true, "" ],
 		[ "background-clip", "Specifies the painting area of the background.", 1, true, "" ],
 		[ "background-color", "Defines an element's background color.", 1, true, "" ],
 		[ "background-image", "Defines an element's background image.", 1, true, "" ],
-		[ "background-origin", "Specifies the positioning area of the background images.", 1, true, "" ],
+		[ "background-origin", "Specifies the positioning area of the background images.",
+			1, true, "" ],
 		[ "background-position", "Defines the origin of a background image.", 1, true, "" ],
 		[ "background-repeat", "Specify whether/how the background image is tiled.", 1, true, "" ],
 		[ "background-size", "Specifies the size of the background images.", 1, true, "" ],
 		[ "bgcolor", "background-color style attribute", 4, false, "BODY TABLE TD TH TR" ],
-		[ "border", "Sets the width, style, and color for all four sides of an element's border.", 1, true, "" ],
+		[ "border", "Sets the width, style, and color for all four sides of an element's border.",
+			1, true, "" ],
 		[ "border", "border-width style attributes", 4, false, "IMG OBJECT" ],
-		[ "border-bottom", "Sets the width, style, and color of the bottom border of an element.", 1, true, "" ],
+		[ "border-bottom", "Sets the width, style, and color of the bottom border of an element.",
+			1, true, "" ],
 		[ "border-bottom-color", "Sets the color of the bottom border of an element.", 1, true, "" ],
-		[ "border-bottom-left-radius", "Defines the shape of the bottom-left border corner of an element.", 1, true, "" ],
-		[ "border-bottom-right-radius", "Defines the shape of the bottom-right border corner of an element.", 1, true, "" ],
+		[ "border-bottom-left-radius", "Defines the shape of the bottom-left border corner of an element.",
+			1, true, "" ],
+		[ "border-bottom-right-radius", "Defines the shape of the bottom-right border corner of an element.",
+			1, true, "" ],
 		[ "border-bottom-style", "Sets the style of the bottom border of an element.", 1, true, "" ],
 		[ "border-bottom-width", "Sets the width of the bottom border of an element.", 1, true, "" ],
-		[ "border-collapse", "Specifies whether table cell borders are connected or separated.", 1, true, "" ],
-		[ "border-color", "Sets the color of the border on all the four sides of an element.", 1, true, "" ],
-		[ "border-image", "Specifies how an image is to be used in place of the border styles.", 1, true, "" ],
+		[ "border-collapse", "Specifies whether table cell borders are connected or separated.",
+			1, true, "" ],
+		[ "border-color", "Sets the color of the border on all the four sides of an element.",
+			1, true, "" ],
+		[ "border-image", "Specifies how an image is to be used in place of the border styles.",
+			1, true, "" ],
 		[ "border-image-outset", "Specifies the amount by which the border image area extends " .
 			"beyond the border box.", 1, true, "" ],
 		[ "border-image-repeat", "Specifies whether the image-border should be repeated, " .
 			"rounded or stretched.", 1, true, "" ],
 		[ "border-image-slice", "Specifies the inward offsets of the image-border.", 1, true, "" ],
-		[ "border-image-source", "Specifies the location of the image to be used as a border.", 1, true, "" ],
+		[ "border-image-source", "Specifies the location of the image to be used as a border.",
+			1, true, "" ],
 		[ "border-image-width", "Specifies the width of the image-border.", 1, true, "" ],
-		[ "border-left", "Sets the width, style, and color of the left border of an element.", 1, true, "" ],
+		[ "border-left", "Sets the width, style, and color of the left border of an element.",
+			1, true, "" ],
 		[ "border-left-color", "Sets the color of the left border of an element.", 1, true, "" ],
 		[ "border-left-style", "Sets the style of the left border of an element.", 1, true, "" ],
 		[ "border-left-width", "Sets the width of the left border of an element.", 1, true, "" ],
 		[ "border-radius", "Defines the shape of the border corners of an element.", 1, true, "" ],
-		[ "border-right", "Sets the width, style, and color of the right border of an element.", 1, true, "" ],
+		[ "border-right", "Sets the width, style, and color of the right border of an element.",
+			1, true, "" ],
 		[ "border-right-color", "Sets the color of the right border of an element.", 1, true, "" ],
 		[ "border-right-style", "Sets the style of the right border of an element.", 1, true, "" ],
 		[ "border-right-width", "Sets the width of the right border of an element.", 1, true, "" ],
-		[ "border-spacing", "Sets the spacing between the borders of adjacent table cells.", 1, true, "" ],
-		[ "border-style", "Sets the style of the border on all the four sides of an element.", 1, true, "" ],
-		[ "border-top", "Sets the width, style, and color of the top border of an element.", 1, true, "" ],
+		[ "border-spacing", "Sets the spacing between the borders of adjacent table cells.",
+			1, true, "" ],
+		[ "border-style", "Sets the style of the border on all the four sides of an element.",
+			1, true, "" ],
+		[ "border-top", "Sets the width, style, and color of the top border of an element.",
+			1, true, "" ],
 		[ "border-top-color", "Sets the color of the top border of an element.", 1, true, "" ],
-		[ "border-top-left-radius", "Defines the shape of the top-left border corner of an element.", 1, true, "" ],
-		[ "border-top-right-radius", "Defines the shape of the top-right border corner of an element.", 1, true, "" ],
+		[ "border-top-left-radius", "Defines the shape of the top-left border corner of an element.",
+			1, true, "" ],
+		[ "border-top-right-radius", "Defines the shape of the top-right border corner of an element.",
+			1, true, "" ],
 		[ "border-top-style", "Sets the style of the top border of an element.", 1, true, "" ],
 		[ "border-top-width", "Sets the width of the top border of an element.", 1, true, "" ],
-		[ "border-width", "Sets the width of the border on all the four sides of an element.", 1, true, "" ],
-		[ "bottom", "Specify the location of the bottom edge of the positioned element.", 1, true, "" ],
+		[ "border-width", "Sets the width of the border on all the four sides of an element.",
+			1, true, "" ],
+		[ "bottom", "Specify the location of the bottom edge of the positioned element.",
+			1, true, "" ],
 		[ "box-shadow", "Applies one or more drop-shadows to the element's box.", 1, true, "" ],
 		[ "box-sizing", "Alter the default CSS box model.", 1, true, "" ],
 		[ "caption-side", "Specify the position of table's caption.", 1, true, "" ],
-		[ "clear", "Specifies the placement of an element in relation to floating elements.", 1, true, "" ],
+		[ "clear", "Specifies the placement of an element in relation to floating elements.",
+			1, true, "" ],
 		[ "clear", "clear style attribute", 4, false, "BR" ],
 		[ "clip", "Defines the clipping region.", 1, true, "" ],
 		[ "code", "OBJECT element CLASSID attribute", 4, false, "APPLET" ],
 		[ "CODEBASE", "OBJECT element CODEBASE attribute", 4, false, "DIR, DL, MENU, OL, UL" ],
 		[ "color", "Specify the color of the text of an element.", 1, true, "" ],
 		[ "color", "color style attribute", 4, false, "BASEFONT, FONT" ],
-		[ "column-count", "Specifies the number of columns in a multi-column element.", 1, true, "" ],
+		[ "column-count", "Specifies the number of columns in a multi-column element.",
+			1, true, "" ],
 		[ "column-fill", "Specifies how columns will be filled.", 1, true, "" ],
-		[ "column-gap", "Specifies the gap between the columns in a multi-column element.", 1, true, "" ],
+		[ "column-gap", "Specifies the gap between the columns in a multi-column element.",
+			1, true, "" ],
 		[ "column-rule",
 			"Specifies a straight line, or 'rule', to be drawn between each column " .
 			"in a multi-column element.", 1, true, "" ],
@@ -582,9 +632,12 @@ function init()
 			"in a multi-column layout.", 1, true, "" ],
 		[ "column-rule-width", "Specifies the width of the rule drawn between the columns " .
 			"in a multi-column layout.", 1, true, "" ],
-		[ "column-span", "Specifies how many columns an element spans across in a multi-column layout.", 1, true, "" ],
-		[ "column-width", "Specifies the optimal width of the columns in a multi-column element.", 1, true, "" ],
-		[ "columns", "A shorthand property for setting column-width and column-count properties.", 1, true, "" ],
+		[ "column-span", "Specifies how many columns an element spans across in a multi-column layout.",
+			1, true, "" ],
+		[ "column-width", "Specifies the optimal width of the columns in a multi-column element.",
+			1, true, "" ],
+		[ "columns", "A shorthand property for setting column-width and column-count properties.",
+			1, true, "" ],
 		[ "COMPACT", "{display:compact}", 4, false, "BASEFONT, FONT" ],
 		[ "content", "Inserts generated content.", 1, true, "" ],
 		[ "counter-increment", "Increments one or more counter values.", 1, true, "" ],
@@ -597,7 +650,8 @@ function init()
 		[ "flex", "Specifies the components of a flexible length.", 1, true, "" ],
 		[ "flex-basis", "Specifies the initial main size of the flex item.", 1, true, "" ],
 		[ "flex-direction", "Specifies the direction of the flexible items.", 1, true, "" ],
-		[ "flex-flow", "A shorthand property for the flex-direction and the flex-wrap properties.", 1, true, "" ],
+		[ "flex-flow", "A shorthand property for the flex-direction and the flex-wrap properties.",
+			1, true, "" ],
 		[ "flex-grow",
 			"Specifies how the flex item will grow relative to the other items inside " .
 			"the flex container.", 1, true, "" ],
@@ -609,7 +663,8 @@ function init()
 		[ "font", "Defines a variety of font properties within one declaration.", 1, true, "" ],
 		[ "font-family", "Defines a list of fonts for element.", 1, true, "" ],
 		[ "font-size", "Defines the font size for the text.", 1, true, "" ],
-		[ "font-size-adjust", "Preserves the readability of text when font fallback occurs.", 1, true, "" ],
+		[ "font-size-adjust", "Preserves the readability of text when font fallback occurs.",
+			1, true, "" ],
 		[ "font-stretch", "Selects a normal, condensed, or expanded face from a font.", 1, true, "" ],
 		[ "font-style", "Defines the font style for the text.", 1, true, "" ],
 		[ "font-variant", "Specify the font variant.", 1, true, "" ],
@@ -621,13 +676,17 @@ function init()
 		[ "justify-content",
 			"Specifies how flex items are aligned along the main axis of the flex container " .
 			"after any flexible lengths and auto margins have been resolved.", 1, true, "" ],
-		[ "left", "Specify the location of the left edge of the positioned element.", 1, true, "" ],
+		[ "left", "Specify the location of the left edge of the positioned element.",
+			1, true, "" ],
 		[ "letter-spacing", "Sets the extra spacing between letters.", 1, true, "" ],
 		[ "line-height", "Sets the height between lines of text.", 1, true, "" ],
 		[ "LINK", "A:link {color:}", 4, false, "BODY" ],
-		[ "list-style", "Defines the display style for a list and list elements.", 1, true, "" ],
-		[ "list-style-image", "Specifies the image to be used as a list-item marker.", 1, true, "" ],
-		[ "list-style-position", "Specifies the position of the list-item marker.", 1, true, "" ],
+		[ "list-style", "Defines the display style for a list and list elements.",
+			1, true, "" ],
+		[ "list-style-image", "Specifies the image to be used as a list-item marker.",
+			1, true, "" ],
+		[ "list-style-position", "Specifies the position of the list-item marker.",
+			1, true, "" ],
 		[ "list-style-type", "Specifies the marker style for a list-item.", 1, true, "" ],
 		[ "margin", "Sets the margin on all four sides of the element.", 1, true, "" ],
 		[ "margin-bottom", "Sets the bottom margin of the element.", 1, true, "" ],
@@ -646,12 +705,15 @@ function init()
 		[ "order",
 			"Specifies the order in which a flex items are displayed and laid out " .
 			"within a flex container.", 1, true, "" ],
-		[ "outline", "Sets the width, style, and color for all four sides of an element's outline.", 1, true, "" ],
+		[ "outline", "Sets the width, style, and color for all four sides of an element's outline.",
+			1, true, "" ],
 		[ "outline-color", "Sets the color of the outline.", 1, true, "" ],
-		[ "outline-offset", "Set the space between an outline and the border edge of an element.", 1, true, "" ],
+		[ "outline-offset", "Set the space between an outline and the border edge of an element.",
+			1, true, "" ],
 		[ "outline-style", "Sets a style for an outline.", 1, true, "" ],
 		[ "outline-width", "Sets the width of the outline.", 1, true, "" ],
-		[ "overflow", "Specifies the treatment of content that overflows the element's box.", 1, true, "" ],
+		[ "overflow", "Specifies the treatment of content that overflows the element's box.",
+			1, true, "" ],
 		[ "overflow-x", "Specifies the treatment of content that overflows the " .
 			"element's box horizontally.", 1, true, "" ],
 		[ "overflow-y", "Specifies the treatment of content that overflows the " .
@@ -667,12 +729,15 @@ function init()
 		[ "perspective", "Defines the perspective from which all child elements of the " .
 			"object are viewed.", 1, true, "" ],
 		[ "perspective-origin",
-			"Defines the origin (the vanishing point for the 3D space) for the perspective property.", 1, true, "" ],
+			"Defines the origin (the vanishing point for the 3D space) for the perspective property.",
+			1, true, "" ],
 		[ "position", "Specifies how an element is positioned.", 1, true, "" ],
 		[ "PROMPT", "LABEL element", 4, false, "ISINDEX" ],
 		[ "quotes", "Specifies quotation marks for embedded quotations.", 1, true, "" ],
-		[ "resize", "Specifies whether or not an element is resizable by the user.", 1, true, "" ],
-		[ "right", "Specify the location of the right edge of the positioned element.", 1, true, "" ],
+		[ "resize", "Specifies whether or not an element is resizable by the user.",
+			1, true, "" ],
+		[ "right", "Specify the location of the right edge of the positioned element.",
+			1, true, "" ],
 		[ "SIZE", "width positioning style attribute", 4, false, "HR" ],
 		[ "SIZE", "font-size style attrib ute", 4, false, "FONT, BASEFONT" ],
 		[ "START", "To be determined in CSS2", 4, false, "OL" ],
@@ -684,16 +749,21 @@ function init()
 			"Specifies how the last line of a block or a line right before a " .
 			"forced line break is aligned when text-align is justify.", 1, true, "" ],
 		[ "text-decoration", "Specifies the decoration added to text.", 1, true, "" ],
-		[ "text-decoration-color", "Specifies the color of the text-decoration-line.", 1, true, "" ],
-		[ "text-decoration-line", "Specifies what kind of line decorations are added to the element.", 1, true, "" ],
+		[ "text-decoration-color", "Specifies the color of the text-decoration-line.",
+			1, true, "" ],
+		[ "text-decoration-line", "Specifies what kind of line decorations are added to the element.",
+			1, true, "" ],
 		[ "text-decoration-style",
-			"Specifies the style of the lines specified by the text-decoration-line property", 1, true, "" ],
+			"Specifies the style of the lines specified by the text-decoration-line property",
+			1, true, "" ],
 		[ "text-indent", "Indent the first line of text.", 1, true, "" ],
 		[ "text-justify", "Specifies the justification method to use when the " .
 			"text-align property is set to justify.", 1, true, "" ],
 		[ "text-overflow",
-			"Specifies how the text content will be displayed, when it overflows the block containers.", 1, true, "" ],
-		[ "text-shadow", "Applies one or more shadows to the text content of an element.", 1, true, "" ],
+			"Specifies how the text content will be displayed, when it overflows the block containers.",
+			1, true, "" ],
+		[ "text-shadow", "Applies one or more shadows to the text content of an element.",
+			1, true, "" ],
 		[ "text-transform", "Transforms the case of the text.", 1, true, "" ],
 		[ "top", "Specify the location of the top edge of the positioned element.", 1, true, "" ],
 		[ "transform", "Applies a 2D or 3D transformation to an element.", 1, true, "" ],
@@ -702,10 +772,13 @@ function init()
 		[ "transition", "Defines the transition between two states of an element.", 1, true, "" ],
 		[ "transition-delay", "Specifies when the transition effect will start.", 1, true, "" ],
 		[ "transition-duration",
-			"Specifies the number of seconds or milliseconds a transition effect should take to complete.", 1, true, "" ],
+			"Specifies the number of seconds or milliseconds a transition effect should take to complete.",
+			1, true, "" ],
 		[ "transition-property",
-			"Specifies the names of the CSS properties to which a transition effect should be applied.", 1, true, "" ],
-		[ "transition-timing-function", "Specifies the speed curve of the transition effect.", 1, true, "" ],
+			"Specifies the names of the CSS properties to which a transition effect should be applied.",
+			1, true, "" ],
+		[ "transition-timing-function", "Specifies the speed curve of the transition effect.",
+			1, true, "" ],
 		[ "TYPE", "list-style-type style attribute", 4, false, "LI, OL, UL" ],
 		[ "VALUE", "To be determined in CSS2", 4, false, "LI" ],
 		[ "VERSION", "Built into the DTD for HTML 4.0", 4, false, "HTML" ],
@@ -724,14 +797,16 @@ function init()
 		[ "word-wrap",
 			"Specifies whether to break words when the content overflows the " .
 			"boundaries of its container.", 1, true, "" ],
-		[ "z-index", "Specifies a layering or stacking order for positioned elements.", 1, true, "" ]
+		[ "z-index", "Specifies a layering or stacking order for positioned elements.",
+			1, true, "" ]
 		];
 #
 #	Taken from : https://www.tutorialrepublic.com/css-reference/css3-properties.php
 #
 	$css_props = [
 #		["Property", "Description" ]
-		[ "align-content ", "Specifies the alignment of flexible container's items within the flex container." ],
+		[ "align-content ",
+			"Specifies the alignment of flexible container's items within the flex container." ],
 		[ "align-items ", "Specifies the default alignment for items within the flex container." ],
 		[ "align-self ", "Specifies the alignment for selected items within the flex container." ],
 		[ "animation ", "Specifies the keyframe-based animations." ],
@@ -747,11 +822,13 @@ function init()
 		[ "animation-name ", "Specifies the name of @keyframes defined animations " .
 			"that should be applied to the selected element." ],
 		[ "animation-play-state ", "Specifies whether the animation is running or paused." ],
-		[ "animation-timing-function ", "Specifies how a CSS animation should progress over the duration of each cycle." ],
+		[ "animation-timing-function ",
+			"Specifies how a CSS animation should progress over the duration of each cycle." ],
 		[ "backface-visibility ", "Specifies whether or not the 'back' side of a transformed " .
 			"element is visible when facing the user." ],
 		[ "background", "Defines a variety of background properties within one declaration." ],
-		[ "background-attachment", "Specify whether the background image is fixed in the viewport or scrolls." ],
+		[ "background-attachment",
+			"Specify whether the background image is fixed in the viewport or scrolls." ],
 		[ "background-clip ", "Specifies the painting area of the background." ],
 		[ "background-color", "Defines an element's background color." ],
 		[ "background-image", "Defines an element's background image." ],
@@ -762,15 +839,19 @@ function init()
 		[ "border", "Sets the width, style, and color for all four sides of an element's border." ],
 		[ "border-bottom", "Sets the width, style, and color of the bottom border of an element." ],
 		[ "border-bottom-color", "Sets the color of the bottom border of an element." ],
-		[ "border-bottom-left-radius ", "Defines the shape of the bottom-left border corner of an element." ],
-		[ "border-bottom-right-radius ", "Defines the shape of the bottom-right border corner of an element." ],
+		[ "border-bottom-left-radius ",
+			"Defines the shape of the bottom-left border corner of an element." ],
+		[ "border-bottom-right-radius ",
+			"Defines the shape of the bottom-right border corner of an element." ],
 		[ "border-bottom-style", "Sets the style of the bottom border of an element." ],
 		[ "border-bottom-width", "Sets the width of the bottom border of an element." ],
 		[ "border-collapse", "Specifies whether table cell borders are connected or separated." ],
 		[ "border-color", "Sets the color of the border on all the four sides of an element." ],
 		[ "border-image ", "Specifies how an image is to be used in place of the border styles." ],
-		[ "border-image-outset ", "Specifies the amount by which the border image area extends beyond the border box." ],
-		[ "border-image-repeat ", "Specifies whether the image-border should be repeated, rounded or stretched." ],
+		[ "border-image-outset ",
+			"Specifies the amount by which the border image area extends beyond the border box." ],
+		[ "border-image-repeat ",
+			"Specifies whether the image-border should be repeated, rounded or stretched." ],
 		[ "border-image-slice ", "Specifies the inward offsets of the image-border." ],
 		[ "border-image-source ", "Specifies the location of the image to be used as a border." ],
 		[ "border-image-width ", "Specifies the width of the image-border." ],
@@ -804,10 +885,14 @@ function init()
 		[ "column-gap ", "Specifies the gap between the columns in a multi-column element." ],
 		[ "column-rule ", "Specifies a straight line, or 'rule', to be drawn between each " .
 			"column in a multi-column element." ],
-		[ "column-rule-color ", "Specifies the color of the rules drawn between columns in a multi-column layout." ],
-		[ "column-rule-style ", "Specifies the style of the rule drawn between the columns in a multi-column layout." ],
-		[ "column-rule-width ", "Specifies the width of the rule drawn between the columns in a multi-column layout." ],
-		[ "column-span ", "Specifies how many columns an element spans across in a multi-column layout." ],
+		[ "column-rule-color ",
+			"Specifies the color of the rules drawn between columns in a multi-column layout." ],
+		[ "column-rule-style ",
+			"Specifies the style of the rule drawn between the columns in a multi-column layout." ],
+		[ "column-rule-width ",
+			"Specifies the width of the rule drawn between the columns in a multi-column layout." ],
+		[ "column-span ",
+			"Specifies how many columns an element spans across in a multi-column layout." ],
 		[ "column-width ", "Specifies the optimal width of the columns in a multi-column element." ],
 		[ "columns ", "A shorthand property for setting column-width and column-count properties." ],
 		[ "content", "Inserts generated content." ],
@@ -857,14 +942,18 @@ function init()
 		[ "opacity ", "Specifies the transparency of an element." ],
 		[ "order ", "Specifies the order in which a flex items are displayed " .
 			"and laid out within a flex container." ],
-		[ "outline", "Sets the width, style, and color for all four sides of an element's outline." ],
+		[ "outline",
+			"Sets the width, style, and color for all four sides of an element's outline." ],
 		[ "outline-color", "Sets the color of the outline." ],
-		[ "outline-offset ", "Set the space between an outline and the border edge of an element." ],
+		[ "outline-offset ",
+			"Set the space between an outline and the border edge of an element." ],
 		[ "outline-style", "Sets a style for an outline." ],
 		[ "outline-width", "Sets the width of the outline." ],
 		[ "overflow", "Specifies the treatment of content that overflows the element's box." ],
-		[ "overflow-x ", "Specifies the treatment of content that overflows the element's box horizontally." ],
-		[ "overflow-y ", "Specifies the treatment of content that overflows the element's box vertically." ],
+		[ "overflow-x ",
+			"Specifies the treatment of content that overflows the element's box horizontally." ],
+		[ "overflow-y ",
+			"Specifies the treatment of content that overflows the element's box vertically." ],
 		[ "padding", "Sets the padding on all four sides of the element." ],
 		[ "padding-bottom", "Sets the padding to the bottom side of an element." ],
 		[ "padding-left", "Sets the padding to the left side of an element." ],
@@ -873,7 +962,8 @@ function init()
 		[ "page-break-after", "Insert a page breaks after an element." ],
 		[ "page-break-before", "Insert a page breaks before an element." ],
 		[ "page-break-inside", "Insert a page breaks inside an element." ],
-		[ "perspective ", "Defines the perspective from which all child elements of the object are viewed." ],
+		[ "perspective ",
+			"Defines the perspective from which all child elements of the object are viewed." ],
 		[ "perspective-origin ", "Defines the origin (the vanishing point for " .
 			"the 3D space) for the perspective property." ],
 		[ "position", "Specifies how an element is positioned." ],
@@ -887,7 +977,8 @@ function init()
 			"right before a forced line break is aligned when text-align is justify." ],
 		[ "text-decoration", "Specifies the decoration added to text." ],
 		[ "text-decoration-color ", "Specifies the color of the text-decoration-line." ],
-		[ "text-decoration-line ", "Specifies what kind of line decorations are added to the element." ],
+		[ "text-decoration-line ",
+			"Specifies what kind of line decorations are added to the element." ],
 		[ "text-decoration-style ", "Specifies the style of the lines specified " .
 			"by the text-decoration-line property" ],
 		[ "text-indent", "Indent the first line of text." ],
@@ -908,13 +999,16 @@ function init()
 		[ "transition-property ", "Specifies the names of the CSS properties to which a " .
 			"transition effect should be applied." ],
 		[ "transition-timing-function ", "Specifies the speed curve of the transition effect." ],
-		[ "vertical-align", "Sets the vertical positioning of an element relative to the current text baseline." ],
+		[ "vertical-align",
+			"Sets the vertical positioning of an element relative to the current text baseline." ],
 		[ "visibility", "Specifies whether or not an element is visible." ],
 		[ "white-space", "Specifies how white space inside the element is handled." ],
 		[ "width", "Specify the width of an element." ],
 		[ "word-break ", "Specifies how to break lines within words." ],
 		[ "word-spacing", "Sets the spacing between words." ],
-		[ "word-wrap ", "Specifies whether to break words when the content overflows the boundaries of its container." ],
+		[ "word-wrap ",
+			"Specifies whether to break words when the content overflows the " .
+			"boundaries of its container." ],
 		[ "z-index", "Specifies a layering or stacking order for positioned elements." ],
 		];
 
@@ -923,9 +1017,13 @@ function init()
 		[ "@charset", "Specifies the character encoding of an external style sheet." ],
 		[ "@font-face", "Enables the use of downloadable web fonts." ],
 		[ "@import", "Imports an external style sheet." ],
-		[ "@keyframes", "Specifies the values for the animating properties at various points during the animation." ],
+		[ "@keyframes",
+			"Specifies the values for the animating properties at " .
+			"various points during the animation." ],
 		[ "@media", "Sets the media types for a set of rules in a style sheet." ],
-		[ "@page", "Defines the dimensions, orientation, and margins of a page box for printing environments." ],
+		[ "@page",
+			"Defines the dimensions, orientation, and margins of a " .
+			"page box for printing environments." ],
 		];
 #
 #	Taken from : https://www.tutorialrepublic.com/css-reference/css-aural-properties.php
@@ -936,17 +1034,23 @@ function init()
 			"right, far-right, right-side, behind, leftwards, rightwards, inherit",
 			"Sets where the sound should come from horizontally." ],
 		[ "cue", "cue-before, cue-after, inherit",
-			"Shorthand for setting the cue properties (i.e. cue-before and cue-after) in one declaration." ],
+			"Shorthand for setting the cue properties (i.e. cue-before " .
+			"and cue-after) in one declaration." ],
 		[ "cue-after", "none, url, inherit",
-			"Specifies a sound to be played after speaking an element's content to delimit it from other." ],
+			"Specifies a sound to be played after speaking an element's " .
+			"content to delimit it from other." ],
 		[ "cue-before", "none, url, inherit",
-			"Specifies a sound to be played before speaking an element's content to delimit it from other." ],
+			"Specifies a sound to be played before speaking an element's " .
+			"content to delimit it from other." ],
 		[ "elevation", "angle, below, level, above, higher, lower, inherit",
 			"Sets where the sound should come from vertically." ],
 		[ "pause", "pause-before, pause-after, inherit",
-			"Shorthand for setting the pause properties (i.e. pause-before and pause-after) in one declaration." ],
-		[ "pause-after", "time, %, inherit", "Specify a pause to be observed after speaking an element's content." ],
-		[ "pause-before", "time, %, inherit", "Specify a pause to be observed before speaking an element's content." ],
+			"Shorthand for setting the pause properties (i.e. pause-before " .
+			"and pause-after) in one declaration." ],
+		[ "pause-after", "time, %, inherit", "Specify a pause to be observed " .
+			"after speaking an element's content." ],
+		[ "pause-before", "time, %, inherit", "Specify a pause to be observed " .
+			"before speaking an element's content." ],
 		[ "pitch", "frequency, x-low, low, medium, high, x-high, inherit",
 			"Specifies the average pitch (a frequency) of the speaking voice. " .
 			"The average pitch of a voice depends on the voice family." ],
@@ -960,7 +1064,8 @@ function init()
 			"Specifies whether table headers are spoken before every cell, or only before " .
 			"a cell when that cell is associated with a different header than the previous cell." ],
 		[ "speak-numeral", "digits, continuous, inherit", "Specifies how numerals are spoken." ],
-		[ "speak-punctuation", "none, code, inherit", "Specifies how punctuation characters are spoken." ],
+		[ "speak-punctuation",
+			"none, code, inherit", "Specifies how punctuation characters are spoken." ],
 		[ "speech-rate", "number, x-slow, slow, medium, fast, x-fast, faster, slower, inherit",
 			"Specifies the speaking rate i.e. number of words spoken per minute." ],
 		[ "Stress", "number, inherit", "Specifies the .stress. in the speaking voice." ],
@@ -993,8 +1098,10 @@ function init()
 	$fonts_safe = [
 #		[ "font-family", "Type" ],
 		[ "Arial, Helvetica, 'Arial Black', Gadget, Impact, Charcoal, " .
-			"Tahoma, Geneva, 'Trebuchet MS', Helvetica, Verdana, sans-serif", "sans-serif" ],
-		[ "'Times New Roman', Times, Georgia, 'Palatino Linotype', Palatino, 'Book Antiqua', serif", "serif" ],
+			"Tahoma, Geneva, 'Trebuchet MS', Helvetica, Verdana, sans-serif",
+			"sans-serif" ],
+		[ "'Times New Roman', Times, Georgia,
+			'Palatino Linotype', Palatino, 'Book Antiqua', serif", "serif" ],
 		[ "'Courier New', Courier, 'Lucida Console', Monaco, monospace", "monospace" ],
 		];
 

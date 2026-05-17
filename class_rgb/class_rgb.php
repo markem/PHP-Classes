@@ -2,7 +2,7 @@
 #
 #	Defines
 #
-	if( !defined("[]") ){ define( "[]", "array[]" ); }
+	if( !defined("[]") ){ define( "[]", "array()" ); }
 #
 #	  Standard error function
 #
@@ -27,17 +27,40 @@
 #	X onto the string. If X is not there - just put it onto the string. Get it?
 #
 		$class = str_ireplace( ".php", "", $class ) . ".php";
+#
+#	Set up LIBS so we can check whereever the class is located
+#	Put in the standard stuff
+#
+		$libs = [];
+		$libs[] = ".";
+		$libs[] = "..";
+#
+#	Now get the environment information - IF it is there
+#
+		$env = getenv( "my_libs" );
+		if( !is_null($env) ){
+			$libs[] = $env;
+			}
+#
+#	Now insert all of the other locations to look in
+#
+		$libs[] = "C:\xampp\php\usr\fpdf186";
+		$libs[] = "C:\xampp\php\usr\setasign";
+		$libs[] = "C:\xampp\php\usr\simplehtmldom_1_9_1";
+		$libs[] = "C:\xampp\php\usr";
 
-		$libs = getenv( "my_libs" );
-		$libs = str_replace( "\\", "/", $libs );
+		foreach( $libs as $k=>$v ){
+			$libs[$k] = str_replace( "\\", "/", $v );
+			}
 
-		if( file_exists("./$class") ){ $libs = "."; }
-			else if( file_exists("../$class") ){ $libs = ".."; }
-			else if( !file_exists("$libs/$class") ){
-				die( "Can't find $libs/$class - aborting\n" );
-				}
+		$flag = true;
+		foreach( $libs as $k=>$v ){
+			if( file_exists("$v/$class") ) { $lib = $v; $flag = false; }
+			}
 
-		include "$libs/$class";
+		if( $flag ){ die( "Can't find $class - aborting\n" ); }
+
+		include_once "$lib/$class";
 		});
 
 ################################################################################

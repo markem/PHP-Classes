@@ -2,7 +2,7 @@
 #
 #	Defines
 #
-	if( !defined("[]") ){ define( "[]", "array[]" ); }
+	if( !defined("[]") ){ define( "[]", "array()" ); }
 #
 #	  Standard error function
 #
@@ -27,17 +27,40 @@
 #	X onto the string. If X is not there - just put it onto the string. Get it?
 #
 		$class = str_ireplace( ".php", "", $class ) . ".php";
+#
+#	Set up LIBS so we can check whereever the class is located
+#	Put in the standard stuff
+#
+		$libs = [];
+		$libs[] = ".";
+		$libs[] = "..";
+#
+#	Now get the environment information - IF it is there
+#
+		$env = getenv( "my_libs" );
+		if( !is_null($env) ){
+			$libs[] = $env;
+			}
+#
+#	Now insert all of the other locations to look in
+#
+		$libs[] = "C:\xampp\php\usr\fpdf186";
+		$libs[] = "C:\xampp\php\usr\setasign";
+		$libs[] = "C:\xampp\php\usr\simplehtmldom_1_9_1";
+		$libs[] = "C:\xampp\php\usr";
 
-		$libs = getenv( "my_libs" );
-		$libs = str_replace( "\\", "/", $libs );
+		foreach( $libs as $k=>$v ){
+			$libs[$k] = str_replace( "\\", "/", $v );
+			}
 
-		if( file_exists("./$class") ){ $libs = "."; }
-			else if( file_exists("../$class") ){ $libs = ".."; }
-			else if( !file_exists("$libs/$class") ){
-				die( "Can't find $libs/$class - aborting\n" );
-				}
+		$flag = true;
+		foreach( $libs as $k=>$v ){
+			if( file_exists("$v/$class") ) { $lib = $v; $flag = false; }
+			}
 
-		include "$libs/$class";
+		if( $flag ){ die( "Can't find $class - aborting\n" ); }
+
+		include_once "$lib/$class";
 		});
 
 ################################################################################
@@ -117,25 +140,116 @@ function init()
 		}
 }
 ################################################################################
-#	linkExtractor().  Use the following function to extract all of the
-#		links from a HTML string.
+#	get_links().  Use the following function to extract all of the
+#		links from a HTML file.
 #
 #	Taken from :
 #
 #		https://www.hashbangcode.com/article/extract-links-html-file-php
 #
 ################################################################################
-function linkExtractor( $html )
+function get_links( $html )
 {
-	$linkArray = array();
+	$links = [];
 	if( preg_match_all('/<a\s+.*?href=[\"\']?([^\"\' >]*)[\"\']?[^>]*>(.*?)<\/a>/i',
 		$html, $matches, PREG_SET_ORDER)){
-		foreach ($matches as $match) {
-			array_push($linkArray, array($match[1], $match[2]));
+		foreach( $matches as $match ){
+			$links[] = $match;
 			}
 		}
 
-	return $linkArray;
+	return $links;
+}
+################################################################################
+#	get_css(). Get and break up all CSS information sent to this function.
+#	NOTES:	You MUST send the entire CSS string. EVERYTHING. It will then be
+#		copressed down to a SINGLE string and THEN broken back apart. I know
+#		it sounds dumb but I don't want to have to create two separate functions
+#		to do this. So it is easier to do it once. Period.
+################################################################################
+function get_css( $css )
+{
+$pr = new class_pr();
+#
+#	If $css is an array - make it a string only.
+#
+	if( is_array($css) ){ $css = implode( $css ); }
+#
+#	Now start breaking it apart. First we do the semicolons
+#
+	$css = str_replace( ";", ";\r", $css );
+#
+#	Now break apart the closing braces.
+#
+	$css = str_replace( "}", "\r}\r", $css );
+#
+#	Now put any }\r. back to being }.
+#
+	$css = str_replace( "}\r.", "}.", $css );
+#
+#	Now break apart the opening braces.
+#
+	$css = str_replace( "{", "{\r", $css );
+#
+#	Now the hard one. Make anything like \w\+{ to be \r\w\+{
+#
+	$css = str_replace( " ", "\r", $css );
+#
+#	Now break it apart
+#
+	$css = explode( "\r", $css );
+#
+#	Now see if there is NOT a semicolon at the end of a ':' command
+#	and put one on there
+#
+	foreach( $css as $k=>$v ){
+		if( preg_match("/:/", $v) && !preg_match("/;/", $v) &&
+			!preg_match("/{\$/", $v) ){
+			$css[$k] = preg_replace( "/\$/", ";", $v );
+			}
+		}
+
+	$c = [];
+	$cnt = 0;
+	foreach( $css as $k=>$v ){
+		if( strlen(trim($v)) < 1 ){ continue; }
+		if( preg_match("/{\$/", $v) || (preg_match("/^\./", $v) || preg_match("/^\w/", $v)) ){
+			$type = substr( $v, 0, -1 );
+			$c[$type] = [];
+			}
+			else if( preg_match("/:/", $v) && preg_match("/;\$/", $v) ){
+				$a = explode( ":", $v );
+				$c[$type][] = $a;
+				}
+			else if( preg_match("/(;|}|>)/", $v) ){ $c[$type][] = $v; }
+			else if( preg_match("/^(\.|\w|@|\+|\!)/", $v) ){ $c[$type][] = $v; }
+			else if( preg_match("/^-/", $v) ){ $c[$type][] = $v; }
+			else {
+				$type = $cnt++;
+				$c[$type][] = "***** ERROR : $v";
+				}
+		}
+
+	return array( $css, $c);
+}
+################################################################################
+#	get_css_names(). Gets the NAMES of all of the CSS information.
+#	NOTES:	First things first - whatever is set over is automatically
+#		squished down to just one line.
+################################################################################
+function get_css_names( $css )
+{
+	$links = [];
+	if( is_array($css) ){
+		$css = implode( $css );	#	Squish down to a single line.
+		}
+		else if( preg_match("/(\r|\n)/", $css) ){
+			$css = preg_replace( "/(\r|\n)/", "", $css );
+			}
+
+	$css = str_replace( "{", "{\n", $css );
+	$css = str_replace( ";", ";\n", $css );
+print_r( $css ); echo "\n";exit;
 }
 
 }
