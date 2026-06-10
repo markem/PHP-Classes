@@ -63,11 +63,11 @@
 #
 #-Calling Sequence:
 #
-#	class_arrays();
+#	class_hex();
 #
 #-Description:
 #
-#	A class to add to the PHP functions. For instance - find ANY key.
+#	Handle my HEXD code.
 #
 #-Inputs:
 #
@@ -81,8 +81,14 @@
 #
 #	Name					Company					Date
 #	---------------------------------------------------------------------------
-#	Mark Manning			Simulacron I			Fri 02/05/2021 14:21:56.65 
+#	Mark Manning			Simulacron I			Sat 02/15/2025 17:14:36.37
 #		Original Program.
+#
+#	Mark Manning			Simulacron I			Sat 07/17/2021 14:56:52.53 
+#	---------------------------------------------------------------------------
+#		REMEMBER! We are now following the PHP code of NOT killing the program
+#		but instead always setting a DEBUG MESSAGE and returning FALSE. So I'm
+#		getting rid of all of the DIE() calls.
 #
 #	Mark Manning			Simulacron I			Sat 05/13/2023 17:34:57.07 
 #	---------------------------------------------------------------------------
@@ -93,7 +99,7 @@
 #	---------------------------------------------------------------------------
 #	Please note that _MY_ Legal notice _HERE_ is as follows:
 #
-#		CLASS_ARRAYS.PHP. A class to handle working with arrays.
+#		CLASS_FILES.PHP. A class to handle working with files.
 #		Copyright (C) 2001-NOW.  Mark Manning. All rights reserved
 #		except for those given by the BSD License.
 #
@@ -101,18 +107,21 @@
 #
 #END DOC
 ################################################################################
-class class_arrays
+class class_hex
 {
+	private $base64 = null;
+	private $hex = null;
+	private $pr = null;
 
 ################################################################################
 #	__construct(). Constructor.
 ################################################################################
 function __construct()
 {
-	if( !isset($GLOBALS['class']['arrays']) ){
+	if( !isset($GLOBALS['class']['files']) ){
 		return $this->init( func_get_args() );
 		}
-		else { return $GLOBALS['class']['arrays']; }
+		else { return $GLOBALS['class']['files']; }
 }
 ################################################################################
 #	init(). Used instead of __construct() so you can re-init() if necessary.
@@ -127,112 +136,130 @@ function init()
 	while( is_array($args) && (count($args) < 2) ){
 		$args = array_pop( $args );
 		}
+
+	$this->pr = new class_pr();
+#
+#	Get our base 64 info
+#
+	$base64 = "0123456789";
+	for( $i=0; $i<26; $i++ ){ $base64 .= chr(ord("A")+$i); }
+	for( $i=0; $i<26; $i++ ){ $base64 .= chr(ord("a")+$i); }
+	$base64 .= "=+";
+
+	$this->base64 = $base64;
+#
+#	Set up $hex
+#
+	$this->hex = "0123456789ABCDEF";
 }
 ################################################################################
-#	array_search(). Find ANY key (UPPER/lower/whatever)
-#	Example : $this->array_search( "MyNeedle.*5", $myArray );
-#		Would find "MyNeedle0000055" as a key. Note ANY regular expression
-#		could be used.
+#	encode(). A simple "convert to hex" routine. Handles vars and arrays
+#	NOTE : Don't know if it will work with an object. But I don't think so.
 ################################################################################
-function array_isearch( $needles=null, $haystack=null )
+function encode( $var=null, $key=null )
 {
-	if( is_null($needles) ){ die( "NEEDLE is null\n" ); }
-	if( is_null($haystack) ){ die( "HAYSTACK is null\n" ); }
-#
-#	If no needle is sent over - return all of them.
-#
-	if( !is_array($needles) && strlen(trim($needles)) < 1 ){
-		return array_keys( $haystack);
+	if( is_null($var) ){
+		die( "***** ERROR : Call line variable is NULL - Aborting\n" );
 		}
 
-	$ary = [];
-	$flag = false;
-	$a = array_keys( $haystack );
-	foreach( $a as $k=>$v ){
-		if( is_array($needles) ){
-			foreach( $needles as $k1=>$v1 ){
-				if( preg_match("/$v1/i", $v) ){
-					$ary[] = $v;
-					$flag = true;
+	$str = "";
+	if( is_array($var) ){
+		foreach( $var as $k=>$v ){
+			if( is_array($v) ){
+				$key = bin2hex( $k );
+				$key = ((strlen($key) % 2) < 1) ? "$key" : "0$key";
+				$str .= "[$key:" . $this->encode( $v ) . "]";
+				}
+				else {
+					$key = bin2hex( $k );
+					$key = ((strlen($key) % 2) < 1) ? "$key" : "0$key";
+					$val = bin2hex( $v );
+					$val = ((strlen($val) % 2) < 1) ? "$val" : "0$val";
+					$str .= "<$key=$val>";
 					}
-				}
-
-			if( $flag ){ return $ary; }
 			}
-			else if( preg_match("/$needles/i", $v) ){
-				$ary[] = $v;
-				$flag = true;
-				}
 		}
-
-	if( $flag ){ return $ary; }
-
-	return fales;
-}
-################################################################################
-#	make_array(). This function will create an array.
-#	NOTES:	$options is a TWO DIMENSIONAL ARRAY. It goes like this:
-#
-#		Each entry is made like this:
-#
-#			0 = Where to start the array
-#			1 = How far this part of the array goes
-#			2 = The value to put into the array. (NOTE : ONLY on the last array)
-#
-#		For each entry - the array adds another array to the maximum of three
-#		levels.
-#
-#		array( 0, 5, '*' );	array[]
-#		array( array(0,5), array(0,36,'+') );	array[][]
-#		array( array(0,5), array(0,42), array(0,5,'=') ); Array[][][]
-################################################################################
-function make_array( $options=null )
-{
-	$cnt = count( $options );
-	if( $cnt == 1 ){
-		return $this->array_fill( $options[0], $options[1], $options[2] );
-		}
-		else if( $cnt == 2 ){
-			$ary_1 = $this->array_fill( $options[0][0], $options[0][1], array() );
-			for( $i=$options[0][0]; $i<$options[0][1]; $i++ ){
-				$ary_1[$i] =
-					$this->array_fill( $options[1][0], $options[1][1], $options[1][2] );
-				}
-			}
-		else if( $cnt == 3 ){
-			$ary_1 = $this->array_fill( $options[0][0], $options[0][1], array() );
-			for( $i=$options[0][0]; $i<$options[0][1]; $i++ ){
-				$ary_1[$i] =
-					$this->array_fill( $options[1][0], $options[1][1], array() );
-				for( $j=$options[1][0]; $j<$options[1][1]; $j++ ){
-					$ary_1[$i][$j] =
-						$this->array_fill( $options[2][0], $options[2][1], $options[2][2] );
-					}
-				}
-			}
 		else {
-			die( "***** ERROR : Too many arrays to make - aborting.\n" );
+			if( is_null($key) ){ $key = "00"; }
+				else {
+					$key = bin2hex( $key );
+					$key = ((strlen($key) % 2) < 1) ? "$key" : "0$key";
+					}
+
+			$val = bin2hex( $var );
+			$val = ((strlen($val) % 2) < 1) ? "$val" : "0$val";
+			$str .= "<$key=$val>";
 			}
 
-	return $ary_1;
+	return $str;
 }
 ################################################################################
-#	array_fill(). Fill a ONE dimensional array with something
+#	decode(). Takes the string apart and re-creates a variable or an array.
 ################################################################################
-function array_fill( $start=null, $end=null, $mixed=null )
+function decode()
 {
-	$ary = [];
-	for( $i=$start, $i<$end, $i++ ){
-		$ary[$i] = $mixed;
+	$args = func_get_args();
+	$args_cnt = func_num_args();
+
+	$string = $args[0];
+	$current_array = array();
+	$string_len = strlen( $string );
+
+	if( $args_cnt > 1 ){ $start = $args[1]; }
+		else{ $start = 0; }
+
+	if( is_null($string) ){
+		die( "***** ERROR : Call line variable is NULL - Aborting\n" );
 		}
 
-	return $ary;
-}
-################################################################################
-#	__destruct(). The class destruct function.
-################################################################################
-function __destruct()
-{
+	$key_cnt = 0;
+	for( $i=$start; $i<$string_len; $i++ ){
+		$a = substr( $string, $i++, 1 );
+#	 	=><30=54686973206973206120746573740a><31=54686973206973206120746573740a>
+#	 	=>[32:<30=546573742074686973206973><31=546573742074686973206973><32=5465
+#	 	=>73742074686973206973><33=546573742074686973206973>]<33=546869732069732
+#	 	=>06120746573740a><34=54686973206973206120746573740a>
+		if( $a == "<" ){
+			$str = "";
+			while( $a != "=" ){
+				$a = substr( $string, $i++, 1 );
+				$str .= $a;
+				}
+
+			$key = substr( $str, 0, -1 );
+			$key = hex2bin( $key );
+#
+#	Now get the value
+#
+			$str = "";
+			$a = substr( $string, $i++, 1 );
+			while( $a != ">" ){
+				$str .= $a;
+				$a = substr( $string, $i++, 1 );
+				}
+
+			$val = hex2bin( $str );
+
+			$current_array[$key] = $val;
+			$i--;
+			}
+			else if( $a == '[' ){
+				$str = "";
+				while( $a != ':' ){
+					$a = substr( $string, $i++, 1 );
+					$str .= $a;
+					}
+
+				$key = substr( $str, 0, -1 );
+				$key = hex2bin( $key );
+				list( $i, $current_array[$key] ) = $this->decode( $string, $i );
+				}
+			else if( $a == ']' ){
+				return array( --$i, $current_array );
+				}
+		}
+
+	return( $current_array );
 }
 
 }

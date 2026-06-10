@@ -2,7 +2,7 @@
 #
 #	Defines
 #
-	if( !defined("[]") ){ define( "[]", "array()" ); }
+
 #
 #	  Standard error function
 #
@@ -44,14 +44,9 @@
 #
 #	Now insert all of the other locations to look in
 #
-		$libs[] = "C:\xampp\php\usr\fpdf186";
-		$libs[] = "C:\xampp\php\usr\setasign";
-		$libs[] = "C:\xampp\php\usr\simplehtmldom_1_9_1";
-		$libs[] = "C:\xampp\php\usr";
-
-		foreach( $libs as $k=>$v ){
-			$libs[$k] = str_replace( "\\", "/", $v );
-			}
+		$libs[] = "C:/xampp/php/usr/fpdf186";
+		$libs[] = "C:/xampp/php/usr/setasign";
+		$libs[] = "C:/xampp/php/usr";
 
 		$flag = true;
 		foreach( $libs as $k=>$v ){
